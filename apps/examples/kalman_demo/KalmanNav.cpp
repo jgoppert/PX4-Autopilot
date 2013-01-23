@@ -51,18 +51,22 @@ static const int8_t ret_error = -1; 	// error occurred
 
 KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	SuperBlock(parent, name),
-	// ekf matrices
-	F(9, 9),
-	G(9, 6),
-	P(9, 9),
-	P0(9, 9),
-	V(6, 6),
-	// attitude measurement ekf matrices
-	HAtt(3, 9),
+	// attitude ekf matrices
+	FAtt(3, 3),
+	GAtt(3, 3),
+	PAtt(3, 3),
+	P0Att(3, 3),
+	HAtt(3, 3),
 	RAtt(3, 3),
-	// position measurement ekf matrices
-	HPos(5, 9),
-	RPos(5, 5),
+	VAtt(3, 3),
+	// position ekf matrices
+	FPos(6, 6),
+	GPos(6, 3),
+	PPos(6, 6),
+	P0Pos(3, 3),
+	HPos(6, 6),
+	RPos(6, 6),
+	VPos(3, 3),
 	// attitude representations
 	C_nb(),
 	q(),
@@ -107,8 +111,10 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	using namespace math;
 
 	// initial state covariance matrix
-	P0 = Matrix::identity(9) * 0.01f;
-	P = P0;
+	P0Att = Matrix::identity(3) * 0.01f;
+	PAtt = P0Att;
+	P0Pos = Matrix::identity(6) * 0.01f;
+	PPos = P0Pos;
 
 	// initial state
 	phi = 0.0f;
@@ -128,11 +134,12 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	C_nb = Dcm(q);
 
 	// HPos is constant
-	HPos(0, 3) = 1.0f;
-	HPos(1, 4) = 1.0f;
-	HPos(2, 6) = 1.0e7f * M_RAD_TO_DEG_F;
-	HPos(3, 7) = 1.0e7f * M_RAD_TO_DEG_F;
-	HPos(4, 8) = 1.0f;
+	HPos(0, 0) = 1.0f;
+	HPos(1, 1) = 1.0f;
+	HPos(2, 2) = 1.0f;
+	HPos(3, 3) = 1.0e7f * M_RAD_TO_DEG_F;
+	HPos(4, 4) = 1.0e7f * M_RAD_TO_DEG_F;
+	HPos(5, 5) = 1.0f;
 
 	// initialize all parameters
 	updateParams();
@@ -213,7 +220,8 @@ void KalmanNav::update()
 	// don't predict if time greater than a second
 	if (dt < 1.0f) {
 		predictState(dt);
-		predictStateCovariance(dt);
+		predictAttitudeStateCovariance(dt);
+		predictPositionStateCovariance(dt);
 		// count fast frames
 		_navFrames += 1;
 	}
@@ -371,7 +379,50 @@ int KalmanNav::predictState(float dt)
 	return ret_ok;
 }
 
-int KalmanNav::predictStateCovariance(float dt)
+int KalmanNav::predictAttitudeStateCovariance(float dt)
+{
+	using namespace math;
+
+	// trig
+	float sinL = sinf(lat);
+	float cosL = cosf(lat);
+	float tanL = tanf(lat);
+
+	// prepare for matrix
+	float R = R0 + float(alt);
+
+	// Linearized State Space, Titterton pg. 291
+	
+	// F Attitude
+	FAtt(0, 1) = -(omega * sinL + vE * tanL / R);
+	FAtt(0, 2) = vN / R;
+
+	FAtt(1, 0) = omega * sinL + vE * tanL / R;
+	FAtt(1, 2) = omega * cosL + vE / R;
+
+	FAtt(2, 0) = -vN / R;
+	FAtt(2, 1) = -omega * cosL - vE / R;
+
+	// G Attitude
+	GAtt(0, 0) = -C_nb(0, 0);
+	GAtt(0, 1) = -C_nb(0, 1);
+	GAtt(0, 2) = -C_nb(0, 2);
+	GAtt(1, 0) = -C_nb(1, 0);
+	GAtt(1, 1) = -C_nb(1, 1);
+	GAtt(1, 2) = -C_nb(1, 2);
+	GAtt(2, 0) = -C_nb(2, 0);
+	GAtt(2, 1) = -C_nb(2, 1);
+	GAtt(2, 2) = -C_nb(2, 2);
+
+	// for discrte time EKF
+	// http://en.wikipedia.org/wiki/Extended_Kalman_filter
+	PAtt = PAtt + (FAtt * PAtt + PAtt * FAtt.transpose() + GAtt * VAtt * GAtt.transpose()) * dt;
+
+	return ret_ok;
+}
+
+
+int KalmanNav::predictPositionStateCovariance(float dt)
 {
 	using namespace math;
 
@@ -385,85 +436,51 @@ int KalmanNav::predictStateCovariance(float dt)
 	float R = R0 + float(alt);
 	float RSq = R * R;
 
-	// F Matrix
-	// Titterton pg. 291
+	// Linearized State Space, Titterton pg. 291
+	
+	// F Position
+	FPos(0, 0) = vD / R;
+	FPos(0, 1) = -2 * (omega * sinL + vE * tanL / R);
+	FPos(0, 2) = vN / R;
+	FPos(0, 3) = -vE * (2 * omega * cosL + vE / (R * cosLSq));
+	FPos(0, 5) = (vE * vE * tanL - vN * vD) / RSq;
 
-	F(0, 1) = -(omega * sinL + vE * tanL / R);
-	F(0, 2) = vN / R;
-	F(0, 4) = 1.0f / R;
-	F(0, 6) = -omega * sinL;
-	F(0, 8) = -vE / RSq;
-
-	F(1, 0) = omega * sinL + vE * tanL / R;
-	F(1, 2) = omega * cosL + vE / R;
-	F(1, 3) = -1.0f / R;
-	F(1, 8) = vN / RSq;
-
-	F(2, 0) = -vN / R;
-	F(2, 1) = -omega * cosL - vE / R;
-	F(2, 4) = -tanL / R;
-	F(2, 6) = -omega * cosL - vE / (R * cosLSq);
-	F(2, 8) = vE * tanL / RSq;
-
-	F(3, 1) = -fD;
-	F(3, 2) = fE;
-	F(3, 3) = vD / R;
-	F(3, 4) = -2 * (omega * sinL + vE * tanL / R);
-	F(3, 5) = vN / R;
-	F(3, 6) = -vE * (2 * omega * cosL + vE / (R * cosLSq));
-	F(3, 8) = (vE * vE * tanL - vN * vD) / RSq;
-
-	F(4, 0) = fD;
-	F(4, 2) = -fN;
-	F(4, 3) = 2 * omega * sinL + vE * tanL / R;
-	F(4, 4) = (vN * tanL + vD) / R;
-	F(4, 5) = 2 * omega * cosL + vE / R;
-	F(4, 6) = 2 * omega * (vN * cosL - vD * sinL) +
+	FPos(1, 0) = 2 * omega * sinL + vE * tanL / R;
+	FPos(1, 1) = (vN * tanL + vD) / R;
+	FPos(1, 2) = 2 * omega * cosL + vE / R;
+	FPos(1, 3) = 2 * omega * (vN * cosL - vD * sinL) +
 		  vN * vE / (R * cosLSq);
-	F(4, 8) = -vE * (vN * tanL + vD) / RSq;
+	FPos(1, 5) = -vE * (vN * tanL + vD) / RSq;
 
-	F(5, 0) = -fE;
-	F(5, 1) = fN;
-	F(5, 3) = -2 * vN / R;
-	F(5, 4) = -2 * (omega * cosL + vE / R);
-	F(5, 6) = 2 * omega * vE * sinL;
-	F(5, 8) = (vN * vN + vE * vE) / RSq;
+	FPos(2, 0) = -2 * vN / R;
+	FPos(2, 1) = -2 * (omega * cosL + vE / R);
+	FPos(2, 3) = 2 * omega * vE * sinL;
+	FPos(2, 5) = (vN * vN + vE * vE) / RSq;
 
-	F(6, 3) = 1 / R;
-	F(6, 8) = -vN / RSq;
+	FPos(3, 0) = 1 / R;
+	FPos(3, 5) = -vN / RSq;
 
-	F(7, 4) = 1 / (R * cosL);
-	F(7, 6) = vE * tanL / (R * cosL);
-	F(7, 8) = -vE / (cosL * RSq);
+	FPos(4, 1) = 1 / (R * cosL);
+	FPos(4, 3) = vE * tanL / (R * cosL);
+	FPos(4, 5) = -vE / (cosL * RSq);
 
-	F(8, 5) = -1;
+	FPos(5, 2) = -1;
 
-	// G Matrix
-	// Titterton pg. 291
-	G(0, 0) = -C_nb(0, 0);
-	G(0, 1) = -C_nb(0, 1);
-	G(0, 2) = -C_nb(0, 2);
-	G(1, 0) = -C_nb(1, 0);
-	G(1, 1) = -C_nb(1, 1);
-	G(1, 2) = -C_nb(1, 2);
-	G(2, 0) = -C_nb(2, 0);
-	G(2, 1) = -C_nb(2, 1);
-	G(2, 2) = -C_nb(2, 2);
-
-	G(3, 3) = C_nb(0, 0);
-	G(3, 4) = C_nb(0, 1);
-	G(3, 5) = C_nb(0, 2);
-	G(4, 3) = C_nb(1, 0);
-	G(4, 4) = C_nb(1, 1);
-	G(4, 5) = C_nb(1, 2);
-	G(5, 3) = C_nb(2, 0);
-	G(5, 4) = C_nb(2, 1);
-	G(5, 5) = C_nb(2, 2);
+	// G Position
+	GPos(0, 0) = C_nb(0, 0);
+	GPos(0, 1) = C_nb(0, 1);
+	GPos(0, 2) = C_nb(0, 2);
+	GPos(1, 0) = C_nb(1, 0);
+	GPos(1, 1) = C_nb(1, 1);
+	GPos(1, 2) = C_nb(1, 2);
+	GPos(2, 0) = C_nb(2, 0);
+	GPos(2, 1) = C_nb(2, 1);
+	GPos(2, 2) = C_nb(2, 2);
 
 	// continuous predictioon equations
 	// for discrte time EKF
 	// http://en.wikipedia.org/wiki/Extended_Kalman_filter
-	P = P + (F * P + P * F.transpose() + G * V * G.transpose()) * dt;
+	PPos = PPos + (FPos * PPos + PPos * FPos.transpose() + GPos * VPos * GPos.transpose()) * dt;
 
 	return ret_ok;
 }
@@ -530,8 +547,8 @@ int KalmanNav::correctAtt()
 	// compute correction
 	// http://en.wikipedia.org/wiki/Extended_Kalman_filter
 	Vector y = zMag - zMagHat; // residual
-	Matrix S = HAtt * P * HAtt.transpose() + RAtt; // residual covariance
-	Matrix K = P * HAtt.transpose() * S.inverse();
+	Matrix S = HAtt * PAtt * HAtt.transpose() + RAtt; // residual covariance
+	Matrix K = PAtt * HAtt.transpose() * S.inverse();
 	Vector xCorrect = K * y;
 
 	// check correciton is sane
@@ -542,7 +559,7 @@ int KalmanNav::correctAtt()
 			// abort correction and return
 			printf("[kalman_demo] numerical failure in att correction\n");
 			// reset P matrix to P0
-			P = P0;
+			PAtt = P0Att;
 			return ret_error;
 		}
 	}
@@ -552,18 +569,9 @@ int KalmanNav::correctAtt()
 	theta += xCorrect(THETA);
 	psi += xCorrect(PSI);
 
-	if (_positionInitialized) {
-		vN += xCorrect(VN);
-		vE += xCorrect(VE);
-		vD += xCorrect(VD);
-		lat += double(xCorrect(LAT));
-		lon += double(xCorrect(LON));
-		alt += double(xCorrect(ALT));
-	}
-
 	// update state covariance
 	// http://en.wikipedia.org/wiki/Extended_Kalman_filter
-	P = P - K * HAtt * P;
+	PAtt = PAtt - K * HAtt * PAtt;
 
 	// fault detection
 	float beta = y.dot(S.inverse() * y);
@@ -588,17 +596,18 @@ int KalmanNav::correctPos()
 	using namespace math;
 
 	// residual
-	Vector y(5);
+	Vector y(6);
 	y(0) = _gps.vel_n - vN;
 	y(1) = _gps.vel_e - vE;
-	y(2) = double(_gps.lat) - lat * 1.0e7 * M_RAD_TO_DEG;
-	y(3) = double(_gps.lon) - lon * 1.0e7 * M_RAD_TO_DEG;
-	y(4) = double(_gps.alt) / 1.0e3 - alt;
+	y(2) = _gps.vel_d - vD;
+	y(3) = double(_gps.lat) - lat * 1.0e7 * M_RAD_TO_DEG;
+	y(4) = double(_gps.lon) - lon * 1.0e7 * M_RAD_TO_DEG;
+	y(5) = double(_gps.alt) / 1.0e3 - alt;
 
 	// compute correction
 	// http://en.wikipedia.org/wiki/Extended_Kalman_filter
-	Matrix S = HPos * P * HPos.transpose() + RPos; // residual covariance
-	Matrix K = P * HPos.transpose() * S.inverse();
+	Matrix S = HPos * PPos * HPos.transpose() + RPos; // residual covariance
+	Matrix K = PPos * HPos.transpose() * S.inverse();
 	Vector xCorrect = K * y;
 
 	// check correction is sane
@@ -616,15 +625,12 @@ int KalmanNav::correctPos()
 			setLonDegE7(_gps.lon);
 			setAltE3(_gps.alt);
 			// reset P matrix to P0
-			P = P0;
+			PPos = P0Pos;
 			return ret_error;
 		}
 	}
 
 	// correct state
-	phi += xCorrect(PHI);
-	theta += xCorrect(THETA);
-	psi += xCorrect(PSI);
 	vN += xCorrect(VN);
 	vE += xCorrect(VE);
 	vD += xCorrect(VD);
@@ -634,19 +640,20 @@ int KalmanNav::correctPos()
 
 	// update state covariance
 	// http://en.wikipedia.org/wiki/Extended_Kalman_filter
-	P = P - K * HPos * P;
+	PPos = PPos - K * HPos * PPos;
 
 	// fault detetcion
 	float beta = y.dot(S.inverse() * y);
 
 	if (beta > _faultPos.get()) {
 		printf("fault in gps: beta = %8.4f\n", (double)beta);
-		printf("Y/N: vN: %8.4f, vE: %8.4f, lat: %8.4f, lon: %8.4f, alt: %8.4f\n",
+		printf("Y/N: vN: %8.4f, vE: %8.4f, vD: %8.4f, lat: %8.4f, lon: %8.4f, alt: %8.4f\n",
 		       double(y(0) / sqrtf(RPos(0, 0))),
 		       double(y(1) / sqrtf(RPos(1, 1))),
 		       double(y(2) / sqrtf(RPos(2, 2))),
 		       double(y(3) / sqrtf(RPos(3, 3))),
-		       double(y(4) / sqrtf(RPos(4, 4))));
+		       double(y(4) / sqrtf(RPos(4, 4))),
+		       double(y(5) / sqrtf(RPos(5, 5))));
 	}
 
 	return ret_ok;
@@ -659,14 +666,14 @@ void KalmanNav::updateParams()
 	SuperBlock::updateParams();
 
 	// gyro noise
-	V(0, 0) = _vGyro.get();   // gyro x, rad/s
-	V(1, 1) = _vGyro.get();   // gyro y
-	V(2, 2) = _vGyro.get();   // gyro z
+	VAtt(0, 0) = _vGyro.get();   // gyro x, rad/s
+	VAtt(1, 1) = _vGyro.get();   // gyro y
+	VAtt(2, 2) = _vGyro.get();   // gyro z
 
 	// accel noise
-	V(3, 3) = _vAccel.get();   // accel x, m/s^2
-	V(4, 4) = _vAccel.get();   // accel y
-	V(5, 5) = _vAccel.get();   // accel z
+	VPos(0, 0) = _vAccel.get();   // accel x, m/s^2
+	VPos(1, 1) = _vAccel.get();   // accel y
+	VPos(2, 2) = _vAccel.get();   // accel z
 
 	// magnetometer noise
 	float noiseMin = 1e-6f;
@@ -703,10 +710,11 @@ void KalmanNav::updateParams()
 	if (noiseAlt < noiseMin) noiseAlt = noiseMin;
 
 	RPos(0, 0) = noiseVel * noiseVel; // vn
-	RPos(1, 1) = noiseVel * noiseVel; // ve
-	RPos(2, 2) = noiseLatDegE7 * noiseLatDegE7; // lat
-	RPos(3, 3) = noiseLonDegE7 * noiseLonDegE7; // lon
-	RPos(4, 4) = noiseAlt * noiseAlt; // h
+	RPos(1, 1) = noiseVel * noiseVel; // vn
+	RPos(2, 2) = noiseVel * noiseVel; // ve
+	RPos(3, 3) = noiseLatDegE7 * noiseLatDegE7; // lat
+	RPos(4, 4) = noiseLonDegE7 * noiseLonDegE7; // lon
+	RPos(5, 5) = noiseAlt * noiseAlt; // h
 	// XXX, note that RPos depends on lat, so updateParams should
 	// be called if lat changes significantly
 }

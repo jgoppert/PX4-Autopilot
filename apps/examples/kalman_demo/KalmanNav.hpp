@@ -96,10 +96,16 @@ public:
 	int predictState(float dt);
 
 	/**
-	 * State covariance prediction
+	 * Attitude state covariance prediction
 	 * Continuous, linear
 	 */
-	int predictStateCovariance(float dt);
+	int predictAttitudeStateCovariance(float dt);
+
+	/**
+	 * Position state covariance prediction
+	 * Continuous, linear
+	 */
+	int predictPositionStateCovariance(float dt);
 
 	/**
 	 * Attitude correction
@@ -116,16 +122,22 @@ public:
 	 */
 	virtual void updateParams();
 protected:
-	// kalman filter
-	math::Matrix F;             /**< Jacobian(f,x), where dx/dt = f(x,u) */
-	math::Matrix G;             /**< noise shaping matrix for gyro/accel */
-	math::Matrix P;             /**< state covariance matrix */
-	math::Matrix P0;            /**< initial state covariance matrix */
-	math::Matrix V;             /**< gyro/ accel noise matrix */
+	// attitude kalman filter
+	math::Matrix FAtt;          /**< Jacobian(f,x), where dx/dt = f(x,u) */
+	math::Matrix GAtt;          /**< noise shaping matrix for gyro/accel */
+	math::Matrix PAtt;          /**< state covariance matrix */
+	math::Matrix P0Att;         /**< initial state covariance matrix */
 	math::Matrix HAtt;          /**< attitude measurement matrix */
 	math::Matrix RAtt;          /**< attitude measurement noise matrix */
+	math::Matrix VAtt;          /**< gyro noise matrix */
+	// position kalman filter
+	math::Matrix FPos;          /**< Jacobian(f,x), where dx/dt = f(x,u) */
+	math::Matrix GPos;          /**< noise shaping matrix for gyro/accel */
+	math::Matrix PPos;          /**< state covariance matrix */
+	math::Matrix P0Pos;         /**< initial state covariance matrix */
 	math::Matrix HPos;          /**< position measurement jacobian matrix */
 	math::Matrix RPos;          /**< position measurement noise matrix */
+	math::Matrix VPos;          /**< accel noise matrix */
 	// attitude
 	math::Dcm C_nb;             /**< direction cosine matrix from body to nav frame */
 	math::Quaternion q;         /**< quaternion from body to nav frame */
@@ -148,7 +160,8 @@ protected:
 	// accelerations
 	float fN, fE, fD;           /**< navigation frame acceleration */
 	// states
-	enum {PHI = 0, THETA, PSI, VN, VE, VD, LAT, LON, ALT};  /**< state enumeration */
+	enum {PHI = 0, THETA, PSI};  /**< state enumeration */
+	enum {VN = 0, VE, VD, LAT, LON, ALT};  /**< state enumeration */
 	float phi, theta, psi;                  /**< 3-2-1 euler angles */
 	float vN, vE, vD;                       /**< navigation velocity, m/s */
 	double lat, lon, alt;                   /**< lat, lon, alt, radians */
