@@ -56,10 +56,10 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	G(9, 6),
 	P(9, 9),
 	P0(9, 9),
-	V(6, 6),
+	V(3, 3),
 	// attitude measurement ekf matrices
-	HAtt(6, 9),
-	RAtt(6, 6),
+	HAtt(3, 9),
+	RAtt(3, 3),
 	// position measurement ekf matrices
 	HPos(5, 9),
 	RPos(5, 5),
@@ -95,7 +95,6 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	_rGpsVel(this, "R_GPS_VEL"),
 	_rGpsPos(this, "R_GPS_POS"),
 	_rGpsAlt(this, "R_GPS_ALT"),
-	_rAccel(this, "R_ACCEL"),
 	_magDip(this, "ENV_MAG_DIP"),
 	_magDec(this, "ENV_MAG_DEC"),
 	_g(this, "ENV_G"),
@@ -497,39 +496,6 @@ int KalmanNav::correctAtt()
 	Vector3 bNav(bN, bE, bD);
 	Vector3 zMagHat = (C_nb.transpose() * bNav).unit();
 
-	// accel measurement
-	Vector3 zAccel(_sensors.accelerometer_m_s2);
-	float accelMag = zAccel.norm();
-	zAccel = zAccel.unit();
-
-	// ignore accel correction when accel mag not close to g
-	Matrix RAttAdjust = RAtt;
-
-	bool ignoreAccel = fabsf(accelMag - _g.get()) > 1.1f;
-
-	if (ignoreAccel) {
-		RAttAdjust(3, 3) = 1.0e10;
-		RAttAdjust(4, 4) = 1.0e10;
-		RAttAdjust(5, 5) = 1.0e10;
-
-	} else {
-		//printf("correcting attitude with accel\n");
-	}
-
-	// accel predicted measurement
-	Vector3 zAccelHat = (C_nb.transpose() * Vector3(0, 0, -_g.get())).unit();
-
-	// combined measurement
-	Vector zAtt(6);
-	Vector zAttHat(6);
-
-	for (int i = 0; i < 3; i++) {
-		zAtt(i) = zMag(i);
-		zAtt(i + 3) = zAccel(i);
-		zAttHat(i) = zMagHat(i);
-		zAttHat(i + 3) = zAccelHat(i);
-	}
-
 	// HMag , HAtt (0-2,:)
 	float tmp1 =
 		cosPsi * cosTheta * bN +
@@ -561,17 +527,10 @@ int KalmanNav::correctAtt()
 			     (cosPhi * cosPsi * sinTheta + sinPhi * sinPsi) * bE
 		     );
 
-	// HAccel , HAtt (3-5,:)
-	HAtt(3, 1) = cosTheta;
-	HAtt(4, 0) = -cosPhi * cosTheta;
-	HAtt(4, 1) = sinPhi * sinTheta;
-	HAtt(5, 0) = sinPhi * cosTheta;
-	HAtt(5, 1) = cosPhi * sinTheta;
-
 	// compute correction
 	// http://en.wikipedia.org/wiki/Extended_Kalman_filter
-	Vector y = zAtt - zAttHat; // residual
-	Matrix S = HAtt * P * HAtt.transpose() + RAttAdjust; // residual covariance
+	Vector y = zMag - zMagHat; // residual
+	Matrix S = HAtt * P * HAtt.transpose() + RAtt; // residual covariance
 	Matrix K = P * HAtt.transpose() * S.inverse();
 	Vector xCorrect = K * y;
 
@@ -589,18 +548,17 @@ int KalmanNav::correctAtt()
 	}
 
 	// correct state
-	if (!ignoreAccel) {
-		phi += xCorrect(PHI);
-		theta += xCorrect(THETA);
-	}
-
+	phi += xCorrect(PHI);
+	theta += xCorrect(THETA);
 	psi += xCorrect(PSI);
 
-	// attitude also affects nav velocities
 	if (_positionInitialized) {
 		vN += xCorrect(VN);
 		vE += xCorrect(VE);
 		vD += xCorrect(VD);
+		lat += double(xCorrect(LAT));
+		lon += double(xCorrect(LON));
+		alt += double(xCorrect(ALT));
 	}
 
 	// update state covariance
@@ -664,6 +622,9 @@ int KalmanNav::correctPos()
 	}
 
 	// correct state
+	phi += xCorrect(PHI);
+	theta += xCorrect(THETA);
+	psi += xCorrect(PSI);
 	vN += xCorrect(VN);
 	vE += xCorrect(VE);
 	vD += xCorrect(VD);
@@ -702,11 +663,6 @@ void KalmanNav::updateParams()
 	V(1, 1) = _vGyro.get();   // gyro y
 	V(2, 2) = _vGyro.get();   // gyro z
 
-	// accel noise
-	V(3, 3) = _vAccel.get();   // accel x, m/s^2
-	V(4, 4) = _vAccel.get();   // accel y
-	V(5, 5) = _vAccel.get();   // accel z
-
 	// magnetometer noise
 	float noiseMin = 1e-6f;
 	float noiseMagSq = _rMag.get() * _rMag.get();
@@ -716,16 +672,6 @@ void KalmanNav::updateParams()
 	RAtt(0, 0) = noiseMagSq; // normalized direction
 	RAtt(1, 1) = noiseMagSq;
 	RAtt(2, 2) = noiseMagSq;
-
-	// accelerometer noise
-	float noiseAccelSq = _rAccel.get() * _rAccel.get();
-
-	// bound noise to prevent singularities
-	if (noiseAccelSq < noiseMin) noiseAccelSq = noiseMin;
-
-	RAtt(3, 3) = noiseAccelSq; // normalized direction
-	RAtt(4, 4) = noiseAccelSq;
-	RAtt(5, 5) = noiseAccelSq;
 
 	// gps noise
 	float R = R0 + float(alt);
