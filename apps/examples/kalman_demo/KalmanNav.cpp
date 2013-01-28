@@ -63,6 +63,7 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	// position measurement ekf matrices
 	HPos(5, 9),
 	RPos(5, 5),
+	RMag(3, 3),
 	// attitude representations
 	C_nb(),
 	q(),
@@ -92,6 +93,8 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	_vGyro(this, "V_GYRO"),
 	_vAccel(this, "V_ACCEL"),
 	_rMag(this, "R_MAG"),
+	_rMagDip(this, "R_MAG_DIP"),
+	_rMagDec(this, "R_MAG_DEC"),
 	_rGpsVel(this, "R_GPS_VEL"),
 	_rGpsPos(this, "R_GPS_POS"),
 	_rGpsAlt(this, "R_GPS_ALT"),
@@ -176,6 +179,7 @@ void KalmanNav::update()
 	    _sensors.accelerometer_counter > 10 &&
 	    _sensors.gyro_counter > 10 &&
 	    _sensors.magnetometer_counter > 10) {
+		if (_attitudeInitCounter > 100) _attitudeInitCounter = 0;
 		if (correctAtt() == ret_ok) _attitudeInitCounter++;
 
 		if (_attitudeInitCounter > 100) {
@@ -486,6 +490,9 @@ int KalmanNav::correctAtt()
 	//float magNorm = zMag.norm();
 	zMag = zMag.unit();
 
+	// Adjust RAtt based on measurements
+	Matrix RAttAdjust = RAtt;
+
 	// mag predicted measurement
 	// choosing some typical magnetic field properties,
 	//  TODO dip/dec depend on lat/ lon/ time
@@ -497,17 +504,19 @@ int KalmanNav::correctAtt()
 	Vector3 bNav(bN, bE, bD);
 	Vector3 zMagHat = (C_nb.transpose() * bNav).unit();
 
+	// uncertainty due to mag field variations, in body frame using similarity trans.
+	Matrix RMag_b = C_nb.transpose() * RMag * C_nb;
+
 	// accel measurement
 	Vector3 zAccel(_sensors.accelerometer_m_s2);
 	float accelMag = zAccel.norm();
 	zAccel = zAccel.unit();
+	float velMag = sqrtf(vN*vN + vE*vE + vD*vD);
 
-	// ignore accel correction when accel mag not close to g
-	Matrix RAttAdjust = RAtt;
+	// use accel correction when velocity close to zero and accel close to g
+	bool useAccel = fabsf(accelMag - _g.get()) < 1.0f && velMag < 1.0f;
 
-	bool ignoreAccel = fabsf(accelMag - _g.get()) > 1.1f;
-
-	if (ignoreAccel) {
+	if (!useAccel) {
 		RAttAdjust(3, 3) = 1.0e10;
 		RAttAdjust(4, 4) = 1.0e10;
 		RAttAdjust(5, 5) = 1.0e10;
@@ -571,7 +580,7 @@ int KalmanNav::correctAtt()
 	// compute correction
 	// http://en.wikipedia.org/wiki/Extended_Kalman_filter
 	Vector y = zAtt - zAttHat; // residual
-	Matrix S = HAtt * P * HAtt.transpose() + RAttAdjust; // residual covariance
+	Matrix S = HAtt * P * HAtt.transpose() + RAttAdjust + RMag_b; // residual covariance
 	Matrix K = P * HAtt.transpose() * S.inverse();
 	Vector xCorrect = K * y;
 
@@ -589,11 +598,8 @@ int KalmanNav::correctAtt()
 	}
 
 	// correct state
-	if (!ignoreAccel) {
-		phi += xCorrect(PHI);
-		theta += xCorrect(THETA);
-	}
-
+	phi += xCorrect(PHI);
+	theta += xCorrect(THETA);
 	psi += xCorrect(PSI);
 
 	// attitude also affects nav velocities
@@ -601,6 +607,9 @@ int KalmanNav::correctAtt()
 		vN += xCorrect(VN);
 		vE += xCorrect(VE);
 		vD += xCorrect(VD);
+		lat += double(xCorrect(LAT));
+		lon += double(xCorrect(LON));
+		alt += double(xCorrect(ALT));
 	}
 
 	// update state covariance
@@ -664,6 +673,9 @@ int KalmanNav::correctPos()
 	}
 
 	// correct state
+	phi += xCorrect(PHI);
+	theta += xCorrect(THETA);
+	psi += xCorrect(PSI);
 	vN += xCorrect(VN);
 	vE += xCorrect(VE);
 	vD += xCorrect(VD);
@@ -709,23 +721,45 @@ void KalmanNav::updateParams()
 
 	// magnetometer noise
 	float noiseMin = 1e-6f;
-	float noiseMagSq = _rMag.get() * _rMag.get();
 
-	if (noiseMagSq < noiseMin) noiseMagSq = noiseMin;
+	float noiseMag = _rMag.get();
+	if (noiseMag < noiseMin) noiseMag = noiseMin;
 
-	RAtt(0, 0) = noiseMagSq; // normalized direction
-	RAtt(1, 1) = noiseMagSq;
-	RAtt(2, 2) = noiseMagSq;
+	RAtt(0, 0) = noiseMag*noiseMag; // normalized direction
+	RAtt(1, 1) = noiseMag*noiseMag;
+	RAtt(2, 2) = noiseMag*noiseMag;
+
+	// uncertainty due to mag field variations
+	float dip = _magDip.get() / M_RAD_TO_DEG_F; // dip, inclination with level
+	float sigDip = _rMagDip.get() / M_RAD_TO_DEG_F; // inclination noise std. deviation
+	float dec = _magDec.get() / M_RAD_TO_DEG_F; // declination, clockwise rotation from north
+	float sigDec = _rMagDec.get() / M_RAD_TO_DEG_F; // declination noise std. deviation
+
+	// jacobian of mag field vector wrt to dec/dip in nav frame
+	Matrix JMag(3,2);
+	JMag(0,0) = -sin(dec)*cos(dip);
+	JMag(0,1) = -cos(dec)*sin(dip);
+	JMag(1,0) = cos(dec)*cos(dip);
+	JMag(1,1) = -sin(dec)*sin(dip);
+	JMag(2,1) = cos(dip);
+
+	// dec/dip covariance
+	Matrix RDecDip(2,2);
+	RDecDip(0,0) = sigDec*sigDec;
+	RDecDip(1,1) = sigDip*sigDip;
+
+	// mag field noise due to dec/dip variation
+	RMag = JMag * RDecDip * JMag.transpose();
 
 	// accelerometer noise
-	float noiseAccelSq = _rAccel.get() * _rAccel.get();
+	float noiseAccel = _rAccel.get();
+	if (noiseAccel < noiseMin) noiseAccel = noiseMin;
 
 	// bound noise to prevent singularities
-	if (noiseAccelSq < noiseMin) noiseAccelSq = noiseMin;
 
-	RAtt(3, 3) = noiseAccelSq; // normalized direction
-	RAtt(4, 4) = noiseAccelSq;
-	RAtt(5, 5) = noiseAccelSq;
+	RAtt(3, 3) = noiseAccel*noiseAccel; // normalized direction
+	RAtt(4, 4) = noiseAccel*noiseAccel;
+	RAtt(5, 5) = noiseAccel*noiseAccel;
 
 	// gps noise
 	float R = R0 + float(alt);

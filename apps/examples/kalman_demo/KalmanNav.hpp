@@ -126,6 +126,7 @@ protected:
 	math::Matrix RAtt;          /**< attitude measurement noise matrix */
 	math::Matrix HPos;          /**< position measurement jacobian matrix */
 	math::Matrix RPos;          /**< position measurement noise matrix */
+	math::Matrix RMag;          /**< mag field uncert. matrix */
 	// attitude
 	math::Dcm C_nb;             /**< direction cosine matrix from body to nav frame */
 	math::Quaternion q;         /**< quaternion from body to nav frame */
@@ -156,9 +157,11 @@ protected:
 	control::BlockParam<float> _vGyro;      /**< gyro process noise */
 	control::BlockParam<float> _vAccel;     /**< accelerometer process noise  */
 	control::BlockParam<float> _rMag;       /**< magnetometer measurement noise  */
-	control::BlockParam<float> _rGpsVel;    /**< gps velocity measurement noise */
-	control::BlockParam<float> _rGpsPos;    /**< gps position measurement noise */
-	control::BlockParam<float> _rGpsAlt;    /**< gps altitude measurement noise */
+	control::BlockParam<float> _rMagDip;    /**< mag field inclinatino noise  */
+	control::BlockParam<float> _rMagDec;    /**< mag field declination noise  */
+	control::BlockParam<float> _rGpsVel;    /**< gps velocity meas. noise */
+	control::BlockParam<float> _rGpsPos;    /**< gps position meas. noise */
+	control::BlockParam<float> _rGpsAlt;    /**< gps altitude meas. noise */
 	control::BlockParam<float> _rAccel;     /**< accelerometer measurement noise */
 	control::BlockParam<float> _magDip;     /**< magnetic inclination with level */
 	control::BlockParam<float> _magDec;     /**< magnetic declination, clockwise rotation */
