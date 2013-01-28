@@ -155,10 +155,11 @@ protected:
 	// parameters
 	control::BlockParam<float> _vGyro;      /**< gyro process noise */
 	control::BlockParam<float> _vAccel;     /**< accelerometer process noise  */
-	control::BlockParam<float> _rMag;       /**< magnetometer measurement noise  */
-	control::BlockParam<float> _rGpsVel;    /**< gps velocity measurement noise */
-	control::BlockParam<float> _rGpsPos;    /**< gps position measurement noise */
-	control::BlockParam<float> _rGpsAlt;    /**< gps altitude measurement noise */
+	control::BlockParam<float> _rMagNE;     /**< magnetometer meas. noise in north/east dir */
+	control::BlockParam<float> _rMagD;      /**< magnetometer meas. noise in down dir */
+	control::BlockParam<float> _rGpsVel;    /**< gps velocity meas. noise */
+	control::BlockParam<float> _rGpsPos;    /**< gps position meas. noise */
+	control::BlockParam<float> _rGpsAlt;    /**< gps altitude meas. noise */
 	control::BlockParam<float> _magDip;     /**< magnetic inclination with level */
 	control::BlockParam<float> _magDec;     /**< magnetic declination, clockwise rotation */
 	control::BlockParam<float> _g;          /**< gravitational constant */

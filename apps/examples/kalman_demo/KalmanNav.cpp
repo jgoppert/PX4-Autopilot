@@ -91,7 +91,8 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	// parameters for ground station
 	_vGyro(this, "V_GYRO"),
 	_vAccel(this, "V_ACCEL"),
-	_rMag(this, "R_MAG"),
+	_rMagNE(this, "R_MAG_NE"),
+	_rMagD(this, "R_MAG_D"),
 	_rGpsVel(this, "R_GPS_VEL"),
 	_rGpsPos(this, "R_GPS_POS"),
 	_rGpsAlt(this, "R_GPS_ALT"),
@@ -175,8 +176,8 @@ void KalmanNav::update()
 	    _sensors.accelerometer_counter > 10 &&
 	    _sensors.gyro_counter > 10 &&
 	    _sensors.magnetometer_counter > 10) {
+		if (_attitudeInitCounter > 100) _attitudeInitCounter = 0;
 		if (correctAtt() == ret_ok) _attitudeInitCounter++;
-
 		if (_attitudeInitCounter > 100) {
 			printf("[kalman_demo] initialized EKF attitude\n");
 			printf("phi: %8.4f, theta: %8.4f, psi: %8.4f\n",
@@ -530,7 +531,7 @@ int KalmanNav::correctAtt()
 	// compute correction
 	// http://en.wikipedia.org/wiki/Extended_Kalman_filter
 	Vector y = zMag - zMagHat; // residual
-	Matrix S = HAtt * P * HAtt.transpose() + RAtt; // residual covariance
+	Matrix S = HAtt * P * HAtt.transpose() + C_nb.transpose() * RAtt; // residual covariance
 	Matrix K = P * HAtt.transpose() * S.inverse();
 	Vector xCorrect = K * y;
 
@@ -539,8 +540,9 @@ int KalmanNav::correctAtt()
 		float val = xCorrect(i);
 
 		if (isnan(val) || isinf(val)) {
-			// abort correction and return
-			printf("[kalman_demo] numerical failure in att correction\n");
+			// reinit attitude
+			printf("[kalman_demo] numerical failure in att correction, reinitializing\n");
+			_attitudeInitialized = false;
 			// reset P matrix to P0
 			P = P0;
 			return ret_error;
@@ -665,13 +667,16 @@ void KalmanNav::updateParams()
 
 	// magnetometer noise
 	float noiseMin = 1e-6f;
-	float noiseMagSq = _rMag.get() * _rMag.get();
 
-	if (noiseMagSq < noiseMin) noiseMagSq = noiseMin;
+	float noiseMagNE = _rMagNE.get();
+	if (noiseMagNE < noiseMin) noiseMagNE = noiseMin;
 
-	RAtt(0, 0) = noiseMagSq; // normalized direction
-	RAtt(1, 1) = noiseMagSq;
-	RAtt(2, 2) = noiseMagSq;
+	float noiseMagD = _rMagD.get();
+	if (noiseMagD < noiseMin) noiseMagD = noiseMin;
+
+	RAtt(0, 0) = noiseMagNE*noiseMagNE; // normalized direction
+	RAtt(1, 1) = noiseMagNE*noiseMagNE;
+	RAtt(2, 2) = noiseMagD*noiseMagD;
 
 	// gps noise
 	float R = R0 + float(alt);
