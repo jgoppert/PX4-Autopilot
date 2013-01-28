@@ -58,8 +58,8 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	P0(9, 9),
 	V(6, 6),
 	// attitude measurement ekf matrices
-	HAtt(6, 9),
-	RAtt(6, 6),
+	HAtt(4, 9),
+	RAtt(4, 4),
 	// position measurement ekf matrices
 	HPos(5, 9),
 	RPos(5, 5),
@@ -481,21 +481,27 @@ int KalmanNav::correctAtt()
 	float sinTheta = sinf(theta);
 	float sinPsi = sinf(psi);
 
-	// mag measurement
-	Vector3 zMag(_sensors.magnetometer_ga);
-	//float magNorm = zMag.norm();
-	zMag = zMag.unit();
+	// matrix for making adjustments to cov
+	Matrix RAttAdjust = RAtt;
 
-	// mag predicted measurement
+	// mag measurement, using it as a compass
+	Vector3 zMagRaw(_sensors.magnetometer_ga);
+	Vector3 zMagRawUnit = zMagRaw.unit();
+	Vector3 zMagRawUnit_n = C_nb*zMagRawUnit;
 	// choosing some typical magnetic field properties,
 	//  TODO dip/dec depend on lat/ lon/ time
-	float dip = _magDip.get() / M_RAD_TO_DEG_F; // dip, inclination with level
 	float dec = _magDec.get() / M_RAD_TO_DEG_F; // declination, clockwise rotation from north
-	float bN = cosf(dip) * cosf(dec);
-	float bE = cosf(dip) * sinf(dec);
-	float bD = sinf(dip);
-	Vector3 bNav(bN, bE, bD);
-	Vector3 zMagHat = (C_nb.transpose() * bNav).unit();
+	float zMag = dec - atan2f(zMagRawUnit_n(1),zMagRawUnit_n(0));
+
+	// ignore mag correction when perp to mag field
+	bool ignoreMag = fabsf(zMagRawUnit(2)) > 0.98f;
+	if (ignoreMag) {
+		RAttAdjust(0,0) = 1.0e10f;
+		printf("ignoring mag, perp. to mag-field\n");
+	}
+
+	// mag predicted measurement
+	float zMagHat = psi;
 
 	// accel measurement
 	Vector3 zAccel(_sensors.accelerometer_m_s2);
@@ -503,15 +509,11 @@ int KalmanNav::correctAtt()
 	zAccel = zAccel.unit();
 
 	// ignore accel correction when accel mag not close to g
-	Matrix RAttAdjust = RAtt;
-
 	bool ignoreAccel = fabsf(accelMag - _g.get()) > 1.1f;
-
 	if (ignoreAccel) {
-		RAttAdjust(3, 3) = 1.0e10;
-		RAttAdjust(4, 4) = 1.0e10;
-		RAttAdjust(5, 5) = 1.0e10;
-
+		RAttAdjust(1, 1) = 1.0e10f;
+		RAttAdjust(2, 2) = 1.0e10f;
+		RAttAdjust(3, 3) = 1.0e10f;
 	} else {
 		//printf("correcting attitude with accel\n");
 	}
@@ -520,53 +522,25 @@ int KalmanNav::correctAtt()
 	Vector3 zAccelHat = (C_nb.transpose() * Vector3(0, 0, -_g.get())).unit();
 
 	// combined measurement
-	Vector zAtt(6);
-	Vector zAttHat(6);
+	Vector zAtt(4);
+	Vector zAttHat(4);
 
-	for (int i = 0; i < 3; i++) {
-		zAtt(i) = zMag(i);
-		zAtt(i + 3) = zAccel(i);
-		zAttHat(i) = zMagHat(i);
-		zAttHat(i + 3) = zAccelHat(i);
+	zAtt(0) = zMag;
+	zAttHat(0) = zMagHat;
+	for (int i = 1; i < 4; i++) {
+		zAtt(i) = zAccel(i);
+		zAttHat(i) = zAccelHat(i);
 	}
 
-	// HMag , HAtt (0-2,:)
-	float tmp1 =
-		cosPsi * cosTheta * bN +
-		sinPsi * cosTheta * bE -
-		sinTheta * bD;
-	HAtt(0, 1) = -(
-			     cosPsi * sinTheta * bN +
-			     sinPsi * sinTheta * bE +
-			     cosTheta * bD
-		     );
-	HAtt(0, 2) = -cosTheta * (sinPsi * bN - cosPsi * bE);
-	HAtt(1, 0) =
-		(cosPhi * cosPsi * sinTheta + sinPhi * sinPsi) * bN +
-		(cosPhi * sinPsi * sinTheta - sinPhi * cosPsi) * bE +
-		cosPhi * cosTheta * bD;
-	HAtt(1, 1) = sinPhi * tmp1;
-	HAtt(1, 2) = -(
-			     (sinPhi * sinPsi * sinTheta + cosPhi * cosPsi) * bN -
-			     (sinPhi * cosPsi * sinTheta - cosPhi * sinPsi) * bE
-		     );
-	HAtt(2, 0) = -(
-			     (sinPhi * cosPsi * sinTheta - cosPhi * sinPsi) * bN +
-			     (sinPhi * sinPsi * sinTheta + cosPhi * cosPsi) * bE +
-			     (sinPhi * cosTheta) * bD
-		     );
-	HAtt(2, 1) = cosPhi * tmp1;
-	HAtt(2, 2) = -(
-			     (cosPhi * sinPsi * sinTheta - sinPhi * cosTheta) * bN -
-			     (cosPhi * cosPsi * sinTheta + sinPhi * sinPsi) * bE
-		     );
+	// HMag , HAtt (0,:)
+	HAtt(0, 2) = 1.0f;
 
-	// HAccel , HAtt (3-5,:)
-	HAtt(3, 1) = cosTheta;
-	HAtt(4, 0) = -cosPhi * cosTheta;
-	HAtt(4, 1) = sinPhi * sinTheta;
-	HAtt(5, 0) = sinPhi * cosTheta;
-	HAtt(5, 1) = cosPhi * sinTheta;
+	// HAccel , HAtt (1-3,:)
+	HAtt(1, 1) = cosTheta;
+	HAtt(2, 0) = -cosPhi * cosTheta;
+	HAtt(2, 1) = sinPhi * sinTheta;
+	HAtt(3, 0) = sinPhi * cosTheta;
+	HAtt(3, 1) = cosPhi * sinTheta;
 
 	// compute correction
 	// http://en.wikipedia.org/wiki/Extended_Kalman_filter
@@ -589,11 +563,8 @@ int KalmanNav::correctAtt()
 	}
 
 	// correct state
-	if (!ignoreAccel) {
-		phi += xCorrect(PHI);
-		theta += xCorrect(THETA);
-	}
-
+	phi += xCorrect(PHI);
+	theta += xCorrect(THETA);
 	psi += xCorrect(PSI);
 
 	// attitude also affects nav velocities
@@ -613,9 +584,8 @@ int KalmanNav::correctAtt()
 	if (beta > _faultAtt.get()) {
 		printf("fault in attitude: beta = %8.4f\n", (double)beta);
 		printf("y:\n"); y.print();
-		printf("zMagHat:\n"); zMagHat.print();
-		printf("zMag:\n"); zMag.print();
-		printf("bNav:\n"); bNav.print();
+		printf("zMagHat: %8.4f\n", double(zMagHat));
+		printf("zMag: %8.4f\n", double(zMag));
 	}
 
 	// update quaternions from euler
@@ -714,8 +684,6 @@ void KalmanNav::updateParams()
 	if (noiseMagSq < noiseMin) noiseMagSq = noiseMin;
 
 	RAtt(0, 0) = noiseMagSq; // normalized direction
-	RAtt(1, 1) = noiseMagSq;
-	RAtt(2, 2) = noiseMagSq;
 
 	// accelerometer noise
 	float noiseAccelSq = _rAccel.get() * _rAccel.get();
@@ -723,9 +691,9 @@ void KalmanNav::updateParams()
 	// bound noise to prevent singularities
 	if (noiseAccelSq < noiseMin) noiseAccelSq = noiseMin;
 
-	RAtt(3, 3) = noiseAccelSq; // normalized direction
-	RAtt(4, 4) = noiseAccelSq;
-	RAtt(5, 5) = noiseAccelSq;
+	RAtt(1, 1) = noiseAccelSq; // normalized direction
+	RAtt(2, 2) = noiseAccelSq;
+	RAtt(3, 3) = noiseAccelSq;
 
 	// gps noise
 	float R = R0 + float(alt);
