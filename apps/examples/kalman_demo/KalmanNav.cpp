@@ -56,7 +56,7 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	G(9, 6),
 	P(9, 9),
 	P0(9, 9),
-	V(3, 3),
+	V(6, 6),
 	// attitude measurement ekf matrices
 	HAtt(3, 9),
 	RAtt(3, 3),
@@ -664,6 +664,11 @@ void KalmanNav::updateParams()
 	V(0, 0) = _vGyro.get();   // gyro x, rad/s
 	V(1, 1) = _vGyro.get();   // gyro y
 	V(2, 2) = _vGyro.get();   // gyro z
+
+	// accel noise
+	V(3, 3) = _vAccel.get();   // accel x, m/s^2
+	V(4, 4) = _vAccel.get();   // accel y
+	V(5, 5) = _vAccel.get();   // accel z
 
 	// magnetometer noise
 	float noiseMin = 1e-6f;
