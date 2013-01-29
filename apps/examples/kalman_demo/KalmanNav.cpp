@@ -474,12 +474,12 @@ int KalmanNav::correctAtt()
 	using namespace math;
 
 	// trig
+	float sinPhi = sinf(phi);
 	float cosPhi = cosf(phi);
 	float cosTheta = cosf(theta);
-	float cosPsi = cosf(psi);
-	float sinPhi = sinf(phi);
 	float sinTheta = sinf(theta);
-	float sinPsi = sinf(psi);
+	//float cosPsi = cosf(psi);
+	//float sinPsi = sinf(psi);
 
 	// matrix for making adjustments to cov
 	Matrix RAttAdjust = RAtt;
@@ -487,11 +487,11 @@ int KalmanNav::correctAtt()
 	// mag measurement, using it as a compass
 	Vector3 zMagRaw(_sensors.magnetometer_ga);
 	Vector3 zMagRawUnit = zMagRaw.unit();
-	Vector3 zMagRawUnit_n = C_nb*zMagRawUnit;
+	Vector3 zMagRawUnit_n = C_nb * zMagRawUnit;
 	// choosing some typical magnetic field properties,
 	//  TODO dip/dec depend on lat/ lon/ time
 	float dec = _magDec.get() / M_RAD_TO_DEG_F; // declination, clockwise rotation from north
-	float zMag = dec - atan2f(zMagRawUnit_n(1),zMagRawUnit_n(0));
+	float zMag = atanf(zMagRawUnit_n(1)/zMagRawUnit_n(0)) + dec;
 
 	// ignore mag correction when perp to mag field
 	bool ignoreMag = fabsf(zMagRawUnit(2)) > 0.98f;
@@ -581,18 +581,22 @@ int KalmanNav::correctAtt()
 	// fault detection
 	float beta = y.dot(S.inverse() * y);
 
+	int ret = ret_error;
+
 	if (beta > _faultAtt.get()) {
 		printf("fault in attitude: beta = %8.4f\n", (double)beta);
 		printf("y:\n"); y.print();
 		printf("zMagHat: %8.4f\n", double(zMagHat));
 		printf("zMag: %8.4f\n", double(zMag));
+	} else {
+		ret = ret_ok;
 	}
 
-	// update quaternions from euler
-	// angle correction
+	// update attitude representations
 	q = Quaternion(EulerAngles(phi, theta, psi));
+	C_nb = Dcm(q);
 
-	return ret_ok;
+	return ret;
 }
 
 int KalmanNav::correctPos()
@@ -634,6 +638,9 @@ int KalmanNav::correctPos()
 	}
 
 	// correct state
+	phi += xCorrect(PHI);
+	theta += xCorrect(THETA);
+	psi += xCorrect(PSI);
 	vN += xCorrect(VN);
 	vE += xCorrect(VE);
 	vD += xCorrect(VD);
@@ -641,12 +648,18 @@ int KalmanNav::correctPos()
 	lon += double(xCorrect(LON));
 	alt += double(xCorrect(ALT));
 
+	// update attitude representations
+	q = Quaternion(EulerAngles(phi, theta, psi));
+	C_nb = Dcm(q);
+
 	// update state covariance
 	// http://en.wikipedia.org/wiki/Extended_Kalman_filter
 	P = P - K * HPos * P;
 
 	// fault detetcion
 	float beta = y.dot(S.inverse() * y);
+
+	int ret = ret_error;
 
 	if (beta > _faultPos.get()) {
 		printf("fault in gps: beta = %8.4f\n", (double)beta);
@@ -656,9 +669,11 @@ int KalmanNav::correctPos()
 		       double(y(2) / sqrtf(RPos(2, 2))),
 		       double(y(3) / sqrtf(RPos(3, 3))),
 		       double(y(4) / sqrtf(RPos(4, 4))));
+	} else {
+		ret = ret_ok;
 	}
 
-	return ret_ok;
+	return ret;
 }
 
 void KalmanNav::updateParams()
