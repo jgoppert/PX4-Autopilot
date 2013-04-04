@@ -252,7 +252,7 @@ void publish_armed_status(const struct vehicle_status_s *current_status)
 	/* lock down actuators if required, only in HIL */
 	/*armed.lockdown = (current_status->flag_hil_enabled) ? true : false;*/
     // always arm, since in this this branch we want to see the servos move
-	armed.lockdown = false
+	armed.lockdown = false;
 	orb_advert_t armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed);
 	orb_publish(ORB_ID(actuator_armed), armed_pub, &armed);
 }
