@@ -153,6 +153,9 @@ ORB_DEFINE(omnidirectional_flow, struct omnidirectional_flow_s);
 #include "topics/airspeed.h"
 ORB_DEFINE(airspeed, struct airspeed_s);
 
+#include "topics/encoders.h"
+ORB_DEFINE(encoders, struct encoders_s);
+
 #include "topics/differential_pressure.h"
 ORB_DEFINE(differential_pressure, struct differential_pressure_s);
 

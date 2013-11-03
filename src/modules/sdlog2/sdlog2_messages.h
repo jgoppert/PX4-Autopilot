@@ -133,9 +133,9 @@ struct log_GPS_s {
 	float cog;
 };
 
-/* --- ATTC - ATTITUDE CONTROLS (ACTUATOR_0 CONTROLS)--- */
-#define LOG_ATTC_MSG 9
-struct log_ATTC_s {
+/* --- ATTC0 - ATTITUDE CONTROLS (ACTUATOR_0 CONTROLS)--- */
+#define LOG_ATTC0_MSG 9
+struct log_ATTC0_s {
 	float roll;
 	float pitch;
 	float yaw;
@@ -247,6 +247,40 @@ struct log_GVSP_s {
 	float vz;
 };
 
+/* --- ENCD - ENCODERS --- */
+#define LOG_ENCD_MSG 20
+struct log_ENCD_s {
+	int64_t counts[2];
+	float velocity[2];
+};
+
+/* --- EFF0 - CONTROLS EFFECTIVE (ACTUATOR_CONTROLS_EFFECTIVE_0) --- */
+#define LOG_EFF0_MSG 21
+struct log_EFF0_s {
+	float output[8];
+};
+
+/* --- ATTC1 - ATTITUDE CONTROLS (ACTUATOR_CONTROLS_1)--- */
+#define LOG_ATTC1_MSG 22
+struct log_ATTC1_s {
+	float roll;
+	float pitch;
+	float yaw;
+	float thrust;
+};
+
+/* --- OUT1 - ACTUATOR_OUTPUT_1 --- */
+#define LOG_OUT1_MSG 23
+struct log_OUT1_s {
+	float output[8];
+};
+
+/* --- EFF1 - CONTROLS EFFECTIVE (ACTUATOR_CONTROLS_EFFECTIVE_1) --- */
+#define LOG_EFF1_MSG 24
+struct log_EFF1_s {
+	float output[8];
+};
+
 /* --- TIME - TIME STAMP --- */
 #define LOG_TIME_MSG 129
 struct log_TIME_s {
@@ -279,7 +313,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(LPOS, "ffffffLLfBBB", "X,Y,Z,VX,VY,VZ,RefLat,RefLon,RefAlt,XYFlags,ZFlags,Landed"),
 	LOG_FORMAT(LPSP, "ffff", "X,Y,Z,Yaw"),
 	LOG_FORMAT(GPS, "QBffLLfffff", "GPSTime,FixType,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog"),
-	LOG_FORMAT(ATTC, "ffff", "Roll,Pitch,Yaw,Thrust"),
+	LOG_FORMAT(ATTC0, "ffff", "Roll,Pitch,Yaw,Thrust"),
 	LOG_FORMAT(STAT, "BBBfffBB", "MainState,NavState,ArmState,BatV,BatC,BatRem,BatWarn,Landed"),
 	LOG_FORMAT(RC, "ffffffff", "Ch0,Ch1,Ch2,Ch3,Ch4,Ch5,Ch6,Ch7"),
 	LOG_FORMAT(OUT0, "ffffffff", "Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
@@ -290,6 +324,11 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(GPSP, "BLLfffbBffff", "AltRel,Lat,Lon,Alt,Yaw,LoiterR,LoiterDir,NavCmd,P1,P2,P3,P4"),
 	LOG_FORMAT(ESC, "HBBBHHHHHHfH", "Counter,NumESC,Conn,N,Ver,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
 	LOG_FORMAT(GVSP, "fff", "VX,VY,VZ"),
+	LOG_FORMAT(ENCD, "qqff", "Pos1,Pos2,Vel1,Vel2"),
+	LOG_FORMAT(EFF0, "ffffffff", "Eff0,Eff1,Eff2,Eff3,Eff4,Eff5,Eff6,Eff7"),
+	LOG_FORMAT(ATTC1, "ffff", "Roll,Pitch,Yaw,Thrust"),
+	LOG_FORMAT(OUT1, "ffffffff", "Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
+	LOG_FORMAT(EFF1, "ffffffff", "Eff0,Eff1,Eff2,Eff3,Eff4,Eff5,Eff6,Eff7"),
 	/* system-level messages, ID >= 0x80 */
 	// FMT: don't write format of format message, it's useless
 	LOG_FORMAT(TIME, "Q", "StartTime"),

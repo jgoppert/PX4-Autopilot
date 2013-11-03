@@ -51,6 +51,7 @@
 #include <math.h>
 
 #include "BlockSegwayController.hpp"
+#include "BlockEncoderPositionEstimator.hpp"
 
 static bool thread_should_exit = false;     /**< Deamon exit flag */
 static bool thread_running = false;     /**< Deamon status flag */
@@ -142,10 +143,12 @@ int segway_thread_main(int argc, char *argv[])
 	using namespace control;
 
 	BlockSegwayController autopilot;
+	BlockEncoderPositionEstimator estimator;
 
 	thread_running = true;
 
 	while (!thread_should_exit) {
+		estimator.update();
 		autopilot.update();
 	}
 

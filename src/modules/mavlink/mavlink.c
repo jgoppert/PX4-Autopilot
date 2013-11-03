@@ -286,14 +286,17 @@ int set_mavlink_interval_limit(struct mavlink_subscriptions *subs, int mavlink_m
 
 	case MAVLINK_MSG_ID_SERVO_OUTPUT_RAW:
 		/* actuator_outputs triggers this message */
-		orb_set_interval(subs->act_0_sub, min_interval);
-		orb_set_interval(subs->act_1_sub, min_interval);
-		orb_set_interval(subs->act_2_sub, min_interval);
-		orb_set_interval(subs->act_3_sub, min_interval);
-		orb_set_interval(subs->actuators_sub, min_interval);
-		orb_set_interval(subs->actuators_effective_sub, min_interval);
+		for (int port=0;port<4;port++) {
+			orb_set_interval(subs->act_out_sub[port],
+					min_interval);
+			orb_set_interval(subs->act_cntrl_sub[port],
+					min_interval);
+			orb_set_interval(subs->act_eff_sub[port],
+					min_interval);
+		}
 		orb_set_interval(subs->spa_sub, min_interval);
-		orb_set_interval(mavlink_subs.rates_setpoint_sub, min_interval);
+		orb_set_interval(mavlink_subs.rates_setpoint_sub,
+				min_interval);
 		break;
 
 	case MAVLINK_MSG_ID_MANUAL_CONTROL:

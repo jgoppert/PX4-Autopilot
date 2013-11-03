@@ -81,6 +81,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/airspeed.h>
+#include <uORB/topics/encoders.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/esc_status.h>
 
@@ -689,9 +690,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_attitude_s att;
 		struct vehicle_attitude_setpoint_s att_sp;
 		struct vehicle_rates_setpoint_s rates_sp;
-		struct actuator_outputs_s act_outputs;
-		struct actuator_controls_s act_controls;
-		struct actuator_controls_effective_s act_controls_effective;
 		struct vehicle_local_position_s local_pos;
 		struct vehicle_local_position_setpoint_s local_pos_sp;
 		struct vehicle_global_position_s global_pos;
@@ -704,6 +702,10 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct airspeed_s airspeed;
 		struct esc_status_s esc;
 		struct vehicle_global_velocity_setpoint_s global_vel_sp;
+		struct encoders_s encoders;
+		struct actuator_outputs_s act_outputs[2];
+		struct actuator_controls_s act_controls[2];
+		struct actuator_controls_effective_s act_controls_effective[2];
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -715,9 +717,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int att_sub;
 		int att_sp_sub;
 		int rates_sp_sub;
-		int act_outputs_sub;
-		int act_controls_sub;
-		int act_controls_effective_sub;
 		int local_pos_sub;
 		int local_pos_sp_sub;
 		int global_pos_sub;
@@ -729,6 +728,11 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int airspeed_sub;
 		int esc_sub;
 		int global_vel_sp_sub;
+		int encoders_sub;
+		int act_outputs_sub[2];
+		int act_controls_sub[2];
+		int act_controls_effective_sub[2];
+
 	} subs;
 
 	/* log message buffer: header + body */
@@ -744,7 +748,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_LPOS_s log_LPOS;
 			struct log_LPSP_s log_LPSP;
 			struct log_GPS_s log_GPS;
-			struct log_ATTC_s log_ATTC;
+			struct log_ATTC0_s log_ATTC0;
 			struct log_STAT_s log_STAT;
 			struct log_RC_s log_RC;
 			struct log_OUT0_s log_OUT0;
@@ -755,6 +759,11 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_GPSP_s log_GPSP;
 			struct log_ESC_s log_ESC;
 			struct log_GVSP_s log_GVSP;
+			struct log_ENCD_s log_ENCD;
+			struct log_EFF0_s log_EFF0;
+			struct log_ATTC1_s log_ATTC1;
+			struct log_OUT1_s log_OUT1;
+			struct log_EFF1_s log_EFF1;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -764,7 +773,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	/* --- IMPORTANT: DEFINE NUMBER OF ORB STRUCTS TO WAIT FOR HERE --- */
 	/* number of messages */
-	const ssize_t fdsc = 20;
+	const ssize_t fdsc = 24;
 	/* Sanity check variable and index */
 	ssize_t fdsc_count = 0;
 	/* file descriptors to wait for */
@@ -812,21 +821,40 @@ int sdlog2_thread_main(int argc, char *argv[])
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
-	/* --- ACTUATOR OUTPUTS --- */
-	subs.act_outputs_sub = orb_subscribe(ORB_ID_VEHICLE_CONTROLS);
-	fds[fdsc_count].fd = subs.act_outputs_sub;
+	/* --- ACTUATOR OUTPUTS 0 --- */
+	subs.act_outputs_sub[0] = orb_subscribe(ORB_ID_VEHICLE_CONTROLS);
+	fds[fdsc_count].fd = subs.act_outputs_sub[0];
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
-	/* --- ACTUATOR CONTROL --- */
-	subs.act_controls_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
-	fds[fdsc_count].fd = subs.act_controls_sub;
+	/* --- ACTUATOR OUTPUTS 1 --- */
+	subs.act_outputs_sub[1] = orb_subscribe(ORB_ID(actuator_outputs_1));
+	warnx("subscribed to OUT1: %d", subs.act_outputs_sub[1]);
+	fds[fdsc_count].fd = subs.act_outputs_sub[1];
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
-	/* --- ACTUATOR CONTROL EFFECTIVE --- */
-	subs.act_controls_effective_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE);
-	fds[fdsc_count].fd = subs.act_controls_effective_sub;
+	/* --- ACTUATOR CONTROL 0 --- */
+	subs.act_controls_sub[0] = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
+	fds[fdsc_count].fd = subs.act_controls_sub[0];
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- ACTUATOR CONTROL 1 --- */
+	subs.act_controls_sub[1] = orb_subscribe(ORB_ID(actuator_controls_1));
+	fds[fdsc_count].fd = subs.act_controls_sub[1];
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- ACTUATOR CONTROL EFFECTIVE 0 --- */
+	subs.act_controls_effective_sub[0] = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE);
+	fds[fdsc_count].fd = subs.act_controls_effective_sub[0];
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- ACTUATOR CONTROL EFFECTIVE 1 --- */
+	subs.act_controls_effective_sub[1] = orb_subscribe(ORB_ID(actuator_controls_effective_1));
+	fds[fdsc_count].fd = subs.act_controls_effective_sub[1];
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -887,6 +915,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 	/* --- GLOBAL VELOCITY SETPOINT --- */
 	subs.global_vel_sp_sub = orb_subscribe(ORB_ID(vehicle_global_velocity_setpoint));
 	fds[fdsc_count].fd = subs.global_vel_sp_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- ENCODERS --- */
+	subs.encoders_sub = orb_subscribe(ORB_ID(encoders));
+	fds[fdsc_count].fd = subs.encoders_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -1095,29 +1129,66 @@ int sdlog2_thread_main(int argc, char *argv[])
 				LOGBUFFER_WRITE_AND_COUNT(ARSP);
 			}
 
-			/* --- ACTUATOR OUTPUTS --- */
+			/* --- ACTUATOR OUTPUTS 0 --- */
 			if (fds[ifds++].revents & POLLIN) {
-				orb_copy(ORB_ID(actuator_outputs_0), subs.act_outputs_sub, &buf.act_outputs);
+				orb_copy(ORB_ID(actuator_outputs_0), subs.act_outputs_sub[0], &buf.act_outputs[0]);
 				log_msg.msg_type = LOG_OUT0_MSG;
-				memcpy(log_msg.body.log_OUT0.output, buf.act_outputs.output, sizeof(log_msg.body.log_OUT0.output));
+				memcpy(log_msg.body.log_OUT0.output, buf.act_outputs[0].output, sizeof(log_msg.body.log_OUT0.output));
 				LOGBUFFER_WRITE_AND_COUNT(OUT0);
 			}
 
-			/* --- ACTUATOR CONTROL --- */
+			/* --- ACTUATOR OUTPUTS 1 --- */
 			if (fds[ifds++].revents & POLLIN) {
-				orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, subs.act_controls_sub, &buf.act_controls);
-				log_msg.msg_type = LOG_ATTC_MSG;
-				log_msg.body.log_ATTC.roll = buf.act_controls.control[0];
-				log_msg.body.log_ATTC.pitch = buf.act_controls.control[1];
-				log_msg.body.log_ATTC.yaw = buf.act_controls.control[2];
-				log_msg.body.log_ATTC.thrust = buf.act_controls.control[3];
-				LOGBUFFER_WRITE_AND_COUNT(ATTC);
+				orb_copy(ORB_ID(actuator_outputs_1), subs.act_outputs_sub[1], &buf.act_outputs[1]);
+				log_msg.msg_type = LOG_OUT1_MSG;
+				memcpy(log_msg.body.log_OUT1.output, buf.act_outputs[1].output, sizeof(log_msg.body.log_OUT1.output));
+				LOGBUFFER_WRITE_AND_COUNT(OUT1);
 			}
 
-			/* --- ACTUATOR CONTROL EFFECTIVE --- */
+			/* --- ACTUATOR CONTROL 0 --- */
 			if (fds[ifds++].revents & POLLIN) {
-				orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE, subs.act_controls_effective_sub, &buf.act_controls_effective);
-				// TODO not implemented yet
+				orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, subs.act_controls_sub[0], &buf.act_controls[0]);
+				log_msg.msg_type = LOG_ATTC0_MSG;
+				log_msg.body.log_ATTC0.roll = buf.act_controls[0].control[0];
+				log_msg.body.log_ATTC0.pitch = buf.act_controls[0].control[1];
+				log_msg.body.log_ATTC0.yaw = buf.act_controls[0].control[2];
+				log_msg.body.log_ATTC0.thrust = buf.act_controls[0].control[3];
+				LOGBUFFER_WRITE_AND_COUNT(ATTC0);
+			}
+
+			/* --- ACTUATOR CONTROL 1 --- */
+			if (fds[ifds++].revents & POLLIN) {
+				orb_copy(ORB_ID(actuator_controls_1), subs.act_controls_sub[1], &buf.act_controls[1]);
+				log_msg.msg_type = LOG_ATTC1_MSG;
+				log_msg.body.log_ATTC1.roll = buf.act_controls[1].control[0];
+				log_msg.body.log_ATTC1.pitch = buf.act_controls[1].control[1];
+				log_msg.body.log_ATTC1.yaw = buf.act_controls[1].control[2];
+				log_msg.body.log_ATTC1.thrust = buf.act_controls[1].control[3];
+				LOGBUFFER_WRITE_AND_COUNT(ATTC1);
+			}
+
+			/* --- ACTUATOR 0 CONTROL EFFECTIVE --- */
+			if (fds[ifds++].revents & POLLIN) {
+				orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE,
+					subs.act_controls_effective_sub[0],
+					&buf.act_controls_effective[0]);
+				log_msg.msg_type = LOG_EFF0_MSG;
+				memcpy(log_msg.body.log_EFF0.output,
+					buf.act_controls_effective[0].control_effective,
+					sizeof(log_msg.body.log_EFF0.output));
+				LOGBUFFER_WRITE_AND_COUNT(EFF0);
+			}
+
+			/* --- ACTUATOR 1 CONTROL EFFECTIVE --- */
+			if (fds[ifds++].revents & POLLIN) {
+				orb_copy(ORB_ID(actuator_controls_effective_1),
+					subs.act_controls_effective_sub[1],
+					&buf.act_controls_effective[1]);
+				log_msg.msg_type = LOG_EFF1_MSG;
+				memcpy(log_msg.body.log_EFF1.output,
+					buf.act_controls_effective[1].control_effective,
+					sizeof(log_msg.body.log_EFF1.output));
+				LOGBUFFER_WRITE_AND_COUNT(EFF1);
 			}
 
 			/* --- LOCAL POSITION --- */
@@ -1250,6 +1321,17 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_GVSP.vy = buf.global_vel_sp.vy;
 				log_msg.body.log_GVSP.vz = buf.global_vel_sp.vz;
 				LOGBUFFER_WRITE_AND_COUNT(GVSP);
+			}
+
+			/* --- ENCODERS --- */
+			if (fds[ifds++].revents & POLLIN) {
+				orb_copy(ORB_ID(encoders), subs.encoders_sub, &buf.encoders);
+				log_msg.msg_type = LOG_ENCD_MSG;
+				log_msg.body.log_ENCD.counts[0] = buf.encoders.counts[0];
+				log_msg.body.log_ENCD.counts[1] = buf.encoders.counts[1];
+				log_msg.body.log_ENCD.velocity[0] = buf.encoders.velocity[0];
+				log_msg.body.log_ENCD.velocity[1] = buf.encoders.velocity[1];
+				LOGBUFFER_WRITE_AND_COUNT(ENCD);
 			}
 
 			/* signal the other thread new data, but not yet unlock */

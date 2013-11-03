@@ -59,6 +59,7 @@
 #include <drivers/drv_hrt.h>
 
 #include <drivers/drv_orb_dev.h>
+#include <systemlib/err.h>
 
 #include "uORB.h"
 
@@ -880,6 +881,7 @@ node_open(Flavor f, const struct orb_metadata *meta, const void *data, bool adve
 	 * known to the system.  We can't advertise/subscribe such a thing.
 	 */
 	if (nullptr == meta) {
+		warnx("meta not defined");
 		errno = ENOENT;
 		return ERROR;
 	}
@@ -888,6 +890,7 @@ node_open(Flavor f, const struct orb_metadata *meta, const void *data, bool adve
 	 * Advertiser must publish an initial value.
 	 */
 	if (advertiser && (data == nullptr)) {
+		warnx("%s: advertiser must publish an initial value", meta->o_name);
 		errno = EINVAL;
 		return ERROR;
 	}
@@ -898,6 +901,7 @@ node_open(Flavor f, const struct orb_metadata *meta, const void *data, bool adve
 	ret = node_mkpath(path, f, meta);
 
 	if (ret != OK) {
+		warnx("%s:failed to make path", meta->o_name);
 		errno = -ret;
 		return ERROR;
 	}
@@ -914,9 +918,11 @@ node_open(Flavor f, const struct orb_metadata *meta, const void *data, bool adve
 		/* on success, try the open again */
 		if (ret == OK)
 			fd = open(path, (advertiser) ? O_WRONLY : O_RDONLY);
+			//warnx("%s: advertised node: %d", meta->o_name, fd);
 	}
 
 	if (fd < 0) {
+		warnx("%s: failed advertising node, check max file descriptors", meta->o_name);
 		errno = EIO;
 		return ERROR;
 	}
@@ -935,8 +941,10 @@ orb_advertise(const struct orb_metadata *meta, const void *data)
 
 	/* open the node as an advertiser */
 	fd = node_open(PUBSUB, meta, data, true);
-	if (fd == ERROR)
+	if (fd == ERROR) {
+		warnx("failed to advertise: %s", meta->o_name);
 		return ERROR;
+	}
 
 	/* get the advertiser handle and close the node */
 	result = ioctl(fd, ORBIOCGADVERTISER, (unsigned long)&advertiser);

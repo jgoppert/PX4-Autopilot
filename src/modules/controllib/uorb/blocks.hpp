@@ -44,6 +44,9 @@
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_global_position_set_triplet.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
+
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_controls.h>
@@ -99,6 +102,8 @@ protected:
 	UOrbSubscription<vehicle_rates_setpoint_s> _ratesCmd;
 	UOrbSubscription<vehicle_global_position_s> _pos;
 	UOrbSubscription<vehicle_global_position_set_triplet_s> _posCmd;
+	UOrbSubscription<vehicle_local_position_s> _localPos;
+	UOrbSubscription<vehicle_local_position_setpoint_s> _localPosCmd;
 	UOrbSubscription<manual_control_setpoint_s> _manual;
 	UOrbSubscription<vehicle_status_s> _status;
 	UOrbSubscription<parameter_update_s> _param_update;

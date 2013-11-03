@@ -72,8 +72,8 @@ struct vehicle_status_s v_status;
 struct rc_channels_s rc;
 struct rc_input_values rc_raw;
 struct actuator_armed_s armed;
-struct actuator_controls_effective_s actuators_effective_0;
-struct actuator_controls_s actuators_0;
+struct actuator_controls_effective_s actuators_effective[4];
+struct actuator_controls_s actuator_controls[4];
 struct vehicle_attitude_s att;
 struct airspeed_s airspeed;
 
@@ -140,14 +140,20 @@ static const struct listener listeners[] = {
 	{l_global_position_setpoint,	&mavlink_subs.spg_sub,		0},
 	{l_local_position_setpoint,	&mavlink_subs.spl_sub,		0},
 	{l_attitude_setpoint,		&mavlink_subs.spa_sub,		0},
-	{l_actuator_outputs,		&mavlink_subs.act_0_sub,	0},
-	{l_actuator_outputs,		&mavlink_subs.act_1_sub,	1},
-	{l_actuator_outputs,		&mavlink_subs.act_2_sub,	2},
-	{l_actuator_outputs,		&mavlink_subs.act_3_sub,	3},
 	{l_actuator_armed,		&mavlink_subs.armed_sub,	0},
 	{l_manual_control_setpoint,	&mavlink_subs.man_control_sp_sub, 0},
-	{l_vehicle_attitude_controls,	&mavlink_subs.actuators_sub,	0},
-	{l_vehicle_attitude_controls_effective,	&mavlink_subs.actuators_effective_sub,	0},
+	{l_actuator_outputs,		&(mavlink_subs.act_out_sub[0]),	0},
+	{l_actuator_outputs,		&(mavlink_subs.act_out_sub[1]),	1},
+	{l_actuator_outputs,		&(mavlink_subs.act_out_sub[2]),	2},
+	{l_actuator_outputs,		&(mavlink_subs.act_out_sub[3]),	3},
+	{l_vehicle_attitude_controls,	&(mavlink_subs.act_cntrl_sub[0]),	0},
+	{l_vehicle_attitude_controls,	&(mavlink_subs.act_cntrl_sub[1]),	1},
+	{l_vehicle_attitude_controls,	&(mavlink_subs.act_cntrl_sub[2]),	2},
+	{l_vehicle_attitude_controls,	&(mavlink_subs.act_cntrl_sub[3]),	3},
+	{l_vehicle_attitude_controls_effective,	&(mavlink_subs.act_eff_sub[0]),	0},
+	{l_vehicle_attitude_controls_effective,	&(mavlink_subs.act_eff_sub[1]),	1},
+	{l_vehicle_attitude_controls_effective,	&(mavlink_subs.act_eff_sub[2]),	2},
+	{l_vehicle_attitude_controls_effective,	&(mavlink_subs.act_eff_sub[3]),	3},
 	{l_debug_key_value,		&mavlink_subs.debug_key_value,	0},
 	{l_optical_flow,		&mavlink_subs.optical_flow,	0},
 	{l_vehicle_rates_setpoint,	&mavlink_subs.rates_setpoint_sub,	0},
@@ -157,6 +163,27 @@ static const struct listener listeners[] = {
 };
 
 static const unsigned n_listeners = sizeof(listeners) / sizeof(listeners[0]);
+
+static const orb_id_t actuator_outputs_ids[] = {
+	ORB_ID(actuator_outputs_0),
+	ORB_ID(actuator_outputs_1),
+	ORB_ID(actuator_outputs_2),
+	ORB_ID(actuator_outputs_3)
+};
+
+static const orb_id_t actuator_controls_ids[] = {
+	ORB_ID(actuator_controls_0),
+	ORB_ID(actuator_controls_1),
+	ORB_ID(actuator_controls_2),
+	ORB_ID(actuator_controls_3)
+};
+
+static const orb_id_t actuator_controls_effective_ids[] = {
+	ORB_ID(actuator_controls_effective_0),
+	ORB_ID(actuator_controls_effective_1),
+	ORB_ID(actuator_controls_effective_2),
+	ORB_ID(actuator_controls_effective_3)
+};
 
 uint16_t
 cm_uint16_from_m_float(float m)
@@ -249,7 +276,7 @@ l_vehicle_attitude(const struct listener *l)
 			last_sent_vfr = t;
 			float groundspeed = sqrtf(global_pos.vx * global_pos.vx + global_pos.vy * global_pos.vy);
 			uint16_t heading = (att.yaw + M_PI_F) / M_PI_F * 180.0f;
-			float throttle = actuators_effective_0.control_effective[3] * (UINT16_MAX - 1);
+			float throttle = actuators_effective[0].control_effective[3] * (UINT16_MAX - 1);
 			mavlink_msg_vfr_hud_send(MAVLINK_COMM_0, airspeed.true_airspeed_m_s, groundspeed, heading, throttle, global_pos.alt, -global_pos.vz);
 		}
 	}
@@ -484,15 +511,8 @@ l_actuator_outputs(const struct listener *l)
 {
 	struct actuator_outputs_s act_outputs;
 
-	orb_id_t ids[] = {
-		ORB_ID(actuator_outputs_0),
-		ORB_ID(actuator_outputs_1),
-		ORB_ID(actuator_outputs_2),
-		ORB_ID(actuator_outputs_3)
-	};
-
 	/* copy actuator data into local buffer */
-	orb_copy(ids[l->arg], *l->subp, &act_outputs);
+	orb_copy(actuator_outputs_ids[l->arg], *l->subp, &act_outputs);
 
 	if (gcs_link) {
 		mavlink_msg_servo_output_raw_send(MAVLINK_COMM_0, last_sensor_timestamp / 1000,
@@ -606,52 +626,39 @@ l_manual_control_setpoint(const struct listener *l)
 void
 l_vehicle_attitude_controls_effective(const struct listener *l)
 {
-	orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE, mavlink_subs.actuators_effective_sub, &actuators_effective_0);
-
+	uint16_t port = l->arg;
+	/* copy actuator data into local buffer */
+	orb_copy(actuator_controls_effective_ids[port], *l->subp, &actuators_effective[port]);
 	if (gcs_link) {
-		/* send, add spaces so that string buffer is at least 10 chars long */
-		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
-						   last_sensor_timestamp / 1000,
-						   "eff ctrl0    ",
-						   actuators_effective_0.control_effective[0]);
-		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
-						   last_sensor_timestamp / 1000,
-						   "eff ctrl1    ",
-						   actuators_effective_0.control_effective[1]);
-		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
-						   last_sensor_timestamp / 1000,
-						   "eff ctrl2     ",
-						   actuators_effective_0.control_effective[2]);
-		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
-						   last_sensor_timestamp / 1000,
-						   "eff ctrl3     ",
-						   actuators_effective_0.control_effective[3]);
+		for (int channel = 0; channel < 4; channel++) {
+			/* send, add spaces so that string buffer is at least 10 chars long */
+			char label[15];
+			snprintf(label, 15, "p%d ecntrl%d", port, channel);
+			mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
+				last_sensor_timestamp / 1000,
+			   	label,
+			   	actuators_effective[port].control_effective[channel]);
+		}
 	}
 }
 
 void
 l_vehicle_attitude_controls(const struct listener *l)
 {
-	orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, mavlink_subs.actuators_sub, &actuators_0);
-
+	struct actuator_controls_s act_controls;
+	uint16_t port = l->arg;
+	/* copy actuator data into local buffer */
+	orb_copy(actuator_controls_ids[port], *l->subp, &actuator_controls[port]);
 	if (gcs_link) {
-		/* send, add spaces so that string buffer is at least 10 chars long */
-		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
-						   last_sensor_timestamp / 1000,
-						   "ctrl0    ",
-						   actuators_0.control[0]);
-		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
-						   last_sensor_timestamp / 1000,
-						   "ctrl1    ",
-						   actuators_0.control[1]);
-		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
-						   last_sensor_timestamp / 1000,
-						   "ctrl2     ",
-						   actuators_0.control[2]);
-		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
-						   last_sensor_timestamp / 1000,
-						   "ctrl3     ",
-						   actuators_0.control[3]);
+		for (int channel = 0; channel < 4; channel++) {
+			/* send, add spaces so that string buffer is at least 10 chars long */
+			char label[15];
+			snprintf(label, 15, "p%d cntrl%d", port, channel);
+			mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
+				last_sensor_timestamp / 1000,
+			   	label,
+			   	actuator_controls[port].control[channel]);
+		}
 	}
 }
 
@@ -819,15 +826,14 @@ uorb_receive_start(void)
 	orb_set_interval(mavlink_subs.rates_setpoint_sub, 2000);  /* 0.5 Hz updates */
 
 	/* --- ACTUATOR OUTPUTS --- */
-	mavlink_subs.act_0_sub = orb_subscribe(ORB_ID(actuator_outputs_0));
-	mavlink_subs.act_1_sub = orb_subscribe(ORB_ID(actuator_outputs_1));
-	mavlink_subs.act_2_sub = orb_subscribe(ORB_ID(actuator_outputs_2));
-	mavlink_subs.act_3_sub = orb_subscribe(ORB_ID(actuator_outputs_3));
-	/* rate limits set externally based on interface speed, set a basic default here */
-	orb_set_interval(mavlink_subs.act_0_sub, 100);	/* 10Hz updates */
-	orb_set_interval(mavlink_subs.act_1_sub, 100);	/* 10Hz updates */
-	orb_set_interval(mavlink_subs.act_2_sub, 100);	/* 10Hz updates */
-	orb_set_interval(mavlink_subs.act_3_sub, 100);	/* 10Hz updates */
+	for (int port=0; port<4; port++) {
+		mavlink_subs.act_out_sub[port] =
+			orb_subscribe(actuator_outputs_ids[port]);
+		/* rate limits set externally 
+		 * based on interface speed, set a basic default here */
+		/* 10Hz updates */
+		orb_set_interval(mavlink_subs.act_out_sub[port], 100);
+	}
 
 	/* --- ACTUATOR ARMED VALUE --- */
 	mavlink_subs.armed_sub = orb_subscribe(ORB_ID(actuator_armed));
@@ -839,11 +845,18 @@ uorb_receive_start(void)
 	orb_set_interval(mavlink_subs.man_control_sp_sub, 100);	/* 10Hz updates */
 
 	/* --- ACTUATOR CONTROL VALUE --- */
-	mavlink_subs.actuators_effective_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE);
-	orb_set_interval(mavlink_subs.actuators_effective_sub, 100);	/* 10Hz updates */
+	for (int port=0; port<4; port++) {
+		// control
+		mavlink_subs.act_cntrl_sub[port] = orb_subscribe(actuator_controls_ids[port]);
+		orb_set_interval(mavlink_subs.act_cntrl_sub[port], 100); /* 10Hz updates */
+	}
 
-	mavlink_subs.actuators_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
-	orb_set_interval(mavlink_subs.actuators_sub, 100);	/* 10Hz updates */
+	/* --- ACTUATOR EFFECTIVE CONTROL VALUE --- */
+	for (int port=0; port<4; port++) {
+		// effective control
+		mavlink_subs.act_eff_sub[port] = orb_subscribe(actuator_controls_effective_ids[port]);
+		orb_set_interval(mavlink_subs.act_eff_sub[port], 100);	/* 10Hz updates */
+	}
 
 	/* --- DEBUG VALUE OUTPUT --- */
 	mavlink_subs.debug_key_value = orb_subscribe(ORB_ID(debug_key_value));

@@ -233,6 +233,7 @@ handle_message(mavlink_message_t *msg)
 
 		/* check if topic is advertised */
 		if (cmd_pub <= 0) {
+			orb_publish(ORB_ID(vehicle_command), cmd_pub, &vcmd);
 			cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
 
 		} else {

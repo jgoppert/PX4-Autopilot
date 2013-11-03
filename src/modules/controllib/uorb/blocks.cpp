@@ -82,13 +82,15 @@ void BlockWaypointGuidance::update(vehicle_global_position_s &pos,
 BlockUorbEnabledAutopilot::BlockUorbEnabledAutopilot(SuperBlock *parent, const char *name) :
 	SuperBlock(parent, name),
 	// subscriptions
-	_att(&getSubscriptions(), ORB_ID(vehicle_attitude), 20),
-	_attCmd(&getSubscriptions(), ORB_ID(vehicle_attitude_setpoint), 20),
-	_ratesCmd(&getSubscriptions(), ORB_ID(vehicle_rates_setpoint), 20),
-	_pos(&getSubscriptions() , ORB_ID(vehicle_global_position), 20),
-	_posCmd(&getSubscriptions(), ORB_ID(vehicle_global_position_set_triplet), 20),
-	_manual(&getSubscriptions(), ORB_ID(manual_control_setpoint), 20),
-	_status(&getSubscriptions(), ORB_ID(vehicle_status), 20),
+	_att(&getSubscriptions(), ORB_ID(vehicle_attitude), 3),
+	_attCmd(&getSubscriptions(), ORB_ID(vehicle_attitude_setpoint), 3),
+	_ratesCmd(&getSubscriptions(), ORB_ID(vehicle_rates_setpoint), 3),
+	_pos(&getSubscriptions() , ORB_ID(vehicle_global_position), 3),
+	_posCmd(&getSubscriptions(), ORB_ID(vehicle_global_position_set_triplet), 3),
+	_localPos(&getSubscriptions() , ORB_ID(vehicle_local_position), 3),
+	_localPosCmd(&getSubscriptions(), ORB_ID(vehicle_local_position_setpoint), 3),
+	_manual(&getSubscriptions(), ORB_ID(manual_control_setpoint), 3),
+	_status(&getSubscriptions(), ORB_ID(vehicle_status), 3),
 	_param_update(&getSubscriptions(), ORB_ID(parameter_update), 1000), // limit to 1 Hz
 	// publications
 	_actuators(&getPublications(), ORB_ID(actuator_controls_0))

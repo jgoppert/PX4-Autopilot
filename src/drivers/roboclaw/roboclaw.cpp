@@ -1,6 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Author: 	James Goppert
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,37 +32,28 @@
  *
  ****************************************************************************/
 
-
-
 /**
- * @ file roboclaw_main.cpp
+ * @file roboclaw.cpp
+ * RoboClaw Driver
  *
- * RoboClaw Motor Driver
- *
- * references:
- * http://downloads.orionrobotics.com/downloads/datasheets/motor_controller_robo_claw_R0401.pdf
- *
+ * @author James Goppert
  */
 
-#include <nuttx/config.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <math.h>
+#include <string.h> // strcmp
 
-#include <systemlib/systemlib.h>
-#include <systemlib/param/param.h>
+#include <systemlib/systemlib.h> // SCHED_DEFAULT
+#include <systemlib/err.h> // errx
 
-#include <arch/board/board.h>
-#include "RoboClaw.hpp"
+#include "RoboClawDevice.h"
 
-static bool thread_should_exit = false;     /**< Deamon exit flag */
-static bool thread_running = false;     /**< Deamon status flag */
-static int deamon_task;             /**< Handle of deamon task / thread */
+volatile static bool thread_should_exit = false; // Daemon exit flag
+volatile static bool thread_running = false; // Daemon status flag
+volatile static int daemon_task; // Handle of deamon task / thread
 
 /**
- * Deamon management function.
+ * Daemon management function.
  */
 extern "C" __EXPORT int roboclaw_main(int argc, char *argv[]);
 
@@ -69,17 +61,6 @@ extern "C" __EXPORT int roboclaw_main(int argc, char *argv[]);
  * Mainloop of deamon.
  */
 int roboclaw_thread_main(int argc, char *argv[]);
-
-/**
- * Print the correct usage.
- */
-static void usage();
-
-static void usage()
-{
-	fprintf(stderr, "usage: roboclaw "
-			"{start|stop|status|test}\n\n");
-}
 
 /**
  * The deamon app only briefly exists to start
@@ -91,103 +72,99 @@ static void usage()
  */
 int roboclaw_main(int argc, char *argv[])
 {
+	const char * command = nullptr;
 
-	if (argc < 1)
-		usage();
-
-	if (!strcmp(argv[1], "start")) {
-
-		if (thread_running) {
-			printf("roboclaw already running\n");
-			/* this is not an error */
-			exit(0);
-		}
-
-		thread_should_exit = false;
-		deamon_task = task_spawn_cmd("roboclaw",
-					 SCHED_DEFAULT,
-					 SCHED_PRIORITY_MAX - 10,
-					 2048,
-					 roboclaw_thread_main,
-					 (const char **)argv);
-		exit(0);
-
-	} else if (!strcmp(argv[1], "test")) {
-
-		const char * deviceName = "/dev/ttyS2";
-		uint8_t address = 128;
-		uint16_t pulsesPerRev = 1200;
-
-		if (argc == 2) {
-			printf("testing with default settings\n");
-		} else if (argc != 4) {
-			printf("usage: roboclaw test device address pulses_per_rev\n");
-			exit(-1);
-		} else {
-			deviceName = argv[2];
-			address = strtoul(argv[3], nullptr, 0);
-			pulsesPerRev = strtoul(argv[4], nullptr, 0);
-		}
-
-		printf("device:\t%s\taddress:\t%d\tpulses per rev:\t%ld\n",
-			deviceName, address, pulsesPerRev);
-
-		roboclawTest(deviceName, address, pulsesPerRev);
-		thread_should_exit = true;
-		exit(0);
-
-	} else if (!strcmp(argv[1], "stop")) {
-
-		thread_should_exit = true;
-		exit(0);
-
-	} else if (!strcmp(argv[1], "status")) {
-
-		if (thread_running) {
-			printf("\troboclaw app is running\n");
-
-		} else {
-			printf("\troboclaw app not started\n");
-		}
-		exit(0);
+	// parse
+	if (argc == 1) {
+		command = "help";
+	} else if (argc > 1) {
+		command = argv[1];
+	} else {
+		errx(1, "wrong number of args");
 	}
 
-	usage();
-	exit(1);
+	// handle
+	if (!strcmp(command, "help")) {
+		warnx("usage: (start|stop|status|test|reset)");
+		return OK;
+	} else if (!strcmp(command, "start")) {
+		if (thread_running) {
+			warnx("already running");
+			return 0;
+		}
+		thread_should_exit = false;
+		daemon_task = task_spawn_cmd("roboclaw",
+					 SCHED_DEFAULT,
+					 SCHED_PRIORITY_MAX - 30,
+					 4096,
+					 roboclaw_thread_main,
+					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
+		return 0;
+	} else if (!strcmp(command, "stop")) {
+		thread_should_exit = true;
+		int loop_count = 0;
+		while (thread_running == true) {
+			usleep(1000000);
+			if (loop_count++ > 5) {
+				warnx("forcing deletion");
+				task_delete(daemon_task);
+			}
+			warnx("waiting for process to exit");
+		}
+		return 0;
+	} else if (!strcmp(command, "status")) {
+		if (thread_running) {
+			warnx("is running");
+			return 0;
+		} else {
+			warnx("not started");
+			return -1;
+		}
+	} else if (!strcmp(command, "test")) {
+		if (thread_running) {
+			warnx("must stop first");
+			return -1;
+		} else {
+			warnx("not implemented");
+			return 0;
+		}
+	} else if (!strcmp(command, "reset")) {
+		if (thread_running) {
+			warnx("not implemented");
+			return 0;
+		} else {
+			warnx("not started");
+			return -1;
+		}
+	} else {
+		errx(1, "unknown command: %s", command);
+	}
+	return OK;
 }
 
 int roboclaw_thread_main(int argc, char *argv[])
 {
-	printf("[roboclaw] starting\n");
+	// defaults
+	const char * port = "/dev/ttyS2";
+	uint8_t address = 128;
+	uint32_t timeout = 1000; // 1 second
+	bool doack = false; // do ack for writes
 
-	// skip parent process args
-	argc -=2;
-	argv +=2;
-
-	if (argc < 3) {
-		printf("usage: roboclaw start device address\n");
-		return -1;
+	// parse
+	if (argc == 3) {
+		port = argv[1];
+		address = strtoul(argv[2], nullptr, 0);
+	} else if (argc != 1) {
+		errx(1, "wrong number of args");
 	}
 
-	const char *deviceName = argv[1];
-	uint8_t address = strtoul(argv[2], nullptr, 0);
-	uint16_t pulsesPerRev = strtoul(argv[3], nullptr, 0);
-
-	printf("device:\t%s\taddress:\t%d\tpulses per rev:\t%ld\n",
-			deviceName, address, pulsesPerRev);
-
-	// start
-	RoboClaw roboclaw(deviceName, address, pulsesPerRev);
-
+	warnx("starting");
 	thread_running = true;
-
-	// loop
+	RoboClawDevice roboclaw(port, address, timeout, doack);
 	while (!thread_should_exit) {
 		roboclaw.update();
 	}
-
-	// exit
-	printf("[roboclaw] exiting.\n");
+	warnx("exiting.");
 	thread_running = false;
 	return 0;
 }

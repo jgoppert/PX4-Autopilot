@@ -86,7 +86,7 @@ protected:
  * UOrb Publication wrapper class
  */
 template<class T>
-class UOrbPublication :
+class __EXPORT UOrbPublication :
 	public T, // this must be first!
 	public UOrbPublicationBase
 {
