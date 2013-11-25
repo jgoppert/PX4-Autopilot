@@ -67,6 +67,7 @@ MODULES		+= modules/gpio_led
 #
 # Estimation modules (EKF / other filters)
 #
+MODULES		+= modules/att_estimator_ekf_hw
 MODULES		+= modules/attitude_estimator_ekf
 
 #

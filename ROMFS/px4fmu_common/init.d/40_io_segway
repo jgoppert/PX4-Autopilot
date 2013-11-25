@@ -47,7 +47,7 @@ gps start
 #
 # Start the attitude estimator (depends on orb)
 #
-attitude_estimator_ekf start
+att_estimator_ekf_hw start
 
 #
 # Load mixer and start controllers (depends on px4io)
