@@ -172,6 +172,9 @@ protected:
 	control::BlockParamFloat _g;          /**< gravitational constant */
 	control::BlockParamFloat _faultMag;   /**< fault threshold for mag*/
 	control::BlockParamFloat _faultAccel; /**< fault threshold  for accelerometer */
+	control::BlockParamFloat _rollOff; 	/**< roll offset*/
+	control::BlockParamFloat _pitchOff; 	/**< pitch offset*/
+	control::BlockParamFloat _yawOff; 	/**< yaw offset*/
 	// status
 	bool _attitudeInitialized;
 	uint16_t _attitudeInitCounter;

@@ -97,6 +97,9 @@ Estimator::Estimator(SuperBlock *parent, const char *name) :
 	_g(this, "ENV_G"),
 	_faultMag(this, "FAULT_MAG"),
 	_faultAccel(this, "FAULT_ACCEL"),
+	_rollOff(this, "ROLL_OFF"),
+	_pitchOff(this, "PITCH_OFF"),
+	_yawOff(this, "PITCH_OFF"),
 	_attitudeInitialized(false),
 	_attitudeInitCounter(0)
 {
@@ -269,9 +272,9 @@ void Estimator::updatePublications()
 
 	// attitude publication
 	_att.timestamp = _pubTimeStamp;
-	_att.roll = phi;
-	_att.pitch = theta;
-	_att.yaw = psi;
+	_att.roll = phi + _rollOff.get();
+	_att.pitch = theta + _pitchOff.get();
+	_att.yaw = psi + _yawOff.get();
 	_att.rollspeed = _sensors.gyro_rad_s[0];
 	_att.pitchspeed = _sensors.gyro_rad_s[1];
 	_att.yawspeed = _sensors.gyro_rad_s[2];
@@ -326,7 +329,7 @@ int Estimator::predictStateCovariance(float dt)
 	using namespace math;
 
 	// avoid covariance update during gimbal lock
-	if (fabs(theta - M_PI_2) < 0.01) return;
+	if (fabs(theta - M_PI_2) < 0.01) return -1;
 
 	float sinPhi = sin(phi);
 	float cosPhi = cos(phi);

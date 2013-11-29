@@ -42,3 +42,6 @@ PARAM_DEFINE_FLOAT(ATTH_FAULT_MAG, 1.0f); // fault threshold magnetometer
 PARAM_DEFINE_FLOAT(ATTH_FAULT_ACCEL, 1.0f); // " accelerometer
 PARAM_DEFINE_FLOAT(ATTH_ENV_G, 9.8f); // local gravity
 PARAM_DEFINE_FLOAT(ATTH_ENV_MAG_DEC, 0.0f); // magnetic declination
+PARAM_DEFINE_FLOAT(ATTH_ROLL_OFF, 0); // roll offset
+PARAM_DEFINE_FLOAT(ATTH_PITCH_OFF, 0); // pitch offset
+PARAM_DEFINE_FLOAT(ATTH_YAW_OFF, 0); // yaw offset
