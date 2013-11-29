@@ -295,7 +295,11 @@ public:
 	virtual ~BlockPI() {};
 	float update(float input) {
 		return getKP() * input +
-		       getKI() * getIntegral().update(input);
+		       getIntegral().update(getKI()*input);
+		//note KI passed to integral so that the
+		//saturation is scaled with gain, prevent
+		//having to change saturation when gain
+		//changes
 	}
 // accessors
 	float getKP() { return _kP.get(); }
@@ -359,8 +363,13 @@ public:
 	virtual ~BlockPID() {};
 	float update(float input) {
 		return getKP() * input +
-		       getKI() * getIntegral().update(input) +
+		       getIntegral().update(getKI()*input) +
 		       getKD() * getDerivative().update(input);
+		//note KI passed to integral so that the
+		//saturation is scaled with gain, prevent
+		//having to change saturation when gain
+		//changes
+
 	}
 // accessors
 	float getKP() { return _kP.get(); }
