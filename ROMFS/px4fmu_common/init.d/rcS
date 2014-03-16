@@ -378,6 +378,18 @@ then
 		fi
 		unset MK_MODE
 
+		if [ $OUTPUT_MODE == roboclaw ]
+		then
+			echo "[init] Use ROBOCLAW as primary output"
+			if roboclaw start
+			then
+				echo "[init] ROBOCLAW started"
+			else
+				echo "[init] ERROR: ROBOCLAW start failed"
+				tone_alarm $TUNE_OUT_ERROR
+			fi
+		fi
+
 		if [ $OUTPUT_MODE == hil ]
 		then
 			if hil mode_port2_pwm8

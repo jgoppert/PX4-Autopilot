@@ -1,4 +1,5 @@
 #
+# Check if auto-setup from one of the standard scripts is wanted
 # SYS_AUTOSTART = 0 means no autostart (default)
 #
 # AUTOSTART PARTITION:
@@ -17,6 +18,7 @@
 # 12000	..	12999		Octo Cox
 # 13000 ..  13999		VTOL
 # 14000 ..  14999       Tri Y
+# 50000	..	50999		Ground Vehicles
 
 #
 # Simulation
@@ -287,10 +289,17 @@ fi
 
 
 #
-# Ground Rover AxialRacing AX10
+# Ground Vehicles
 #
+
 if param compare SYS_AUTOSTART 50001
 then
 	sh /etc/init.d/50001_axialracing_ax10
 fi
+
+if param compare SYS_AUTOSTART 50099
+then
+	sh /etc/init.d/50099_segway
+fi
+
 

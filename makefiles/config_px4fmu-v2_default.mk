@@ -45,6 +45,7 @@ MODULES		+= drivers/mkblctrl
 MODULES		+= drivers/px4flow
 MODULES		+= drivers/oreoled
 MODULES		+= drivers/gimbal
+MODULES		+= drivers/roboclaw
 
 #
 # System commands
@@ -83,7 +84,7 @@ MODULES		+= modules/position_estimator_inav
 #
 # Vehicle Control
 #
-#MODULES		+= modules/segway # XXX Needs GCC 4.7 fix
+MODULES		+= modules/segway
 MODULES		+= modules/fw_pos_control_l1
 MODULES		+= modules/fw_att_control
 MODULES		+= modules/mc_att_control
