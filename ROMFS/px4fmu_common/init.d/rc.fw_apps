@@ -11,5 +11,10 @@ fw_att_pos_estimator start
 #
 # Start attitude controller
 #
-fw_att_control start
-fw_pos_control_l1 start
+if [ $CONTROLLER == fixedwing_backside ]
+then
+	fixedwing_backside start
+else
+	fw_att_control start
+	fw_pos_control_l1 start
+fi

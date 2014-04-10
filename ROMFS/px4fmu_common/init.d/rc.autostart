@@ -46,6 +46,11 @@ then
 	sh /etc/init.d/1005_rc_fw_Malolo1.hil
 fi
 
+if param compare SYS_AUTOSTART 1100
+then
+	sh /etc/init.d/1100_rc_fw_easystar_backside.hil
+fi
+
 #
 # Standard plane
 #

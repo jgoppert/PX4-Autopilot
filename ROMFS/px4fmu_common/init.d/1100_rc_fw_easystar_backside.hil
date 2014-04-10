@@ -1,0 +1,18 @@
+#!nsh
+#
+# HILStar / X-Plane
+#
+# Lorenz Meier <lm@inf.ethz.ch>
+#
+# Backside Controller
+#
+
+sh /etc/init.d/rc.fw_defaults
+
+echo "X Plane HIL starting.."
+
+set HIL yes
+
+set CONTROLLER fixedwing_backside
+
+set MIXER FMU_AERT
