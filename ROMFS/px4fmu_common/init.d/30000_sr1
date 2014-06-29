@@ -1,0 +1,5 @@
+#!nsh
+
+sh /etc/init.d/rc.flapping_wing_defaults
+
+set MIXER FMU_AET

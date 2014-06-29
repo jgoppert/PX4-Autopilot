@@ -1,0 +1,13 @@
+#!nsh
+#
+# Standard apps for flapping wing
+#
+
+#
+# Start the attitude and position estimator
+#
+ekf_att_pos_estimator start
+
+#
+# Start attitude controller
+flapping start
