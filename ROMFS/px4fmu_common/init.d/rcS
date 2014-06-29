@@ -440,7 +440,7 @@ then
 	# Sensors, Logging, GPS
 	#
 	sh /etc/init.d/rc.sensors
-	sh /etc/init.d/rc.logging
+		sh /etc/init.d/rc.logging
 
 	if [ $GPS == yes ]
 	then
@@ -549,6 +549,37 @@ then
 		if [ $LOAD_DEFAULT_APPS == yes ]
 		then
 			sh /etc/init.d/rc.mc_apps
+		fi
+	fi
+
+	#
+	# Flapping
+	#
+	if [ $VEHICLE_TYPE == flapping_wing ]
+	then
+		echo "[init] Vehicle type: FLAPPING WING"
+
+		if [ $MIXER == none ]
+		then
+			# Set default mixer for fixed wing if not defined
+			set MIXER FMU_PASS
+		fi
+
+		if [ $MAV_TYPE == none ]
+		then
+			# Use MAV_TYPE = 16 (flapping wing) if not defined
+			set MAV_TYPE 16
+		fi
+
+		param set MAV_TYPE $MAV_TYPE
+
+		# Load mixer and configure outputs
+		sh /etc/init.d/rc.interface
+
+		# Start standard fixedwing apps
+		if [ $LOAD_DEFAULT_APPS == yes ]
+		then
+			sh /etc/init.d/rc.flapping_wing_apps
 		fi
 	fi
 

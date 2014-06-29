@@ -237,3 +237,12 @@ if param compare SYS_AUTOSTART 12001
 then
 	sh /etc/init.d/12001_octo_cox
 fi
+
+#
+# Flapping Wing
+#
+
+if param compare SYS_AUTOSTART 30000
+then
+	sh /etc/init.d/30000_sr1
+fi
