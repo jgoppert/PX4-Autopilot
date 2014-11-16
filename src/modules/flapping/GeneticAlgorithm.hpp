@@ -1,3 +1,6 @@
+#ifndef GENETIC_ALGORITHM_HPP__
+#define GENETIC_ALGORITHM_HPP__
+
 /****************************************************************************
  *
  *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
@@ -33,55 +36,48 @@
  ****************************************************************************/
 
 
-#pragma once
+#include <inttypes.h>
 
-#include <controllib/uorb/blocks.hpp>
-#include "GeneticAlgorithm.hpp"
-
-using namespace control;
-
-class BlockFlappingController : public control::BlockUorbEnabledAutopilot {
-public:
-	BlockFlappingController() :
-		BlockUorbEnabledAutopilot(NULL,"FL"),
-		ga(),
-		th2v(this, "TH2V"),
-		q2v(this, "Q2V"),
-		_servoTravel(this, "SRV_TRV"),
-		_wingUp(this, "WNG_UP"),
-		_wingDown(this, "WNG_DWN"),
-		_wingGlide(this, "WNG_GLD"),
-		_tDown2Up(this, "T_DWN2UP"),
-		_tUp2Glide(this, "T_UP2GLD"),
-		_throttleGlide(this, "THR_GLD"),
-		_throttle2Frequency(this, "THR2FREQ"),
-		_minFrequency(this, "MIN_FREQ"),
-		_attPoll(),
-		_timeStamp(0)
-	{
-		_attPoll.fd = _att.getHandle();
-		_attPoll.events = POLLIN;
-	}
-	void update();
+class GeneticAlgorithm {
 private:
-	GeneticAlgorithm ga;
-	enum {CH_LEFT, CH_RIGHT};
-	BlockPI th2v;
-	BlockP q2v;
-	BlockParamFloat _servoTravel;
-	BlockParamFloat _wingUp;
-	BlockParamFloat _wingDown;
-	BlockParamFloat _wingGlide;
-	BlockParamFloat _tDown2Up;
-	BlockParamFloat _tUp2Glide;
-	BlockParamFloat _throttleGlide;
-	BlockParamFloat _throttle2Frequency;
-	BlockParamFloat _minFrequency;
-	struct pollfd _attPoll;
-	uint64_t _timeStamp;
-	uint64_t _cycleStartTimeStamp;
-	void cycleFrequencyFunction(float throttle, float & cycleFrequency);
-	void flappingFunction(float t, float aileron,
-			float elevator, float throttle,
-			float & wingLeft, float & wingRight);
+	static const uint8_t m_populationSize = 10;
+	static const uint8_t m_genomeLength = 6;
+	static const uint8_t m_numberGenes = 3;
+	uint16_t m_fitnessArray[m_populationSize];
+	uint16_t m_genomeArray[m_populationSize];
+	uint16_t m_nextGenomeArray[m_populationSize];
+	uint8_t m_geneLengths[m_numberGenes];
+	uint8_t m_genePositions[m_numberGenes];
+	uint16_t m_geneMasks[m_numberGenes];
+public:
+	GeneticAlgorithm();
+	void swap_genomes(uint8_t id1, uint8_t id2);
+
+	uint8_t getPopulationSize() { return m_populationSize; }
+	uint8_t getGenomeLength() { return m_genomeLength; }
+	uint8_t getNumberGenes() { return m_numberGenes; }
+	uint8_t getGeneMask(uint8_t id) { return m_geneMasks[id]; }
+	uint8_t getGeneLength(uint8_t id) { return m_geneLengths[id]; }
+	uint8_t getGenePosition(uint8_t id) { return m_genePositions[id]; }
+
+	void setFitness(uint8_t id, float fitness) { m_fitnessArray[id] = fitness; }
+	float getFitness(uint8_t id) { return m_fitnessArray[id]; }
+
+	void setGenome(uint8_t id, uint16_t genome) { m_genomeArray[id] = genome; }
+	uint16_t getGenome(uint8_t id) { return m_genomeArray[id]; }
+
+	void setNextGenome(uint8_t id, uint16_t genome) { m_nextGenomeArray[id] = genome; }
+	uint16_t getNextGenome(uint8_t id) { return m_nextGenomeArray[id]; }
+
+	//void getGeneValue(uint8_t id, uint8_t )
+
+	void swapId(uint8_t id1, uint8_t id2);
+	void bubbleSort();
+	uint8_t selectParent();
+	void reproduce();
+	void printBinary(uint16_t val, uint8_t n);
+	void printId(uint8_t id);
+	uint16_t getGene(uint16_t id, uint8_t index); 
 };
+
+#endif /// GENETIC_ALGORITHM_HPP__
