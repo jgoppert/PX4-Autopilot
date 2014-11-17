@@ -88,7 +88,10 @@ void BlockFlappingController::update() {
 			learnStart = hrt_absolute_time();
 			currentlyEvaluating = true;
 		} else if ((hrt_absolute_time() - learnStart) > _lrnTime.get()) { //current genome test is at its end
-			fitness = _fitness.get();
+			// we are storing the fitness in the vicon
+			// packet since it is setup to send
+			// from the groundcontrol
+			float fitness = _vicon.x;
 			ga.testNext(fitness);
 			currentlyEvaluating = false;
 		}

@@ -15,14 +15,14 @@ PARAM_DEFINE_FLOAT(FL_T_UP2GLD, 0.16f); // down to up time, s
 PARAM_DEFINE_FLOAT(FL_THR_GLD, 0.2f); // throttle to glide below, 0-1
 PARAM_DEFINE_FLOAT(FL_THR2FREQ, 3.3f); // norm. throttle to freq gain
 PARAM_DEFINE_FLOAT(FL_MIN_FREQ, 1.7f); // min flapping freq
-PARAM_DEFINE_FLOAT(FL_FITNESS,-1e9f); // fitness for learning
-PARAM_DEFINE_FLOAT(FL_LRN_TIME,5e6f); // test duration for each genome
 
-PARAM_DEFINE_FLOAT(FL_AIL_MIN, -20.0f); // ail min value
-PARAM_DEFINE_FLOAT(FL_AIL_RANGE, 40.0f); // ail range
+PARAM_DEFINE_FLOAT(FL_LRN_TIME, 10e6f); // test duration for each genome
 
-PARAM_DEFINE_FLOAT(FL_ELEV_MIN, -20.0f); // elv min value
-PARAM_DEFINE_FLOAT(FL_ELEV_RANGE, 40.0f); // elv range
+PARAM_DEFINE_FLOAT(FL_AIL_MIN, -16.0f); // ail min value
+PARAM_DEFINE_FLOAT(FL_AIL_RANGE, 32.0f); // ail range
+
+PARAM_DEFINE_FLOAT(FL_ELEV_MIN, -16.0f); // elv min value
+PARAM_DEFINE_FLOAT(FL_ELEV_RANGE, 32.0f); // elv range
 
 PARAM_DEFINE_FLOAT(FL_AIL_LP, 0.8f); // make transitions smooth
 PARAM_DEFINE_FLOAT(FL_ELEV_LP, 0.8f); // make transitions smooth

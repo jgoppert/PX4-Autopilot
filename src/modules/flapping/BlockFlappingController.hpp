@@ -37,6 +37,7 @@
 
 #include <controllib/uorb/blocks.hpp>
 #include "GeneticAlgorithm.hpp"
+#include <uORB/topics/vehicle_vicon_position.h>
 
 using namespace control;
 
@@ -45,6 +46,7 @@ public:
 	BlockFlappingController() :
 		BlockUorbEnabledAutopilot(NULL,"FL"),
 		ga(),
+		_vicon(&getSubscriptions(), ORB_ID(vehicle_vicon_position), 20),
 		th2v(this, "TH2V"),
 		q2v(this, "Q2V"),
 		_servoTravel(this, "SRV_TRV"),
@@ -56,7 +58,6 @@ public:
 		_throttleGlide(this, "THR_GLD"),
 		_throttle2Frequency(this, "THR2FREQ"),
 		_minFrequency(this, "MIN_FREQ"),
-		_fitness(this, "FITNESS"),
 		_lrnTime(this, "LRN_TIME"),
 		_ailMin(this, "AIL_MIN"),
 		_ailRange(this, "AIL_RANGE"),
@@ -73,6 +74,9 @@ public:
 	void update();
 private:
 	GeneticAlgorithm ga;
+
+	uORB::Subscription<vehicle_vicon_position_s> _vicon;
+
 	enum {CH_LEFT, CH_RIGHT};
 	BlockPI th2v;
 	BlockP q2v;
@@ -85,7 +89,6 @@ private:
 	BlockParamFloat _throttleGlide;
 	BlockParamFloat _throttle2Frequency;
 	BlockParamFloat _minFrequency;
-	BlockParamFloat _fitness;
 	BlockParamFloat _lrnTime;
 	BlockParamFloat _ailMin;
 	BlockParamFloat _ailRange;
