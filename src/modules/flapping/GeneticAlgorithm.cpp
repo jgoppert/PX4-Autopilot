@@ -32,6 +32,7 @@
  *
  ****************************************************************************/
 
+#define RAND_MAX MAX_RAND
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -225,7 +226,7 @@ bool GeneticAlgorithm::testNext(float lastFitness) {
 		}
 		setCurrentId(nextId);
 		/*printf("XXX id: %d, genome: %d fitness: %f\n",
-		 	getCurrentId(), getGenome(getCurrentId()),
+		 	getCurrentId(), (double)getGenome(getCurrentId()),
 		 	lastFitness);*/
 		float newFitness = getVisitedFitness(getGenome(getCurrentId()));
 		if (newFitness > 0) {
@@ -251,7 +252,7 @@ void GeneticAlgorithm::printBinary(uint16_t genome, uint8_t n) {
 }
 
 void GeneticAlgorithm::printId(uint8_t id) {
-	printf("id: %d, fitness: %f, ", id, getFitness(id));
+	printf("id: %d, fitness: %f, ", id, (double)getFitness(id));
 	printGenome(getGenome(id));
 }
 
@@ -260,7 +261,7 @@ void GeneticAlgorithm::printGenome(uint16_t genome) {
 	printBinary(genome, getGenomeLength());
 	printf(" values:");
 	for (int gene=0; gene < getNumberGenes(); gene++) {
-		printf(" %f", getValue(genome, gene));
+		printf(" %f", (double)getValue(genome, gene));
 	}
 	printf("\n");
 }

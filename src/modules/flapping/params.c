@@ -15,3 +15,4 @@ PARAM_DEFINE_FLOAT(FL_T_UP2GLD, 0.16f); // down to up time, s
 PARAM_DEFINE_FLOAT(FL_THR_GLD, 0.2f); // throttle to glide below, 0-1
 PARAM_DEFINE_FLOAT(FL_THR2FREQ, 3.3f); // norm. throttle to freq gain
 PARAM_DEFINE_FLOAT(FL_MIN_FREQ, 1.7f); // min flapping freq
+PARAM_DEFINE_FLOAT(FL_LRN,0.0f); // learning on if > 0.5f

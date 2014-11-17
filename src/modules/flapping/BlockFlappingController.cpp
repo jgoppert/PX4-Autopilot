@@ -34,6 +34,20 @@
 
 #include "BlockFlappingController.hpp"
 
+//set acceptable values for learned parameters
+float ailMin = 0.0f;
+float ailRange = 0.0f;
+float elevMin = 0.0f;
+float elevRange = 0.0f;
+
+//values for keeping track of learning
+bool currentlyEvaluating = false;
+uint64_t learnStart, learnDuration;
+
+//this runs the learning
+GeneticAlgorithm ga = GeneticAlgorithm();
+
+
 void BlockFlappingController::update() {
 	// wait for a estimator update or exit at 100 Hz 
 	// running twice as fast as pwm (50 Hz) to avoid lag issues
@@ -67,8 +81,23 @@ void BlockFlappingController::update() {
 	float aileron = 0.0f;
 	float throttle = 0.0f;
 
-	// handle autopilot modes
-	if (_status.main_state == MAIN_STATE_MANUAL) {
+	// handle autopilot modes and learning
+	//learning over roll and pitch
+	if (_lrn.get() > 0.5f) { //TODO start and end times, bool to track if evaluatinging or if should get new values
+		if (! currentlyEvaluating) { //no genome is being evaluated: get new one to test
+			//TODO calculate and send fitness to ga
+
+			//initilize learning time
+			learnStart = hrt_absolute_time();
+			//get elevator and aileron command from learning
+			uint16_t genome = ga.getGenome(ga.getCurrentId());
+			aileron = ailMin + ailRange * ga.getValue(genome, 0);
+			elevator = elevMin + elevRange * ga.getValue(genome, 1);
+			currentlyEvaluating = true;
+		} else if ((hrt_absolute_time() - learnStart) > learnDuration) { //current genome test is at its end
+			currentlyEvaluating = false;
+		}
+	} else if (_status.main_state == MAIN_STATE_MANUAL) {
 		elevator = _manual.x;
 		aileron = _manual.y;
 		throttle = _manual.z;

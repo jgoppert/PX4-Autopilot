@@ -56,6 +56,7 @@ public:
 		_throttleGlide(this, "THR_GLD"),
 		_throttle2Frequency(this, "THR2FREQ"),
 		_minFrequency(this, "MIN_FREQ"),
+		_lrn(this, "LRN"),
 		_attPoll(),
 		_timeStamp(0)
 	{
@@ -77,6 +78,7 @@ private:
 	BlockParamFloat _throttleGlide;
 	BlockParamFloat _throttle2Frequency;
 	BlockParamFloat _minFrequency;
+	BlockParamFloat _lrn;
 	struct pollfd _attPoll;
 	uint64_t _timeStamp;
 	uint64_t _cycleStartTimeStamp;
