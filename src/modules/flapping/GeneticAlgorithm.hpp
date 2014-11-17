@@ -35,49 +35,85 @@
  *
  ****************************************************************************/
 
-
 #include <inttypes.h>
 
 class GeneticAlgorithm {
 private:
-	static const uint8_t m_populationSize = 10;
-	static const uint8_t m_genomeLength = 6;
-	static const uint8_t m_numberGenes = 3;
-	uint16_t m_fitnessArray[m_populationSize];
+	// critial parameters
+	static const uint8_t m_populationSize = 5;
+	static const uint8_t m_genomeLength = 8;
+	static const uint8_t m_numberGenes = 2;
+	float m_parentPercentage;
+
+	// member variables
+	float m_fitnessArray[m_populationSize];
 	uint16_t m_genomeArray[m_populationSize];
 	uint16_t m_nextGenomeArray[m_populationSize];
 	uint8_t m_geneLengths[m_numberGenes];
 	uint8_t m_genePositions[m_numberGenes];
 	uint16_t m_geneMasks[m_numberGenes];
+	uint8_t m_currentId;
+	uint16_t m_bestGenome;
+	float m_bestFitness;
+	uint32_t m_generation;
+	float visitedFitness[1 << m_genomeLength];
 public:
+	// constructor
 	GeneticAlgorithm();
-	void swap_genomes(uint8_t id1, uint8_t id2);
 
+	// main methods
+	void swapId(uint8_t id1, uint8_t id2);
+	void bubbleSort();
+	uint8_t selectParent();
+	void reproduce();
+	uint16_t mutate(uint16_t genome); 
+	bool testNext(float lastFitness);
+
+	// print methods
+	void printBinary(uint16_t genome, uint8_t n);
+	void printGenome(uint16_t genome);
+	void printId(uint8_t id);
+	void printPopulation();
+	void printGeneLengths();
+	void printGenePositions();
+
+	// accessors
+	uint16_t getGene(uint16_t genome, uint8_t gene); 
+	float getValue(uint16_t genome, uint8_t gene); 
 	uint8_t getPopulationSize() { return m_populationSize; }
 	uint8_t getGenomeLength() { return m_genomeLength; }
 	uint8_t getNumberGenes() { return m_numberGenes; }
 	uint8_t getGeneMask(uint8_t id) { return m_geneMasks[id]; }
 	uint8_t getGeneLength(uint8_t id) { return m_geneLengths[id]; }
 	uint8_t getGenePosition(uint8_t id) { return m_genePositions[id]; }
-
-	void setFitness(uint8_t id, float fitness) { m_fitnessArray[id] = fitness; }
+	uint8_t getCurrentId() { return m_currentId; }
 	float getFitness(uint8_t id) { return m_fitnessArray[id]; }
-
-	void setGenome(uint8_t id, uint16_t genome) { m_genomeArray[id] = genome; }
 	uint16_t getGenome(uint8_t id) { return m_genomeArray[id]; }
+	uint16_t getNextGenome(uint8_t id) {
+		return m_nextGenomeArray[id];
+	}
+	float getBestFitness() { return m_bestFitness; }
+	uint16_t getBestGenome() { return m_bestGenome; }
+	uint32_t getGeneration() { return m_generation; }
+	float getVisitedFitness(uint16_t genome) { return visitedFitness[genome]; }
 
-	void setNextGenome(uint8_t id, uint16_t genome) { m_nextGenomeArray[id] = genome; }
-	uint16_t getNextGenome(uint8_t id) { return m_nextGenomeArray[id]; }
-
-	//void getGeneValue(uint8_t id, uint8_t )
-
-	void swapId(uint8_t id1, uint8_t id2);
-	void bubbleSort();
-	uint8_t selectParent();
-	void reproduce();
-	void printBinary(uint16_t val, uint8_t n);
-	void printId(uint8_t id);
-	uint16_t getGene(uint16_t id, uint8_t index); 
+	// setters
+	void setCurrentId( uint8_t id ) { m_currentId = id; }
+	void setFitness(uint8_t id, float fitness) {
+		m_fitnessArray[id] = fitness;
+	}
+	void setGenome(uint8_t id, uint16_t genome) {
+		m_genomeArray[id] = genome;
+	}
+	void setNextGenome(uint8_t id, uint16_t genome) {
+		m_nextGenomeArray[id] = genome;
+	}
+	void setBestFitness(float fitness) { m_bestFitness = fitness; }
+	void setBestGenome(uint16_t genome) { m_bestGenome = genome; }
+	void setGeneration(uint32_t generation) {
+		m_generation = generation; }
+	void incGeneration() { ++m_generation; }
+	void setVisitedFitness(uint16_t genome, float fitness) { visitedFitness[genome] = fitness; }
 };
 
 #endif /// GENETIC_ALGORITHM_HPP__
