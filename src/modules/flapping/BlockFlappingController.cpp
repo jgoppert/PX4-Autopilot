@@ -34,15 +34,18 @@
 
 #include "BlockFlappingController.hpp"
 
-//set acceptable values for learned parameters
+//TODO set acceptable values for learned parameters
 float ailMin = 0.0f;
 float ailRange = 0.0f;
 float elevMin = 0.0f;
 float elevRange = 0.0f;
 
+float fitness;
+
 //values for keeping track of learning
 bool currentlyEvaluating = false;
-uint64_t learnStart, learnDuration;
+uint64_t learnStart;
+uint64_t  learnDuration = 5e6;
 
 //this runs the learning
 GeneticAlgorithm ga = GeneticAlgorithm();
@@ -82,10 +85,8 @@ void BlockFlappingController::update() {
 
 	// handle autopilot modes and learning
 	//learning over roll and pitch
-	if (_lrn.get() > 0.5f) { //TODO start and end times, bool to track if evaluatinging or if should get new values
+	if (_status.main_state == MAIN_STATE_ALTCTL) {//ALTCTL = learning mode
 		if (! currentlyEvaluating) { //no genome is being evaluated: get new one to test
-			//TODO calculate and send fitness to ga
-
 			//initilize learning time
 			learnStart = hrt_absolute_time();
 			//get elevator and aileron command from learning
@@ -94,6 +95,8 @@ void BlockFlappingController::update() {
 			elevator = elevMin + elevRange * ga.getValue(genome, 1);
 			currentlyEvaluating = true;
 		} else if ((hrt_absolute_time() - learnStart) > learnDuration) { //current genome test is at its end
+			fitness = _fitness.get();
+			ga.testNext(fitness);
 			currentlyEvaluating = false;
 		}
 	} else if (_status.main_state == MAIN_STATE_MANUAL) {
@@ -103,10 +106,6 @@ void BlockFlappingController::update() {
 	} else if (_status.main_state == MAIN_STATE_AUTO_MISSION) {
 	} else if (_status.main_state == MAIN_STATE_AUTO_RTL) {
 	} else if (_status.main_state == MAIN_STATE_AUTO_LOITER) {
-	} else if (_status.main_state == MAIN_STATE_ALTCTL) {
-		elevator = _manual.x;
-		aileron = _manual.y;
-		throttle = _manual.z;
 	} else if (_status.main_state == MAIN_STATE_POSCTL) {
 	} else {
 	}
