@@ -40,7 +40,7 @@ MODULES		+= drivers/meas_airspeed
 MODULES		+= drivers/frsky_telemetry
 MODULES		+= modules/sensors
 MODULES		+= drivers/mkblctrl
-MODULES		+= drivers/px4flow
+#MODULES		+= drivers/px4flow
 
 #
 # System commands
@@ -68,7 +68,7 @@ MODULES		+= modules/commander
 MODULES		+= modules/navigator
 MODULES		+= modules/mavlink
 MODULES		+= modules/gpio_led
-MODULES		+= modules/uavcan
+#MODULES		+= modules/uavcan
 
 #
 # Estimation modules (EKF/ SO3 / other filters)
