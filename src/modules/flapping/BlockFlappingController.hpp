@@ -57,6 +57,11 @@ public:
 		_throttle2Frequency(this, "THR2FREQ"),
 		_minFrequency(this, "MIN_FREQ"),
 		_fitness(this, "FITNESS"),
+		_lrnTime(this, "LRN_TIME"),
+		_ailMin(this, "AIL_MIN"),
+		_ailRange(this, "AIL_RANGE"),
+		_elevMin(this, "ELEV_MIN"),
+		_elevRange(this, "ELEV_RANGE"),
 		_attPoll(),
 		_timeStamp(0)
 	{
@@ -79,6 +84,11 @@ private:
 	BlockParamFloat _throttle2Frequency;
 	BlockParamFloat _minFrequency;
 	BlockParamFloat _fitness;
+	BlockParamFloat _lrnTime;
+	BlockParamFloat _ailMin;
+	BlockParamFloat _ailRange;
+	BlockParamFloat _elevMin;
+	BlockParamFloat _elevRange;
 	struct pollfd _attPoll;
 	uint64_t _timeStamp;
 	uint64_t _cycleStartTimeStamp;

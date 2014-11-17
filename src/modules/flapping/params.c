@@ -16,3 +16,9 @@ PARAM_DEFINE_FLOAT(FL_THR_GLD, 0.2f); // throttle to glide below, 0-1
 PARAM_DEFINE_FLOAT(FL_THR2FREQ, 3.3f); // norm. throttle to freq gain
 PARAM_DEFINE_FLOAT(FL_MIN_FREQ, 1.7f); // min flapping freq
 PARAM_DEFINE_FLOAT(FL_FITNESS,-1e9f); // fitness for learning
+PARAM_DEFINE_FLOAT(FL_LRN_TIME,5e6f); // test duration for each genome
+PARAM_DEFINE_FLOAT(FL_AIL_MIN,-20.0f); // test duration for each genome
+PARAM_DEFINE_FLOAT(FL_AIL_RANGE,40.0f); // test duration for each genome
+PARAM_DEFINE_FLOAT(FL_ELEV_MIN,-5.0f); // test duration for each genome
+PARAM_DEFINE_FLOAT(FL_ELEV_RANGE,10.0f); // test duration for each genome
+
