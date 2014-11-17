@@ -37,7 +37,7 @@
 void BlockFlappingController::update() {
 	// wait for a estimator update or exit at 100 Hz 
 	// running twice as fast as pwm (50 Hz) to avoid lag issues
-	if (poll(&_attPoll, 1, 10) < 0) return; // poll error
+	if (poll(&_attPoll, 1, 1) < 0) return; // poll error
 
 	uint64_t newTimeStamp = hrt_absolute_time();
 	float dt = (newTimeStamp - _timeStamp) / 1.0e6f;
@@ -58,8 +58,7 @@ void BlockFlappingController::update() {
 
 	// default all output to zero unless handled by mode
 	for (unsigned i = 2; i < NUM_ACTUATOR_CONTROLS; i++) {
-		_actuators_0.control[i] = 0.0f;
-		_actuators_1.control[i] = 0.0f;
+		_actuators.control[i] = 0.0f;
 	}
 
 	// default controls
@@ -76,11 +75,11 @@ void BlockFlappingController::update() {
 	} else if (_status.main_state == MAIN_STATE_AUTO_RTL) {
 	} else if (_status.main_state == MAIN_STATE_AUTO_LOITER) {
 	} else if (_status.main_state == MAIN_STATE_ALTCTL) {
-	} else if (_status.main_state == MAIN_STATE_POSCTL) {
-	} else {
 		elevator = _manual.x;
 		aileron = _manual.y;
 		throttle = _manual.z;
+	} else if (_status.main_state == MAIN_STATE_POSCTL) {
+	} else {
 	}
 
 	//set the cycle frequency based on current throttle setting
@@ -102,17 +101,14 @@ void BlockFlappingController::update() {
 	// flapping cycle function
 	float wingLeft = 0;
 	float wingRight = 0;
-	flappingFunction(t, aileron, elevator, throttle, wingLeft, wingRight);
+	//flappingFunction(t, aileron, elevator, throttle, wingLeft, wingRight);
+	wingLeft = aileron - elevator + 0*sinf(2*M_PI_F*throttle*t);
+	wingRight = -aileron - elevator + 0*sinf(2*M_PI_F*throttle*t);
 
-	// actuators 0
-	_actuators_0.timestamp = _timeStamp;
-	_actuators_0.control[CH_LEFT] = wingLeft;
-	_actuators_0.control[CH_RIGHT] = wingRight;
-
-	// actuators 1
-	_actuators_1.timestamp = _timeStamp;
-	_actuators_1.control[CH_LEFT] = wingLeft;
-	_actuators_1.control[CH_RIGHT] = wingRight;
+	// actuators
+	_actuators.timestamp = _timeStamp;
+	_actuators.control[CH_LEFT] = wingLeft;
+	_actuators.control[CH_RIGHT] = wingRight;
 
 	//printf("left: %10.2f\tright: %10.2f\n", wingLeft, wingRight);
 
