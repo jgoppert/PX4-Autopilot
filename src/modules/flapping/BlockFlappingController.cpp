@@ -81,8 +81,8 @@ void BlockFlappingController::update() {
 	if (_status.main_state == MAIN_STATE_ALTCTL) {//ALTCTL = learning mode
 		uint16_t genome = ga.getGenome(ga.getCurrentId());
 		//get elevator and aileron command from learning
-		aileron = _ailMin.get() + _ailRange.get() * ga.getValue(genome, 0);
-		elevator = _elevMin.get() + _elevRange.get() * ga.getValue(genome, 1);
+		aileron = (_ailMin.get() + _ailRange.get() * ga.getValue(genome, 0))/_servoTravel.get();
+		elevator = (_elevMin.get() + _elevRange.get() * ga.getValue(genome, 1))/_servoTravel.get();
 		if (! currentlyEvaluating) { //no genome is being evaluated: get new one to test
 			//initilize learning time
 			learnStart = hrt_absolute_time();
@@ -123,8 +123,10 @@ void BlockFlappingController::update() {
 	float wingLeft = 0;
 	float wingRight = 0;
 	//flappingFunction(t, aileron, elevator, throttle, wingLeft, wingRight);
-	wingLeft = aileron - elevator + 0*sinf(2*M_PI_F*throttle*t);
-	wingRight = -aileron - elevator + 0*sinf(2*M_PI_F*throttle*t);
+	float ail = _ailLowPass.update(aileron);
+	float elev = _elevLowPass.update(elevator);
+	wingLeft = ail - elev + 0*sinf(2*M_PI_F*throttle*t);
+	wingRight = -ail - elev + 0*sinf(2*M_PI_F*throttle*t);
 
 	// actuators
 	_actuators.timestamp = _timeStamp;

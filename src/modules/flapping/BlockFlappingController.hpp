@@ -62,6 +62,8 @@ public:
 		_ailRange(this, "AIL_RANGE"),
 		_elevMin(this, "ELEV_MIN"),
 		_elevRange(this, "ELEV_RANGE"),
+		_ailLowPass(this, "AIL_LP"),
+		_elevLowPass(this, "ELEV_LP"),
 		_attPoll(),
 		_timeStamp(0)
 	{
@@ -89,6 +91,8 @@ private:
 	BlockParamFloat _ailRange;
 	BlockParamFloat _elevMin;
 	BlockParamFloat _elevRange;
+	BlockLowPass _ailLowPass;
+	BlockLowPass _elevLowPass;
 	struct pollfd _attPoll;
 	uint64_t _timeStamp;
 	uint64_t _cycleStartTimeStamp;
