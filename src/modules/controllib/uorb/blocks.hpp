@@ -103,8 +103,7 @@ protected:
 	uORB::Subscription<vehicle_status_s> _status;
 	uORB::Subscription<parameter_update_s> _param_update;
 	// publications
-	uORB::Publication<actuator_controls_s> _actuators_0;
-	uORB::Publication<actuator_controls_s> _actuators_1;
+	uORB::Publication<actuator_controls_s> _actuators;
 public:
 	BlockUorbEnabledAutopilot(SuperBlock *parent, const char *name);
 	virtual ~BlockUorbEnabledAutopilot();
