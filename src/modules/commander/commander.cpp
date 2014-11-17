@@ -1066,7 +1066,8 @@ int commander_thread_main(int argc, char *argv[])
 				    status.system_type == VEHICLE_TYPE_TRICOPTER ||
 				    status.system_type == VEHICLE_TYPE_QUADROTOR ||
 				    status.system_type == VEHICLE_TYPE_HEXAROTOR ||
-				    status.system_type == VEHICLE_TYPE_OCTOROTOR) {
+				    status.system_type == VEHICLE_TYPE_OCTOROTOR ||
+				    status.system_type == VEHICLE_TYPE_FLAPPING_WING) {
 					status.is_rotary_wing = true;
 
 				} else {
