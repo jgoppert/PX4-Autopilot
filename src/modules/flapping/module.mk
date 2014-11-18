@@ -39,5 +39,5 @@ MODULE_COMMAND	= flapping
 
 SRCS		= flapping_main.cpp \
 		  BlockFlappingController.cpp \
-		  GeneticAlgorithm.cpp \
+		  learning/GeneticAlgorithm.cpp \
 		  params.c

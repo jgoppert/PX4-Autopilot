@@ -38,7 +38,7 @@
 #include <controllib/uorb/blocks.hpp>
 #include <uORB/topics/vehicle_vicon_position.h>
 
-#include "GeneticAlgorithm.hpp"
+#include "learning/GeneticAlgorithm.hpp"
 
 using namespace control;
 
