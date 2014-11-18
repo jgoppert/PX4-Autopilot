@@ -34,7 +34,7 @@
 
 /**
  * @file flapping_main.cpp
- * @author Scott Yantek, James Goppert
+ * @author James Goppert, Ben Perseghetti, Scott Yantek
  *
  * Flapping wing controller using control library
  */

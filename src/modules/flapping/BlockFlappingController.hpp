@@ -36,8 +36,9 @@
 #pragma once
 
 #include <controllib/uorb/blocks.hpp>
-#include "GeneticAlgorithm.hpp"
 #include <uORB/topics/vehicle_vicon_position.h>
+
+#include "GeneticAlgorithm.hpp"
 
 using namespace control;
 
@@ -45,7 +46,16 @@ class BlockFlappingController : public control::BlockUorbEnabledAutopilot {
 public:
 	BlockFlappingController() :
 		BlockUorbEnabledAutopilot(NULL,"FL"),
-		ga(),
+		reproducingRatio(0.5),
+		mutateProb(0.1),
+		ga(populationSize,
+			reproducingRatio,
+			mutateProb,
+			genomeArray,
+			genomeNextArray,
+			fitnessArray),
+		currentlyEvaluating(false),
+		learnStart(0),
 		_vicon(&getSubscriptions(), ORB_ID(vehicle_vicon_position), 20),
 		th2v(this, "TH2V"),
 		q2v(this, "Q2V"),
@@ -73,7 +83,15 @@ public:
 	}
 	void update();
 private:
+	static const uint16_t populationSize = 6;
+	float reproducingRatio;
+	float mutateProb;
+	Genome genomeArray[populationSize];
+	Genome genomeNextArray[populationSize];
+	float fitnessArray[populationSize];
 	GeneticAlgorithm ga;
+	bool currentlyEvaluating;
+	uint64_t learnStart;
 
 	uORB::Subscription<vehicle_vicon_position_s> _vicon;
 

@@ -34,16 +34,6 @@
 
 #include "BlockFlappingController.hpp"
 
-float fitness;
-
-//values for keeping track of learning
-bool currentlyEvaluating = false;
-uint64_t learnStart;
-
-//this runs the learning
-GeneticAlgorithm ga = GeneticAlgorithm();
-
-
 void BlockFlappingController::update() {
 	// wait for a estimator update or exit at 100 Hz 
 	// running twice as fast as pwm (50 Hz) to avoid lag issues
@@ -79,10 +69,11 @@ void BlockFlappingController::update() {
 	// handle autopilot modes and learning
 	//learning over roll and pitch
 	if (_status.main_state == MAIN_STATE_ALTCTL) {//ALTCTL = learning mode
-		uint16_t genome = ga.getGenome(ga.getCurrentId());
+		float aileronLearn = ga.getTestNorm(0);
+		float elevatorLearn = ga.getTestNorm(1);
 		//get elevator and aileron command from learning
-		aileron = (_ailMin.get() + _ailRange.get() * ga.getValue(genome, 0))/_servoTravel.get();
-		elevator = (_elevMin.get() + _elevRange.get() * ga.getValue(genome, 1))/_servoTravel.get();
+		aileron = (_ailMin.get() + _ailRange.get() * aileronLearn)/_servoTravel.get();
+		elevator = (_elevMin.get() + _elevRange.get() * elevatorLearn)/_servoTravel.get();
 		if (! currentlyEvaluating) { //no genome is being evaluated: get new one to test
 			//initilize learning time
 			learnStart = hrt_absolute_time();
@@ -91,8 +82,11 @@ void BlockFlappingController::update() {
 			// we are storing the fitness in the vicon
 			// packet since it is setup to send
 			// from the groundcontrol
-			float fitness = _vicon.x;
-			ga.testNext(fitness);
+			float fitness = -10*_vicon.z
+				- _vicon.roll*_vicon.roll
+				- _vicon.pitch*_vicon.pitch;
+			ga.reportFitness(fitness);
+			ga.nextTest();
 			currentlyEvaluating = false;
 		}
 	} else if (_status.main_state == MAIN_STATE_MANUAL) {
