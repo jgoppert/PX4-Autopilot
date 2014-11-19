@@ -122,8 +122,7 @@ private:
 	struct pollfd _attPoll;
 	uint64_t _timeStamp;
 	uint64_t _cycleStartTimeStamp;
-	void cycleFrequencyFunction(float throttle, float & cycleFrequency);
-	void flappingFunction(float t, float aileron,
+	void flappingFunction(float dt, float aileron,
 			float elevator, float throttle,
 			float & wingLeft, float & wingRight);
 };

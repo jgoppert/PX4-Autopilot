@@ -112,26 +112,10 @@ void BlockFlappingController::update() {
 	} else {
 	}
 
-	//set the cycle frequency based on current throttle setting
-	float cycleFrequency = 0.2f;
-	cycleFrequencyFunction(throttle, cycleFrequency);
-
 	// flapping cycle function
 	float wingLeft = 0;
 	float wingRight = 0;
-	//flappingFunction(t, aileron, elevator, throttle, wingLeft, wingRight);
-	if (throttle > 0.2f) {
-		_wingFlapState += 2*M_PI_F*cycleFrequency*dt;
-	} else {
-		if (fabs(_wingFlapState) < 0.1) {
-			_wingFlapState = 0;
-		} else {
-			_wingFlapState += -_wingFlapState*dt;
-		}
-	}
-	float ampl = (_wingUp.get() - _wingDown.get());
-	wingLeft = aileron - elevator + ampl*sinf(_wingFlapState) + _wingGlide.get();
-	wingRight = -aileron - elevator + ampl*sinf(_wingFlapState) + _wingGlide.get();
+	flappingFunction(dt, aileron, elevator, throttle, wingLeft, wingRight);
 
 	// actuators
 	_actuators.timestamp = _timeStamp;
@@ -144,47 +128,55 @@ void BlockFlappingController::update() {
 	updatePublications();
 }
 
-void BlockFlappingController::cycleFrequencyFunction(
-		float throttle, float & cycleFrequency) {
-	//set the length of a cycle based on current throttle setting
-	float b = _minFrequency.get();
-	float m = _throttle2Frequency.get();
-	float y = m*throttle + b;
-	cycleFrequency = y;
-	//printf("x : %10.2f\n", throttle);
-	//printf("m : %10.2f\n", m);
-	//printf("b : %10.2f\n", b);
-	//printf("cycle freq in func : %10.2f\n", y);
-}
-
 void BlockFlappingController::flappingFunction(
-		float t,
+		float dt,
 		float aileron,
 		float elevator, float throttle,
 		float & wingLeft, float & wingRight) {
-
 	// function parameters
 	float servoTravel = _servoTravel.get();
 	float wingUp = _wingUp.get()/servoTravel;
 	float wingDown = _wingDown.get()/servoTravel;
 	float wingGlide = _wingGlide.get()/servoTravel;
-	float tDown2Up = _tDown2Up.get();
-	float tUp2Glide = _tUp2Glide.get();
+	//float tDown2Up = _tDown2Up.get();
+	//float tUp2Glide = _tUp2Glide.get();
 	float throttleGlide = _throttleGlide.get();
+	float freq = _minFrequency.get() + _throttle2Frequency.get()*throttle;
+	float ampl = wingUp - wingDown;
 	
 	if (throttle > throttleGlide) {
-		if (t < tDown2Up) { // wing down
-			wingLeft = wingDown - elevator - 2*aileron;
-			wingRight = wingDown - elevator + 2*aileron;
-		} else if (t < tUp2Glide) { // wing up
-			wingLeft = wingUp - elevator - 2*aileron;
-			wingRight = wingUp - elevator + 2*aileron;
-		} else { // glide
-			wingLeft = wingGlide - elevator - aileron;
-			wingRight = wingGlide - elevator + aileron;
+		_wingFlapState += 2*M_PI_F*freq*dt;
+	} else {
+		float closeFactor = 1.5;
+		float safeFreq = 0.5; // Hz
+		float dy = fabs(sinf(closeFactor*2*M_PI_F*safeFreq*dt));
+		float y = sinf(_wingFlapState);
+		// you are close enough, stop flapping
+		if (fabsf(y) < dy) {
+			_wingFlapState = 0;
+		// otherwise  continue flap until close enough
+		} else {
+			_wingFlapState += 2*M_PI_F*safeFreq*dt;
 		}
-	} else { // glide
-		wingLeft = wingGlide - elevator - aileron;
-		wingRight = wingGlide - elevator + aileron;
 	}
+	float flap = ampl*sinf(_wingFlapState);
+	wingLeft = aileron - elevator + flap + wingGlide;
+	wingRight = -aileron - elevator + flap + wingGlide;
+	
+	// old square wave code
+	// if (throttle > throttleGlide) {
+	// 	if (t < tDown2Up) { // wing down
+	// 		wingLeft = wingDown - elevator - 2*aileron;
+	// 		wingRight = wingDown - elevator + 2*aileron;
+	// 	} else if (t < tUp2Glide) { // wing up
+	// 		wingLeft = wingUp - elevator - 2*aileron;
+	// 		wingRight = wingUp - elevator + 2*aileron;
+	// 	} else { // glide
+	// 		wingLeft = wingGlide - elevator - aileron;
+	// 		wingRight = wingGlide - elevator + aileron;
+	// 	}
+	// } else { // glide
+	// 	wingLeft = wingGlide - elevator - aileron;
+	// 	wingRight = wingGlide - elevator + aileron;
+	// }
 }
