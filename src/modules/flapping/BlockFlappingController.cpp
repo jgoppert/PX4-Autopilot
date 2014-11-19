@@ -106,9 +106,6 @@ void BlockFlappingController::update() {
 	} else if (_status.main_state == MAIN_STATE_AUTO_RTL) {
 	} else if (_status.main_state == MAIN_STATE_AUTO_LOITER) {
 	} else if (_status.main_state == MAIN_STATE_POSCTL) {
-		elevator = _manual.x;
-		aileron = _manual.y;
-		throttle = _manual.z;
 	} else {
 	}
 
@@ -121,8 +118,6 @@ void BlockFlappingController::update() {
 	_actuators.timestamp = _timeStamp;
 	_actuators.control[CH_LEFT] = _wingLeftLowPass.update(wingLeft);
 	_actuators.control[CH_RIGHT] = _wingRightLowPass.update(wingRight);
-
-	//printf("left: %10.2f\tright: %10.2f\n", wingLeft, wingRight);
 
 	// update all publications
 	updatePublications();
@@ -162,21 +157,4 @@ void BlockFlappingController::flappingFunction(
 	float flap = ampl*sinf(_wingFlapState);
 	wingLeft = aileron - elevator + flap + wingGlide;
 	wingRight = -aileron - elevator + flap + wingGlide;
-	
-	// old square wave code
-	// if (throttle > throttleGlide) {
-	// 	if (t < tDown2Up) { // wing down
-	// 		wingLeft = wingDown - elevator - 2*aileron;
-	// 		wingRight = wingDown - elevator + 2*aileron;
-	// 	} else if (t < tUp2Glide) { // wing up
-	// 		wingLeft = wingUp - elevator - 2*aileron;
-	// 		wingRight = wingUp - elevator + 2*aileron;
-	// 	} else { // glide
-	// 		wingLeft = wingGlide - elevator - aileron;
-	// 		wingRight = wingGlide - elevator + aileron;
-	// 	}
-	// } else { // glide
-	// 	wingLeft = wingGlide - elevator - aileron;
-	// 	wingRight = wingGlide - elevator + aileron;
-	// }
 }

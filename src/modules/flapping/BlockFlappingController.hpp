@@ -50,8 +50,6 @@ public:
 		_currentlyEvaluating(false),
 		_learnStart(0),
 		_vicon(&getSubscriptions(), ORB_ID(vehicle_vicon_position), 20),
-		_th2v(this, "TH2V"),
-		_q2v(this, "Q2V"),
 		_servoTravel(this, "SRV_TRV"),
 		_wingUp(this, "WNG_UP"),
 		_wingDown(this, "WNG_DWN"),
@@ -95,8 +93,6 @@ private:
 	uORB::Subscription<vehicle_vicon_position_s> _vicon;
 
 	enum {CH_LEFT, CH_RIGHT};
-	BlockPI _th2v;
-	BlockP _q2v;
 	BlockParamFloat _servoTravel;
 	BlockParamFloat _wingUp;
 	BlockParamFloat _wingDown;
