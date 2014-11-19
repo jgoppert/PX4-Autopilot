@@ -26,3 +26,6 @@ PARAM_DEFINE_FLOAT(FL_ELEV_RANGE, 32.0f); // elv range
 
 // low pass wing outputs
 PARAM_DEFINE_FLOAT(FL_WING_LP, 2.0f); // make transitions smooth, for testing
+
+// delta shift flap parameters
+PARAM_DEFINE_FLOAT(FL_DELTA, 0.0f);

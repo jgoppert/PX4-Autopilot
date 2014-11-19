@@ -66,6 +66,7 @@ public:
 		_ailRange(this, "AIL_RANGE"),
 		_elevMin(this, "ELEV_MIN"),
 		_elevRange(this, "ELEV_RANGE"),
+		_kOmega(this, "K_OMEGA"),
 		_wingLeftLowPass(this, "WING_LP"),
 		_wingRightLowPass(this, "WING_LP"),
 		_ga(_populationSize,
@@ -109,6 +110,10 @@ private:
 	BlockParamFloat _ailRange;
 	BlockParamFloat _elevMin;
 	BlockParamFloat _elevRange;
+
+	// frequency scaling
+	BlockParamFloat _kOmega;
+
 	BlockLowPass _wingLeftLowPass;
 	BlockLowPass _wingRightLowPass;
 
@@ -120,5 +125,6 @@ private:
 	uint64_t _cycleStartTimeStamp;
 	void flappingFunction(float dt, float aileron,
 			float elevator, float throttle,
+			float delta,
 			float & wingLeft, float & wingRight);
 };

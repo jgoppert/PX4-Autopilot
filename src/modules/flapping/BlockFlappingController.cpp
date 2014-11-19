@@ -69,6 +69,7 @@ void BlockFlappingController::update() {
 	float elevator = 0.0f;
 	float aileron = 0.0f;
 	float throttle = 0.0f;
+	float kOmega = 0.0f;
 
 	// handle autopilot modes and learning
 	//learning over roll and pitch
@@ -98,10 +99,12 @@ void BlockFlappingController::update() {
 			_ga.nextTest();
 			_currentlyEvaluating = false;
 		}
+		kOmega = _kOmega.get();
 	} else if (_status.main_state == MAIN_STATE_MANUAL) {
 		elevator = _manual.x;
 		aileron = _manual.y;
 		throttle = _manual.z;
+		kOmega = 10*_manual.r;
 	} else if (_status.main_state == MAIN_STATE_AUTO_MISSION) {
 	} else if (_status.main_state == MAIN_STATE_AUTO_RTL) {
 	} else if (_status.main_state == MAIN_STATE_AUTO_LOITER) {
@@ -112,7 +115,7 @@ void BlockFlappingController::update() {
 	// flapping cycle function
 	float wingLeft = 0;
 	float wingRight = 0;
-	flappingFunction(dt, aileron, elevator, throttle, wingLeft, wingRight);
+	flappingFunction(dt, aileron, elevator, throttle, kOmega, wingLeft, wingRight);
 
 	// actuators
 	_actuators.timestamp = _timeStamp;
@@ -127,6 +130,7 @@ void BlockFlappingController::flappingFunction(
 		float dt,
 		float aileron,
 		float elevator, float throttle,
+		float kOmega,
 		float & wingLeft, float & wingRight) {
 	// function parameters
 	float servoTravel = _servoTravel.get();
@@ -138,9 +142,25 @@ void BlockFlappingController::flappingFunction(
 	float throttleGlide = _throttleGlide.get();
 	float freq = _minFrequency.get() + _throttle2Frequency.get()*throttle;
 	float ampl = wingUp - wingDown;
-	
+	float omega = 2*M_PI_F*freq;
+
+	// compute flap
 	if (throttle > throttleGlide) {
-		_wingFlapState += 2*M_PI_F*freq*dt;
+		// up stroke
+		if (_wingFlapState > M_PI_F/2 && _wingFlapState < 3*M_PI_F/2) {
+			if (kOmega > 0) {
+				_wingFlapState += omega*dt;
+			} else {
+				_wingFlapState += (1-kOmega)*omega*dt;
+			}
+		// down stroke
+		} else {
+			if (kOmega > 0) {
+				_wingFlapState += (1+kOmega)*omega*dt;
+			} else {
+				_wingFlapState += omega*dt;
+			}
+		}
 	} else {
 		float closeFactor = 1.5;
 		float safeFreq = 0.5; // Hz
@@ -154,6 +174,11 @@ void BlockFlappingController::flappingFunction(
 			_wingFlapState += 2*M_PI_F*safeFreq*dt;
 		}
 	}
+	
+	// wrap wing flap state
+	while (_wingFlapState  > 2*M_PI_F) _wingFlapState -= 2*M_PI_F;
+
+	// mixing
 	float flap = ampl*sinf(_wingFlapState);
 	wingLeft = aileron - elevator + flap + wingGlide;
 	wingRight = -aileron - elevator + flap + wingGlide;
