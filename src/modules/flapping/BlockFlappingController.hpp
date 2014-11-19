@@ -46,19 +46,12 @@ class BlockFlappingController : public control::BlockUorbEnabledAutopilot {
 public:
 	BlockFlappingController() :
 		BlockUorbEnabledAutopilot(NULL,"FL"),
-		reproducingRatio(0.5),
-		mutateProb(0.1),
-		ga(populationSize,
-			reproducingRatio,
-			mutateProb,
-			genomeArray,
-			genomeNextArray,
-			fitnessArray),
-		currentlyEvaluating(false),
-		learnStart(0),
+		_wingFlapState(0),
+		_currentlyEvaluating(false),
+		_learnStart(0),
 		_vicon(&getSubscriptions(), ORB_ID(vehicle_vicon_position), 20),
-		th2v(this, "TH2V"),
-		q2v(this, "Q2V"),
+		_th2v(this, "TH2V"),
+		_q2v(this, "Q2V"),
 		_servoTravel(this, "SRV_TRV"),
 		_wingUp(this, "WNG_UP"),
 		_wingDown(this, "WNG_DWN"),
@@ -69,12 +62,20 @@ public:
 		_throttle2Frequency(this, "THR2FREQ"),
 		_minFrequency(this, "MIN_FREQ"),
 		_lrnTime(this, "LRN_TIME"),
+		_mutateProb(this, "MUT_PROB"),
+		_reproducingRatio(this, "REP_RATIO"),
 		_ailMin(this, "AIL_MIN"),
 		_ailRange(this, "AIL_RANGE"),
 		_elevMin(this, "ELEV_MIN"),
 		_elevRange(this, "ELEV_RANGE"),
-		_ailLowPass(this, "AIL_LP"),
-		_elevLowPass(this, "ELEV_LP"),
+		_wingLeftLowPass(this, "WING_LP"),
+		_wingRightLowPass(this, "WING_LP"),
+		_ga(_populationSize,
+			_reproducingRatio.get(),
+			_mutateProb.get(),
+			_genomeArray,
+			_genomeNextArray,
+			_fitnessArray),
 		_attPoll(),
 		_timeStamp(0)
 	{
@@ -83,21 +84,19 @@ public:
 	}
 	void update();
 private:
-	static const uint16_t populationSize = 6;
-	float reproducingRatio;
-	float mutateProb;
-	Genome genomeArray[populationSize];
-	Genome genomeNextArray[populationSize];
-	float fitnessArray[populationSize];
-	GeneticAlgorithm ga;
-	bool currentlyEvaluating;
-	uint64_t learnStart;
+	float _wingFlapState;
+	static const uint16_t _populationSize = 6;
+	Genome _genomeArray[_populationSize];
+	Genome _genomeNextArray[_populationSize];
+	float _fitnessArray[_populationSize];
+	bool _currentlyEvaluating;
+	uint64_t _learnStart;
 
 	uORB::Subscription<vehicle_vicon_position_s> _vicon;
 
 	enum {CH_LEFT, CH_RIGHT};
-	BlockPI th2v;
-	BlockP q2v;
+	BlockPI _th2v;
+	BlockP _q2v;
 	BlockParamFloat _servoTravel;
 	BlockParamFloat _wingUp;
 	BlockParamFloat _wingDown;
@@ -108,12 +107,18 @@ private:
 	BlockParamFloat _throttle2Frequency;
 	BlockParamFloat _minFrequency;
 	BlockParamFloat _lrnTime;
+	BlockParamFloat _mutateProb;
+	BlockParamFloat _reproducingRatio;
 	BlockParamFloat _ailMin;
 	BlockParamFloat _ailRange;
 	BlockParamFloat _elevMin;
 	BlockParamFloat _elevRange;
-	BlockLowPass _ailLowPass;
-	BlockLowPass _elevLowPass;
+	BlockLowPass _wingLeftLowPass;
+	BlockLowPass _wingRightLowPass;
+
+	// learning
+	GeneticAlgorithm _ga;
+
 	struct pollfd _attPoll;
 	uint64_t _timeStamp;
 	uint64_t _cycleStartTimeStamp;

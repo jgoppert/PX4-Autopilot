@@ -51,7 +51,11 @@ void BlockFlappingController::update() {
 	setDt(dt);
 
 	// check for new updates
-	if (_param_update.updated()) updateParams();
+	if (_param_update.updated()) {
+		updateParams();
+		_ga.setMutateProb(_mutateProb.get());
+		_ga.setReproducingRatio(_reproducingRatio.get());
+	}
 
 	// get new information from subscriptions
 	updateSubscriptions();
@@ -69,25 +73,30 @@ void BlockFlappingController::update() {
 	// handle autopilot modes and learning
 	//learning over roll and pitch
 	if (_status.main_state == MAIN_STATE_ALTCTL) {//ALTCTL = learning mode
-		float aileronLearn = ga.getTestNorm(0);
-		float elevatorLearn = ga.getTestNorm(1);
+		float aileronLearn = _ga.getTestNorm(0);
+		float elevatorLearn = _ga.getTestNorm(1);
 		//get elevator and aileron command from learning
 		aileron = (_ailMin.get() + _ailRange.get() * aileronLearn)/_servoTravel.get();
 		elevator = (_elevMin.get() + _elevRange.get() * elevatorLearn)/_servoTravel.get();
-		if (! currentlyEvaluating) { //no genome is being evaluated: get new one to test
+		if (! _currentlyEvaluating) { //no genome is being evaluated: get new one to test
 			//initilize learning time
-			learnStart = hrt_absolute_time();
-			currentlyEvaluating = true;
-		} else if ((hrt_absolute_time() - learnStart) > _lrnTime.get()) { //current genome test is at its end
+			_learnStart = hrt_absolute_time();
+			_currentlyEvaluating = true;
+		} else if ((hrt_absolute_time() - _learnStart) > _lrnTime.get()) { //current genome test is at its end
 			// we are storing the fitness in the vicon
 			// packet since it is setup to send
 			// from the groundcontrol
-			float fitness = -10*_vicon.z
-				- _vicon.roll*_vicon.roll
-				- _vicon.pitch*_vicon.pitch;
-			ga.reportFitness(fitness);
-			ga.nextTest();
-			currentlyEvaluating = false;
+			float sensor_alignment = 13*M_PI/180;
+			float fitness =
+				_vicon.z*cosf(sensor_alignment);
+				//+ _vicon.x*sinf(sensor_alignment)
+				//- fabs(_vicon.y)
+				//- fabs(_vicon.roll)
+				//- fabs(_vicon.pitch)
+				//- fabs(_vicon.yaw);
+			_ga.reportFitness(fitness);
+			_ga.nextTest();
+			_currentlyEvaluating = false;
 		}
 	} else if (_status.main_state == MAIN_STATE_MANUAL) {
 		elevator = _manual.x;
@@ -97,38 +106,37 @@ void BlockFlappingController::update() {
 	} else if (_status.main_state == MAIN_STATE_AUTO_RTL) {
 	} else if (_status.main_state == MAIN_STATE_AUTO_LOITER) {
 	} else if (_status.main_state == MAIN_STATE_POSCTL) {
+		elevator = _manual.x;
+		aileron = _manual.y;
+		throttle = _manual.z;
 	} else {
 	}
 
 	//set the cycle frequency based on current throttle setting
 	float cycleFrequency = 0.2f;
 	cycleFrequencyFunction(throttle, cycleFrequency);
-	//printf("cycle frequency : %10.2f\n", cycleFrequency);
-
-	// find cycle time
-	float t = (_timeStamp - _cycleStartTimeStamp)/ 1.0e6f;
-
-	// set cycle start timestamp, wrap time if new period
-	float cyclePeriod = 1.0f/cycleFrequency;
-	//printf("cycle period : %10.2f\n", cyclePeriod);
-	if (t > cyclePeriod) {
-		t -= cyclePeriod*int(t/cyclePeriod);
-		_cycleStartTimeStamp = _timeStamp - t*1.0e6f;
-	}
 
 	// flapping cycle function
 	float wingLeft = 0;
 	float wingRight = 0;
 	//flappingFunction(t, aileron, elevator, throttle, wingLeft, wingRight);
-	float ail = _ailLowPass.update(aileron);
-	float elev = _elevLowPass.update(elevator);
-	wingLeft = ail - elev + 0*sinf(2*M_PI_F*throttle*t);
-	wingRight = -ail - elev + 0*sinf(2*M_PI_F*throttle*t);
+	if (throttle > 0.2f) {
+		_wingFlapState += 2*M_PI_F*cycleFrequency*dt;
+	} else {
+		if (fabs(_wingFlapState) < 0.1) {
+			_wingFlapState = 0;
+		} else {
+			_wingFlapState += -_wingFlapState*dt;
+		}
+	}
+	float ampl = (_wingUp.get() - _wingDown.get());
+	wingLeft = aileron - elevator + ampl*sinf(_wingFlapState) + _wingGlide.get();
+	wingRight = -aileron - elevator + ampl*sinf(_wingFlapState) + _wingGlide.get();
 
 	// actuators
 	_actuators.timestamp = _timeStamp;
-	_actuators.control[CH_LEFT] = wingLeft;
-	_actuators.control[CH_RIGHT] = wingRight;
+	_actuators.control[CH_LEFT] = _wingLeftLowPass.update(wingLeft);
+	_actuators.control[CH_RIGHT] = _wingRightLowPass.update(wingRight);
 
 	//printf("left: %10.2f\tright: %10.2f\n", wingLeft, wingRight);
 

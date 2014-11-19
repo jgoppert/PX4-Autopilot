@@ -17,6 +17,8 @@ PARAM_DEFINE_FLOAT(FL_THR2FREQ, 3.3f); // norm. throttle to freq gain
 PARAM_DEFINE_FLOAT(FL_MIN_FREQ, 1.7f); // min flapping freq
 
 PARAM_DEFINE_FLOAT(FL_LRN_TIME, 10e6f); // test duration for each genome
+PARAM_DEFINE_FLOAT(FL_MUT_PROB, 0.05f); // mutation probability
+PARAM_DEFINE_FLOAT(FL_REP_RATIO, 0.34f); // mutation probability
 
 PARAM_DEFINE_FLOAT(FL_AIL_MIN, -16.0f); // ail min value
 PARAM_DEFINE_FLOAT(FL_AIL_RANGE, 32.0f); // ail range
@@ -24,5 +26,4 @@ PARAM_DEFINE_FLOAT(FL_AIL_RANGE, 32.0f); // ail range
 PARAM_DEFINE_FLOAT(FL_ELEV_MIN, -16.0f); // elv min value
 PARAM_DEFINE_FLOAT(FL_ELEV_RANGE, 32.0f); // elv range
 
-PARAM_DEFINE_FLOAT(FL_AIL_LP, 0.8f); // make transitions smooth
-PARAM_DEFINE_FLOAT(FL_ELEV_LP, 0.8f); // make transitions smooth
+PARAM_DEFINE_FLOAT(FL_WING_LP, 0.2f); // make transitions smooth, for testing

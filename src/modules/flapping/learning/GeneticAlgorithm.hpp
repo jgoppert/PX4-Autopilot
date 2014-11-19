@@ -135,6 +135,14 @@ public:
        		m_generation++;
 	}
 
+	void setMutateProb(float mutateProb) {
+		m_mutateProb = mutateProb;
+	}
+
+	void setReproducingRatio(float reproducingRatio) {
+		m_reproducingRatio = reproducingRatio;
+	}
+
 	/**
 	 * Returns value to test (0-1)
 	 */
@@ -147,14 +155,14 @@ public:
 	 */
 	void reportFitness(float fitness) {
 		m_fitnessArray[m_genomeTestId] = fitness;
+		printFitness(m_genomeTestId);
+		printf("\n");
 	}
 
 	/**
 	 * Increment test
 	 */
 	void nextTest() {
-		printf("T ");
-		printId(m_genomeTestId);
 		if (++m_genomeTestId >= m_populationSize) {
 			m_genomeTestId = 0;
 
@@ -171,24 +179,31 @@ public:
 			//printf("after reproducing\n");
 			//printPopulation();
 		}
+		printf("T ");
+		printId(m_genomeTestId);
+		printf(", ");
 	}
 
 	/**
 	 * Print the entire population
 	 */
 	void printPopulation() {
-		printf("***************************************************\n");
+		printf("*********************************************\n");
 		printf("\nG: %d\n", m_generation);
 		printf("BEST TRANS-GENERATION\n");
 		m_bestGenome.print();
 		printf(" (%4.2f)\n", double(m_bestFitness));
-		printf("***************************************************\n");
+		printf("*********************************************\n");
 		for (id_t genomeId=0;
 		     genomeId < m_populationSize;
 		     genomeId++) {
 			printf("P ");
 			printId(genomeId);
+			printf(", ");
+			printFitness(genomeId);
+			printf("\n");
 		}
+		printf("---------------------------------------------\n");
 	}
 
 private:
@@ -228,8 +243,10 @@ private:
 	void printId(id_t genomeId) {
 		printf("%d: ", genomeId);
 		m_genomeArray[genomeId].print();
-		printf(", (%4.2f)", double(m_fitnessArray[genomeId]));
-		printf("\n");
+	}
+
+	void printFitness(id_t genomeId) {
+		printf("(%4.2f)", double(m_fitnessArray[genomeId]));
 	}
 
 	/**
@@ -260,4 +277,4 @@ private:
 
 };
 
-#endif GENETIC_ALGORITHM_HPP__
+#endif // GENETIC_ALGORITHM_HPP__
