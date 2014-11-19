@@ -37,6 +37,7 @@
 
 #include <controllib/uorb/blocks.hpp>
 #include <uORB/topics/vehicle_vicon_position.h>
+#include <uORB/topics/battery_status.h>
 
 #include "learning/GeneticAlgorithm.hpp"
 
@@ -50,6 +51,7 @@ public:
 		_currentlyEvaluating(false),
 		_learnStart(0),
 		_vicon(&getSubscriptions(), ORB_ID(vehicle_vicon_position), 20),
+		_batteryStatus(&getSubscriptions(), ORB_ID(battery_status), 20),
 		_servoTravel(this, "SRV_TRV"),
 		_wingUp(this, "WNG_UP"),
 		_wingDown(this, "WNG_DWN"),
@@ -62,6 +64,7 @@ public:
 		_lrnTime(this, "LRN_TIME"),
 		_mutateProb(this, "MUT_PROB"),
 		_reproducingRatio(this, "REP_RATIO"),
+		_learnFlapping(this, "LRN_FLAP"),
 		_ailMin(this, "AIL_MIN"),
 		_ailRange(this, "AIL_RANGE"),
 		_elevMin(this, "ELEV_MIN"),
@@ -69,6 +72,8 @@ public:
 		_kOmega(this, "K_OMEGA"),
 		_wingLeftLowPass(this, "WING_LP"),
 		_wingRightLowPass(this, "WING_LP"),
+		_powerSum(0),
+		_powerCount(0),
 		_ga(_populationSize,
 			_reproducingRatio.get(),
 			_mutateProb.get(),
@@ -92,6 +97,7 @@ private:
 	uint64_t _learnStart;
 
 	uORB::Subscription<vehicle_vicon_position_s> _vicon;
+	uORB::Subscription<battery_status_s> _batteryStatus;
 
 	enum {CH_LEFT, CH_RIGHT};
 	BlockParamFloat _servoTravel;
@@ -106,6 +112,7 @@ private:
 	BlockParamFloat _lrnTime;
 	BlockParamFloat _mutateProb;
 	BlockParamFloat _reproducingRatio;
+	BlockParamFloat _learnFlapping;
 	BlockParamFloat _ailMin;
 	BlockParamFloat _ailRange;
 	BlockParamFloat _elevMin;
@@ -116,6 +123,9 @@ private:
 
 	BlockLowPass _wingLeftLowPass;
 	BlockLowPass _wingRightLowPass;
+
+	float _powerSum;
+	uint32_t _powerCount;
 
 	// learning
 	GeneticAlgorithm _ga;

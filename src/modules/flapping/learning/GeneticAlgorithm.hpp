@@ -35,6 +35,9 @@ public:
 		return float(getGene(geneIndex)) /
 			((1 << m_geneLengths[geneIndex]) - 1);
 	}
+	uint16_t getGenome() {
+		return m_genome;
+	}
 	void randomize() {
 		uint32_t searchSpace = 1 << m_genomeLength;
 		m_genome = searchSpace*float(rand())/RAND_MAX;
@@ -154,6 +157,10 @@ public:
 	 * Report fitness for current test.
 	 */
 	void reportFitness(float fitness) {
+		// if a new value for best genome is given, overwrite it
+		if (m_genomeArray[m_genomeTestId].getGenome() == m_bestGenome.getGenome()) {
+			m_bestFitness = fitness;
+		}
 		m_fitnessArray[m_genomeTestId] = fitness;
 		printFitness(m_genomeTestId);
 		printf("\n");
@@ -221,7 +228,8 @@ private:
 	 * Create a new generation
 	 */
 	void reproduce() {
-		for (id_t genomeId=0;
+		m_genomeNextArray[0] = m_bestGenome;
+		for (id_t genomeId=1;
 			genomeId < m_populationSize;
 			genomeId++) {
 			id_t parent1 = drawParent();

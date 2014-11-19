@@ -74,37 +74,67 @@ void BlockFlappingController::update() {
 	// handle autopilot modes and learning
 	//learning over roll and pitch
 	if (_status.main_state == MAIN_STATE_ALTCTL) {//ALTCTL = learning mode
-		float aileronLearn = _ga.getTestNorm(0);
-		float elevatorLearn = _ga.getTestNorm(1);
-		//get elevator and aileron command from learning
-		aileron = (_ailMin.get() + _ailRange.get() * aileronLearn)/_servoTravel.get();
-		elevator = (_elevMin.get() + _elevRange.get() * elevatorLearn)/_servoTravel.get();
-		if (! _currentlyEvaluating) { //no genome is being evaluated: get new one to test
-			//initilize learning time
-			_learnStart = hrt_absolute_time();
-			_currentlyEvaluating = true;
-		} else if ((hrt_absolute_time() - _learnStart) > _lrnTime.get()) { //current genome test is at its end
-			// we are storing the fitness in the vicon
-			// packet since it is setup to send
-			// from the groundcontrol
-			float sensor_alignment = 13*M_PI/180;
-			float fitness =
-				_vicon.z*cosf(sensor_alignment);
-				//+ _vicon.x*sinf(sensor_alignment)
-				//- fabs(_vicon.y)
-				//- fabs(_vicon.roll)
-				//- fabs(_vicon.pitch)
-				//- fabs(_vicon.yaw);
-			_ga.reportFitness(fitness);
-			_ga.nextTest();
-			_currentlyEvaluating = false;
+		// do flapping learning
+		if (_learnFlapping.get() > 0) {
+			throttle = 0.201f + 0.8f*_ga.getTestNorm(0);
+			kOmega = 2.0f*(_ga.getTestNorm(1) - 0.5f);
+			//printf("doing learn flap: throttle %4.2f, kOmega %4.2f\n", double(throttle), double(kOmega));
+			if (! _currentlyEvaluating) { //no genome is being evaluated: get new one to test
+				//initilize learning time
+				_learnStart = hrt_absolute_time();
+				_currentlyEvaluating = true;
+			} else if ((hrt_absolute_time() - _learnStart) > _lrnTime.get()) { //current genome test is at its end
+				// we are storing the fitness in the vicon
+				// packet since it is setup to send
+				// from the groundcontrol
+				
+				// powaer
+				float powerAvg = _powerSum/_powerCount;
+				_powerCount = 0;
+				_powerSum = 0;
+				printf("P: %4.2f, ", double(powerAvg));
+
+				// fitness
+				float fitness = - 0.05f*powerAvg
+					+ _vicon.z
+					-_vicon.x;
+				_ga.reportFitness(fitness);
+				_ga.nextTest();
+				_currentlyEvaluating = false;
+			}
+		// do glide learning
+		} else {
+			kOmega = _kOmega.get();
+			float aileronLearn = _ga.getTestNorm(0);
+			float elevatorLearn = _ga.getTestNorm(1);
+			//get elevator and aileron command from learning
+			aileron = (_ailMin.get() + _ailRange.get() * aileronLearn)/_servoTravel.get();
+			elevator = (_elevMin.get() + _elevRange.get() * elevatorLearn)/_servoTravel.get();
+			if (! _currentlyEvaluating) { //no genome is being evaluated: get new one to test
+				//initilize learning time
+				_learnStart = hrt_absolute_time();
+				_currentlyEvaluating = true;
+			} else if ((hrt_absolute_time() - _learnStart) > _lrnTime.get()) { //current genome test is at its end
+
+				// we are storing the fitness in the vicon
+				// packet since it is setup to send
+				// from the groundcontrol
+				float fitness =
+					-(_vicon.z/_vicon.x)
+					- fabsf(_vicon.y)
+					- 1.0f*(0.01f*fabsf(_vicon.roll)
+						+ 2.0f*fabsf(_vicon.pitch - 12.0f)
+						+ 2.0f*fabsf(_vicon.yaw));
+				_ga.reportFitness(fitness);
+				_ga.nextTest();
+				_currentlyEvaluating = false;
+			}
 		}
-		kOmega = _kOmega.get();
 	} else if (_status.main_state == MAIN_STATE_MANUAL) {
 		elevator = _manual.x;
 		aileron = _manual.y;
 		throttle = _manual.z;
-		kOmega = 10*_manual.r;
+		kOmega = _manual.r;
 	} else if (_status.main_state == MAIN_STATE_AUTO_MISSION) {
 	} else if (_status.main_state == MAIN_STATE_AUTO_RTL) {
 	} else if (_status.main_state == MAIN_STATE_AUTO_LOITER) {
@@ -116,6 +146,11 @@ void BlockFlappingController::update() {
 	float wingLeft = 0;
 	float wingRight = 0;
 	flappingFunction(dt, aileron, elevator, throttle, kOmega, wingLeft, wingRight);
+
+	// keep track of average power
+	float power = _batteryStatus.current_a*_batteryStatus.voltage_v;
+	_powerCount++;
+	_powerSum += power;
 
 	// actuators
 	_actuators.timestamp = _timeStamp;
@@ -145,7 +180,7 @@ void BlockFlappingController::flappingFunction(
 	float omega = 2*M_PI_F*freq;
 
 	// compute flap
-	if (throttle > throttleGlide) {
+	if (throttle >= throttleGlide) {
 		// up stroke
 		if (_wingFlapState > M_PI_F/2 && _wingFlapState < 3*M_PI_F/2) {
 			if (kOmega > 0) {
