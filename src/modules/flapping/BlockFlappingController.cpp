@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
- *   Author: James Goppert, Scott Yantek
+ *   Author: James Goppert, Ben Perseghetti, Scott Yantek
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
