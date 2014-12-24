@@ -6,4 +6,4 @@
 	url = git://github.com/pavel-kirienko/uavcan.git
 [submodule "NuttX"]
 	path = NuttX
-	url = git@github.com:aerocore/NuttX
+	url = git@github.com:jgoppert/NuttX
