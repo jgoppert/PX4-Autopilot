@@ -2544,11 +2544,15 @@ void *commander_low_prio_loop(void *arg)
 				int calib_ret = ERROR;
 
 				/* try to go to INIT/PREFLIGHT arming state */
+
+#ifdef CONFIG_ARCH_BOARD_AEROCORE
+#else
 				if (TRANSITION_DENIED == arming_state_transition(&status, &safety, ARMING_STATE_INIT, &armed,
 						true /* fRunPreArmChecks */, mavlink_fd)) {
 					answer_command(cmd, VEHICLE_CMD_RESULT_DENIED);
 					break;
 				}
+#endif
 
 				if ((int)(cmd.param1) == 1) {
 					/* gyro calibration */
