@@ -111,6 +111,7 @@ MODULES		+= examples/px4_simple_app
 
 # Hardware test
 #MODULES			+= examples/hwtest
+MODULES			+= examples/hwtest2
 
 #
 # Transitional support - add commands from the NuttX export archive.
