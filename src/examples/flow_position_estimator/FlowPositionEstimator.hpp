@@ -1,8 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2008-2013 PX4 Development Team. All rights reserved.
- *   Author: Samuel Zihlmann <samuezih@ee.ethz.ch>
- *   		 Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,40 +31,50 @@
  *
  ****************************************************************************/
 
-/*
- * @file flow_position_estimator_params.c
- * 
- * Parameters for position estimator
+/**
+ * @file FlowPositionEstimator.h
+ * Flow Position Estimator
+ *
+ * @author James Goppert <james.goppert@gmail.com>
  */
 
-#include "flow_position_estimator_params.h"
 
-/* Extended Kalman Filter covariances */
+#pragma once
 
-/* controller parameters */
-PARAM_DEFINE_FLOAT(FPE_LO_THRUST, 0.4f);
-PARAM_DEFINE_FLOAT(FPE_SONAR_LP_U, 0.5f);
-PARAM_DEFINE_FLOAT(FPE_SONAR_LP_L, 0.2f);
-PARAM_DEFINE_INT32(FPE_DEBUG, 0);
+#include <controllib/blocks.hpp>
+#include <controllib/uorb/blocks.hpp>
 
+// subscriptions
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/optical_flow.h>
+#include <uORB/topics/parameter_update.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/home_position.h>
 
-int parameters_init(struct flow_position_estimator_param_handles *h)
+// publications
+#include <uORB/Publication.hpp>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_global_position.h>
+
+class FlowPositionEstimator : public control::SuperBlock
 {
-	/* PID parameters */
-	h->minimum_liftoff_thrust	=	param_find("FPE_LO_THRUST");
-	h->sonar_upper_lp_threshold	=	param_find("FPE_SONAR_LP_U");
-	h->sonar_lower_lp_threshold	=	param_find("FPE_SONAR_LP_L");
-	h->debug					=	param_find("FPE_DEBUG");
+protected:
+	// subscriptions
+	uORB::Subscription<parameter_update_s> _paramUpdate;
+	uORB::Subscription<optical_flow_s> _flow;
+	uORB::Subscription<vehicle_attitude_s> _att;
+	uORB::Subscription<home_position_s> _home;
 
-	return OK;
-}
+	// publications
+	uORB::Publication<vehicle_local_position_s> _pos;
+	uORB::Publication<vehicle_global_position_s> _posGlobal;
 
-int parameters_update(const struct flow_position_estimator_param_handles *h, struct flow_position_estimator_params *p)
-{
-	param_get(h->minimum_liftoff_thrust, &(p->minimum_liftoff_thrust));
-	param_get(h->sonar_upper_lp_threshold, &(p->sonar_upper_lp_threshold));
-	param_get(h->sonar_lower_lp_threshold, &(p->sonar_lower_lp_threshold));
-	param_get(h->debug, &(p->debug));
-
-	return OK;
-}
+	// data
+	struct pollfd _flowPoll;
+	uint64_t _timeStamp;
+	struct map_projection_reference_s _mapRef;
+public:
+	FlowPositionEstimator();
+	void update();
+	virtual ~FlowPositionEstimator();
+};

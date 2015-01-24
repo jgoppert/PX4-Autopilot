@@ -32,12 +32,12 @@
 ############################################################################
 
 #
-# Build position estimator
+# Daemon application
 #
 
 MODULE_COMMAND		= flow_position_estimator
 
-SRCS		= flow_position_estimator_main.c \
-		  flow_position_estimator_params.c
-		  
+SRCS			= flow_position_estimator_main.cpp \
+			  FlowPositionEstimator.cpp
+
 EXTRACFLAGS = -Wno-float-equal
