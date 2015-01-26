@@ -74,6 +74,8 @@
 
 #include <board_config.h>
 
+#include <mavlink/v1.0/common/mavlink.h>
+
 /* Configuration Constants */
 #define I2C_FLOW_ADDRESS 		0x42	///< 7-bit address. 8-bit address is 0x84, range 0x42 - 0x49
 
@@ -92,11 +94,6 @@ static const int ERROR = -1;
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
-
-#include "i2c_frame.h"
-
-struct i2c_frame f;
-struct i2c_integral_frame f_integral;
 
 class PX4FLOW: public device::I2C
 {
@@ -118,7 +115,6 @@ protected:
 	virtual int			probe();
 
 private:
-
 	work_s				_work;
 	RingBuffer			*_reports;
 	bool				_sensor_ok;
@@ -158,9 +154,11 @@ private:
 	 * Perform a poll cycle; collect from the previous measurement
 	 * and start a new one.
 	 */
-	void				cycle();
-	int					measure();
-	int					collect();
+	void cycle();
+	int measure();
+	int collect();
+	int handle_mavlink_msg(mavlink_message_t * msg);
+
 	/**
 	 * Static trampoline from the workq context; because we don't have a
 	 * generic workq wrapper yet.
@@ -233,13 +231,14 @@ out:
 int
 PX4FLOW::probe()
 {
-	uint8_t val[I2C_FRAME_SIZE];
+	uint8_t val[MAVLINK_MSG_ID_OPTICAL_FLOW_RAD_LEN];
 
 	// to be sure this is not a ll40ls Lidar (which can also be on
 	// 0x42) we check if a I2C_FRAME_SIZE byte transfer works from address
 	// 0. The ll40ls gives an error for that, whereas the flow
 	// happily returns some data
-	if (transfer(nullptr, 0, &val[0], 22) != OK) {
+	if (transfer(nullptr, 0, &val[0],
+				MAVLINK_MSG_ID_OPTICAL_FLOW_RAD_LEN) != OK) {
 		return -EIO;
 	}
 
@@ -436,21 +435,80 @@ PX4FLOW::measure()
 }
 
 int
+PX4FLOW::handle_mavlink_msg(mavlink_message_t * msg)
+{
+	// parse the data
+	struct optical_flow_s report;
+
+	switch(msg->msgid) {
+
+	case MAVLINK_MSG_ID_OPTICAL_FLOW_RAD:
+
+		mavlink_optical_flow_rad_t data;
+		mavlink_msg_optical_flow_rad_decode(msg, &data); 
+
+		report.timestamp = hrt_absolute_time();
+		report.pixel_flow_x_integral = data.integrated_x; report.pixel_flow_y_integral = data.integrated_y;
+		report.frame_count_since_last_readout = 0; //XXX not in mavlink data
+		report.ground_distance_m = data.distance;
+		report.gyro_x_rate_integral = data.integrated_xgyro;
+		report.gyro_y_rate_integral = data.integrated_xgyro;
+		report.gyro_z_rate_integral = data.integrated_xgyro;
+		report.integration_timespan = data.integration_time_us;
+		report.time_since_last_sonar_update = data.time_delta_distance_us;
+		report.gyro_temperature = data.temperature;
+		report.sensor_id = data.sensor_id;
+		report.quality = data.quality; //0:bad ; 255 max quality
+
+		/* rotate measurements according to parameter */
+		float zeroval = 0.0f;
+		rotate_3f(_sensor_rotation, report.pixel_flow_x_integral, report.pixel_flow_y_integral, zeroval); 
+
+		/* publish topic */
+		if (_px4flow_topic < 0) {
+			_px4flow_topic = orb_advertise(ORB_ID(optical_flow), &report);
+		} else {
+			/* publish it */
+			orb_publish(ORB_ID(optical_flow), _px4flow_topic, &report);
+		}
+
+		/* post a report to the ring */
+		if (_reports->force(&report)) {
+			perf_count(_buffer_overflows);
+		}
+
+		/* notify anyone waiting for data */
+		poll_notify(POLLIN);
+		break;
+
+	//case MAVLINK_MSG_ID_OPTICAL_FLOW:
+		//break;
+
+	//default:
+		//break;
+	}
+	return OK;
+}
+
+int
 PX4FLOW::collect()
 {
 	int ret = -EIO;
 
 	/* read from the sensor */
-	uint8_t val[I2C_FRAME_SIZE + I2C_INTEGRAL_FRAME_SIZE] = { 0 };
+	uint8_t val[MAVLINK_MAX_PACKET_LEN] = { 0 };
 
 	perf_begin(_sample_perf);
 
 	if (PX4FLOW_REG == 0x00) {
-		ret = transfer(nullptr, 0, &val[0], I2C_FRAME_SIZE + I2C_INTEGRAL_FRAME_SIZE);
+		ret = transfer(nullptr, 0, &val[0],
+			MAVLINK_MSG_ID_OPTICAL_FLOW_RAD_LEN +
+			MAVLINK_MSG_ID_OPTICAL_FLOW_LEN);
 	}
 
 	if (PX4FLOW_REG == 0x16) {
-		ret = transfer(nullptr, 0, &val[0], I2C_INTEGRAL_FRAME_SIZE);
+		ret = transfer(nullptr, 0, &val[0],
+			MAVLINK_MSG_ID_OPTICAL_FLOW_RAD_LEN);
 	}
 
 	if (ret < 0) {
@@ -460,57 +518,17 @@ PX4FLOW::collect()
 		return ret;
 	}
 
-	if (PX4FLOW_REG == 0) {
-		memcpy(&f, val, I2C_FRAME_SIZE);
-		memcpy(&f_integral, &(val[I2C_FRAME_SIZE]), I2C_INTEGRAL_FRAME_SIZE);
+	// parse
+	mavlink_message_t msg;
+	mavlink_status_t status;
+	for(uint8_t i=0; i<MAVLINK_MSG_ID_OPTICAL_FLOW_LEN; i++) {
+		if(mavlink_parse_char(0, val[i], &msg, &status)) {
+			handle_mavlink_msg(&msg);
+		}
 	}
-
-	if (PX4FLOW_REG == 0x16) {
-		memcpy(&f_integral, val, I2C_INTEGRAL_FRAME_SIZE);
-	}
-
-
-	struct optical_flow_s report;
-
-	report.timestamp = hrt_absolute_time();
-	report.pixel_flow_x_integral = static_cast<float>(f_integral.pixel_flow_x_integral) / 10000.0f;//convert to radians
-	report.pixel_flow_y_integral = static_cast<float>(f_integral.pixel_flow_y_integral) / 10000.0f;//convert to radians
-	report.frame_count_since_last_readout = f_integral.frame_count_since_last_readout;
-	report.ground_distance_m = static_cast<float>(f_integral.ground_distance) / 1000.0f;//convert to meters
-	report.quality = f_integral.qual; //0:bad ; 255 max quality
-	report.gyro_x_rate_integral = static_cast<float>(f_integral.gyro_x_rate_integral) / 10000.0f; //convert to radians
-	report.gyro_y_rate_integral = static_cast<float>(f_integral.gyro_y_rate_integral) / 10000.0f; //convert to radians
-	report.gyro_z_rate_integral = static_cast<float>(f_integral.gyro_z_rate_integral) / 10000.0f; //convert to radians
-	report.integration_timespan = f_integral.integration_timespan; //microseconds
-	report.time_since_last_sonar_update = f_integral.sonar_timestamp;//microseconds
-	report.gyro_temperature = f_integral.gyro_temperature;//Temperature * 100 in centi-degrees Celsius
-
-	report.sensor_id = 0;
-	
-	/* rotate measurements according to parameter */
-	float zeroval = 0.0f;
-	rotate_3f(_sensor_rotation, report.pixel_flow_x_integral, report.pixel_flow_y_integral, zeroval); 
-
-	if (_px4flow_topic < 0) {
-		_px4flow_topic = orb_advertise(ORB_ID(optical_flow), &report);
-
-	} else {
-		/* publish it */
-		orb_publish(ORB_ID(optical_flow), _px4flow_topic, &report);
-	}
-
-	/* post a report to the ring */
-	if (_reports->force(&report)) {
-		perf_count(_buffer_overflows);
-	}
-
-	/* notify anyone waiting for data */
-	poll_notify(POLLIN);
-
-	ret = OK;
 
 	perf_end(_sample_perf);
-	return ret;
+	return OK;
 }
 
 void
@@ -721,11 +739,11 @@ test()
 		warnx("immediate read failed");
 	}
 
-	warnx("single read");
-	warnx("pixel_flow_x_integral: %i", f_integral.pixel_flow_x_integral);
-	warnx("pixel_flow_y_integral: %i", f_integral.pixel_flow_y_integral);
-	warnx("framecount_integral: %u",
-	      f_integral.frame_count_since_last_readout);
+	//warnx("single read");
+	//warnx("pixel_flow_x_integral: %i", f_integral.pixel_flow_x_integral);
+	//warnx("pixel_flow_y_integral: %i", f_integral.pixel_flow_y_integral);
+	//warnx("framecount_integral: %u",
+	//      f_integral.frame_count_since_last_readout);
 
 	/* start the sensor polling at 10Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 10)) {
@@ -752,23 +770,23 @@ test()
 			err(1, "periodic read failed");
 		}
 
-		warnx("periodic read %u", i);
+		//warnx("periodic read %u", i);
 
-		warnx("framecount_total: %u", f.frame_count);
-		warnx("framecount_integral: %u",
-		      f_integral.frame_count_since_last_readout);
-		warnx("pixel_flow_x_integral: %i", f_integral.pixel_flow_x_integral);
-		warnx("pixel_flow_y_integral: %i", f_integral.pixel_flow_y_integral);
-		warnx("gyro_x_rate_integral: %i", f_integral.gyro_x_rate_integral);
-		warnx("gyro_y_rate_integral: %i", f_integral.gyro_y_rate_integral);
-		warnx("gyro_z_rate_integral: %i", f_integral.gyro_z_rate_integral);
-		warnx("integration_timespan [us]: %u", f_integral.integration_timespan);
-		warnx("ground_distance: %0.2f m",
-		      (double) f_integral.ground_distance / 1000);
-		warnx("time since last sonar update [us]: %i",
-		      f_integral.sonar_timestamp);
-		warnx("quality integration average : %i", f_integral.qual);
-		warnx("quality : %i", f.qual);
+		//warnx("framecount_total: %u", f.frame_count);
+		//warnx("framecount_integral: %u",
+		      //f_integral.frame_count_since_last_readout);
+		//warnx("pixel_flow_x_integral: %i", f_integral.pixel_flow_x_integral);
+		//warnx("pixel_flow_y_integral: %i", f_integral.pixel_flow_y_integral);
+		//warnx("gyro_x_rate_integral: %i", f_integral.gyro_x_rate_integral);
+		//warnx("gyro_y_rate_integral: %i", f_integral.gyro_y_rate_integral);
+		//warnx("gyro_z_rate_integral: %i", f_integral.gyro_z_rate_integral);
+		//warnx("integration_timespan [us]: %u", f_integral.integration_timespan);
+		//warnx("ground_distance: %0.2f m",
+		      //(double) f_integral.ground_distance / 1000);
+		//warnx("time since last sonar update [us]: %i",
+		      //f_integral.sonar_timestamp);
+		//warnx("quality integration average : %i", f_integral.qual);
+		//warnx("quality : %i", f.qual);
 
 
 	}

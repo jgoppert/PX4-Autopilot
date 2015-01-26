@@ -39,6 +39,10 @@ MODULE_COMMAND	= px4flow
 
 SRCS		= px4flow.cpp
 
+INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/
+
 MAXOPTIMIZATION	 = -Os
 
-EXTRACXXFLAGS = -Wno-attributes
+EXTRACXXFLAGS	= -Wno-attributes -Wno-packed
+
+EXTRACFLAGS	= -Wno-packed
