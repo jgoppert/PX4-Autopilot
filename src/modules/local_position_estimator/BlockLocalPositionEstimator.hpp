@@ -1,6 +1,8 @@
 #pragma once
 
 #include <controllib/uorb/blocks.hpp>
+#include <mathlib/mathlib.h>
+#include <systemlib/perf_counter.h>
 
 // uORB Subscriptions
 #include <uORB/Subscription.hpp>
@@ -14,11 +16,11 @@
 #include <drivers/drv_range_finder.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/manual_control_setpoint.h>
-#include <mathlib/mathlib.h>
 
 // uORB Publications
 #include <uORB/Publication.hpp>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/filtered_bottom_flow.h>
 
 using namespace control;
 
@@ -66,8 +68,24 @@ public:
 	BlockLocalPositionEstimator();
 	void update();
 	virtual ~BlockLocalPositionEstimator();
+
 private:
+
+	// constants
+	static const uint8_t n_x = 9;
+	static const uint8_t n_u = 3; // 3 accelerations
+	static const uint8_t n_y_flow = 2;
+	enum {X_px=0, X_py, X_pz, X_vx, X_vy, X_vz, X_bx, X_by, X_bz};
+	enum {U_ax=0, U_ay, U_az};
+	enum {Y_baro_z=0};
+	enum {Y_lidar_z=0};
+	enum {Y_sonar_z=0};
+	enum {Y_flow_vx=0, Y_flow_vy};
+	enum {POLL_FLOW, POLL_PARAM};
+	enum {CH_LEFT, CH_RIGHT};
+
 	// methods
+	// ----------------------------
 	
 	// predict the next state
 	void predict();
@@ -77,6 +95,9 @@ private:
 	void update_baro();
 	void update_lidar();
 	void update_sonar();
+
+	// attributes
+	// ----------------------------
 
 	// subscriptions
 	uORB::Subscription<vehicle_status_s> _status;
@@ -92,31 +113,32 @@ private:
 
 	// publications
 	uORB::Publication<vehicle_local_position_s> _pos;
+	uORB::Publication<filtered_bottom_flow_s> _filtered_flow;
 
-	// matrices for KF
-	static const uint8_t n_X = 9;
-	static const uint8_t n_U = 3; // 3 accelerations
-	static const uint8_t n_Y_pos = 3;
-	static const uint8_t n_Y_vel = 3;
-
-	enum {X_px=0, X_py, X_pz, X_vx, X_vy, X_vz, X_bx, X_by, X_bz};
-	enum {U_ax=0, U_ay, U_az};
-	enum {Y_pos_px=0, Y_pos_py, Y_pos_pz};
-	enum {Y_vel_vx=0, Y_vel_vy, Y_vel_vz};
-
-	enum {CH_LEFT, CH_RIGHT};
 	BlockPI th2v;
 	BlockP q2v;
-	struct pollfd _flowPoll;
+	struct pollfd _polls[3];
 	uint64_t _timeStamp;
+	uint64_t _time_last_flow;
 
-	math::Matrix<n_X, n_X>  _A;
-	math::Matrix<n_X, n_U>  _B;
-	math::Matrix<n_Y_pos, n_X>  _C_pos; // position measurement
-	math::Matrix<n_Y_pos, n_X>  _C_vel; // velocity measurement
+	float _sonar_last;
+	float _sonar_lp;
 
-	math::Vector<n_X>  _X;
-	math::Vector<n_U>  _U;
-	math::Vector<n_U>  _Y;
+	perf_counter_t _loop_perf;
+	perf_counter_t _interval_perf;
+	perf_counter_t _err_perf;
+
+	math::Matrix<n_x, n_x>  _A; // state dynamics matrix
+	math::Matrix<n_x, n_u>  _B; // input matrix
+	math::Matrix<n_x, n_x>  _Q; // process noise
+	math::Matrix<n_y_flow, n_x> _C_flow; // flow measurement matrix
+	math::Matrix<n_y_flow, n_y_flow> _R_flow; // flow measuremnt noise matrix, TODO init
+	math::Matrix<n_u, n_u> _R_accel; // accelerometer measuement noise
+	float _R_sonar; // sonar measuremnt noise
+	float _R_lidar; // lidar measurement noise
+
+	math::Vector<n_x>  _x; // state vecotr
+	math::Vector<n_u>  _u; // input vector
+	math::Matrix<n_x, n_x>  _P; // state covariance matrix
 };
 
