@@ -27,23 +27,24 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_polls(),
 	_timeStamp(0),
 	_time_last_flow(0),
-	_sonar_last(0),
-	_sonar_lp(0),
 	_loop_perf(),
 	_err_perf(),
 
 	// kf matrices
 	_A(), _B(), _Q(),
 	_C_flow(), _R_flow(), _R_accel(),
-	_R_sonar(), _R_lidar(),
+	_R_lidar(),
 	_x(), _u(), _P()
 {
 	// setup event triggering based on new flow messages to integrate
 	_polls[POLL_FLOW].fd = _flow.getHandle();
 	_polls[POLL_FLOW].events = POLLIN;
 
-	_polls[POLL_PARAM].fd = _flow.getHandle();
+	_polls[POLL_PARAM].fd = _param_update.getHandle();
 	_polls[POLL_PARAM].events = POLLIN;
+
+	_polls[POLL_SENSORS].fd = _sensor.getHandle();
+	_polls[POLL_SENSORS].events = POLLIN;
 
 	// derivative of position is velocity
 	_A(X_px, X_vx) = 1;
@@ -62,20 +63,32 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// flow measurement matrix
 	_C_flow(Y_flow_vx, X_vx) = 1;
 	_C_flow(Y_flow_vy, X_vy) = 1;
+	_C_flow(Y_flow_z, X_pz) = 1;
 
-	// P was already initialized to zero
+	// sonar measurement matrix
+
+	// initialize P to identity
+	_P.identity();
+	_P *= 0.01;
+
+	// sensor noise standard devations
+	float flow_v_stddev = 20.0e-2f;
+	float flow_z_stddev = 2.0e-2f;
+	float lidar_z_stddev = 5.0e-2f;
+	float accel_xy_stddev = 1.0e-3f;
+	float accel_z_stddev = 1.0e-2f;
 
 	// initialize measurement noise
-	_R_flow(Y_flow_vx, Y_flow_vx) = 1.0e-2f;
-	_R_flow(Y_flow_vy, Y_flow_vy) = 1.0e-2f;
+	_R_flow(Y_flow_vx, Y_flow_vx) = flow_v_stddev*flow_v_stddev;
+	_R_flow(Y_flow_vy, Y_flow_vy) = flow_v_stddev*flow_v_stddev;
+	_R_flow(Y_flow_z, Y_flow_z) = flow_z_stddev*flow_z_stddev;
 
-	_R_sonar = 1.0e-3f;
-	_R_lidar = 1.0e-2f;
+	_R_lidar = lidar_z_stddev*lidar_z_stddev;
 
 	// initialize process noise
-	_R_accel(U_ax, U_ax) = 1.0e-2f;
-	_R_accel(U_ay, U_ay) = 1.0e-2f;
-	_R_accel(U_az, U_az) = 1.0e-2f;
+	_R_accel(U_ax, U_ax) = accel_xy_stddev*accel_xy_stddev;
+	_R_accel(U_ay, U_ay) = accel_xy_stddev*accel_xy_stddev;
+	_R_accel(U_az, U_az) = accel_z_stddev*accel_z_stddev;
 	_Q = _B*_R_accel*_B.transposed();
 
 	// perf counters
@@ -109,21 +122,33 @@ void BlockLocalPositionEstimator::update() {
 	// set dt for all child blocks
 	setDt(dt);
 
-	// check for new updates
-	if (_param_update.updated()) updateParams();
+	// see which updates are available
+	bool flow_updated = _flow.updated();
+	bool params_updated = _flow.updated();
+
+	// get new data
+	updateSubscriptions();
+
+	// update parameters
+	if (params_updated) updateParams();
 
 	// do prediction
+	//_u = math::Vector<3>(_sensor.accelerometer_m_s2);
+	//_u(2) += 9.81f; // add g
+	_u = math::Vector<3>({0,0,0});
 	predict();
 
+
 	// update flow
-	if (_flow.updated()) { 
+	if (flow_updated) { 
 		_flow.update();
 		perf_begin(_loop_perf);
 		update_flow();
-		update_sonar();
 		perf_count(_interval_perf);
 		perf_end(_loop_perf);
 	}
+
+
 
 	// publish local position
 	_pos.x = _x(X_px);
@@ -219,42 +244,29 @@ void BlockLocalPositionEstimator::update_flow() {
 		global_speed[i] = sum;
 	}
 
+	// measurement 
+	math::Vector<3> y_flow;
+	y_flow(0) = global_speed[0];
+	y_flow(1) = global_speed[1];
+	y_flow(2) = _flow.ground_distance_m;
 
-	// kalman filter correction
-	math::Matrix<n_y_flow, n_y_flow> S = _C_flow*_P*_C_flow.transposed() + _R_flow;
-	math::Matrix<n_x, n_y_flow> K = _P*_C_flow.transposed()*S.inversed();
-	math::Vector<2> r; // residual
-	r(0) = global_speed[0] - _pos.vx;
-	r(1) = global_speed[1] - _pos.vy;
-	_x += K*r;
-	_P += _P - K*_C_flow*_P;
+	// residual
+	math::Matrix<n_y_flow, n_y_flow> S_I = (_C_flow*_P*_C_flow.transposed() + _R_flow).inversed();
+	math::Vector<3> r = y_flow - _C_flow*_x;
+
+	// fault detection
+	float beta = sqrtf(r*(S_I*r));
+
+	// kalman filter correction if no fault
+	if (beta < 10) {
+		math::Matrix<n_x, n_y_flow> K = _P*_C_flow.transposed()*S_I;
+		_x += K*r;
+		_P -= K*_C_flow*_P;
+	}
 }
 
 void BlockLocalPositionEstimator::update_baro() {
 }
 
 void BlockLocalPositionEstimator::update_lidar() {
-}
-
-void BlockLocalPositionEstimator::update_sonar() {
-	float sonar_new = _flow.ground_distance_m;
-
-	/* simple lowpass sonar filtering */
-	_sonar_lp = 0.05f * sonar_new + 0.95f * _sonar_lp;
-	_sonar_last = sonar_new;
-
-	float height_diff = sonar_new - _sonar_lp;
-
-	/* if over 1/2m spike follow lowpass */
-	if (height_diff < -0.2f || height_diff > 0.5f)
-	{
-		_pos.z = -_sonar_lp;
-	}
-	else
-	{
-		_pos.z = -sonar_new;
-	}
-
-	_pos.z_valid = true;
-
 }

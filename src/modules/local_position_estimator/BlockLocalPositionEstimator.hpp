@@ -74,14 +74,13 @@ private:
 	// constants
 	static const uint8_t n_x = 6;
 	static const uint8_t n_u = 3; // 3 accelerations
-	static const uint8_t n_y_flow = 2;
+	static const uint8_t n_y_flow = 3;
 	enum {X_px=0, X_py, X_pz, X_vx, X_vy, X_vz}; //, X_bx, X_by, X_bz};
 	enum {U_ax=0, U_ay, U_az};
 	enum {Y_baro_z=0};
 	enum {Y_lidar_z=0};
-	enum {Y_sonar_z=0};
-	enum {Y_flow_vx=0, Y_flow_vy};
-	enum {POLL_FLOW, POLL_PARAM};
+	enum {Y_flow_vx=0, Y_flow_vy, Y_flow_z};
+	enum {POLL_FLOW, POLL_SENSORS, POLL_PARAM};
 	enum {CH_LEFT, CH_RIGHT};
 
 	// methods
@@ -94,7 +93,6 @@ private:
 	void update_flow();
 	void update_baro();
 	void update_lidar();
-	void update_sonar();
 
 	// attributes
 	// ----------------------------
@@ -121,9 +119,6 @@ private:
 	uint64_t _timeStamp;
 	uint64_t _time_last_flow;
 
-	float _sonar_last;
-	float _sonar_lp;
-
 	perf_counter_t _loop_perf;
 	perf_counter_t _interval_perf;
 	perf_counter_t _err_perf;
@@ -134,7 +129,6 @@ private:
 	math::Matrix<n_y_flow, n_x> _C_flow; // flow measurement matrix
 	math::Matrix<n_y_flow, n_y_flow> _R_flow; // flow measuremnt noise matrix, TODO init
 	math::Matrix<n_u, n_u> _R_accel; // accelerometer measuement noise
-	float _R_sonar; // sonar measuremnt noise
 	float _R_lidar; // lidar measurement noise
 
 	math::Vector<n_x>  _x; // state vecotr
