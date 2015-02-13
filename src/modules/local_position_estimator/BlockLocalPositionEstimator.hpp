@@ -75,6 +75,8 @@ private:
 	static const uint8_t n_x = 6;
 	static const uint8_t n_u = 3; // 3 accelerations
 	static const uint8_t n_y_flow = 3;
+	static const uint8_t n_y_baro = 1;
+	static const uint8_t n_y_lidar = 1;
 	enum {X_px=0, X_py, X_pz, X_vx, X_vy, X_vz}; //, X_bx, X_by, X_bz};
 	enum {U_ax=0, U_ay, U_az};
 	enum {Y_baro_z=0};
@@ -113,11 +115,17 @@ private:
 	uORB::Publication<vehicle_local_position_s> _pos;
 	uORB::Publication<filtered_bottom_flow_s> _filtered_flow;
 
-	BlockPI th2v;
-	BlockP q2v;
+	BlockParamFloat  _flow_v_stddev;
+	BlockParamFloat  _flow_z_stddev;
+	BlockParamFloat  _lidar_z_stddev;
+	BlockParamFloat  _accel_xy_stddev;
+	BlockParamFloat  _accel_z_stddev;
+	BlockParamFloat  _baro_stddev;
+
 	struct pollfd _polls[3];
 	uint64_t _timeStamp;
 	uint64_t _time_last_flow;
+	uint64_t _baro_timestamp;
 
 	perf_counter_t _loop_perf;
 	perf_counter_t _interval_perf;
@@ -127,9 +135,11 @@ private:
 	math::Matrix<n_x, n_u>  _B; // input matrix
 	math::Matrix<n_x, n_x>  _Q; // process noise
 	math::Matrix<n_y_flow, n_x> _C_flow; // flow measurement matrix
-	math::Matrix<n_y_flow, n_y_flow> _R_flow; // flow measuremnt noise matrix, TODO init
-	math::Matrix<n_u, n_u> _R_accel; // accelerometer measuement noise
-	float _R_lidar; // lidar measurement noise
+	math::Matrix<n_y_baro, n_x> _C_baro; // baro measurement matrix
+	math::Matrix<n_y_flow, n_y_flow> _R_flow; // flow measuremnt covariance matrix, TODO init
+	math::Matrix<n_u, n_u> _R_accel; // accelerometer measuement covariance
+	math::Matrix<n_y_baro, n_y_baro> _R_baro; // baro measurement covariance
+	math::Matrix<n_y_lidar, n_y_lidar> _R_lidar; // lidar measurement covariance
 
 	math::Vector<n_x>  _x; // state vecotr
 	math::Vector<n_u>  _u; // input vector
