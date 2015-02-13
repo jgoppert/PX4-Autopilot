@@ -160,12 +160,12 @@ void BlockLocalPositionEstimator::update() {
 	}
 
 	// publish local position
-	_pos.x = _x(X_px);
-	_pos.y = _x(X_py);
-	_pos.z = _x(X_pz);
-	_pos.vx = _x(X_vx);
-	_pos.vy = _x(X_vy);
-	_pos.vz = _x(X_vz);
+	_pos.x = _x(X_px);  // north
+	_pos.y = _x(X_py);  // east
+	_pos.z = -_x(X_pz); // down
+	_pos.vx = _x(X_vx);  // north
+	_pos.vy = _x(X_vy);  // east
+	_pos.vz = -_x(X_vz); // down
 	_pos.xy_valid = true;
 	_pos.z_valid = true;
 	_pos.v_xy_valid = true;
