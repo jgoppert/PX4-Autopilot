@@ -51,9 +51,9 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_A(X_pz, X_vz) = 1;
 
 	// derivative of velocity is accelerometer bias + acceleration
-	_A(X_vx, X_bx) = 1;
-	_A(X_vy, X_by) = 1;
-	_A(X_vz, X_bz) = 1;
+	//_A(X_vx, X_bx) = 1;
+	//_A(X_vy, X_by) = 1;
+	//_A(X_vz, X_bz) = 1;
 
 	_B(X_vx, U_ax) = 1;
 	_B(X_vy, U_ay) = 1;
@@ -63,20 +63,19 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_C_flow(Y_flow_vx, X_vx) = 1;
 	_C_flow(Y_flow_vy, X_vy) = 1;
 
-	// initialize covariance to identity
-	_P.identity();
+	// P was already initialized to zero
 
 	// initialize measurement noise
-	_R_flow(Y_flow_vx, Y_flow_vx) = 1;
-	_R_flow(Y_flow_vy, Y_flow_vy) = 1;
+	_R_flow(Y_flow_vx, Y_flow_vx) = 1.0e-2f;
+	_R_flow(Y_flow_vy, Y_flow_vy) = 1.0e-2f;
 
-	_R_sonar = 1;
-	_R_lidar = 1;
+	_R_sonar = 1.0e-3f;
+	_R_lidar = 1.0e-2f;
 
 	// initialize process noise
-	_R_accel(U_ax, U_ax) = 1;
-	_R_accel(U_ay, U_ay) = 1;
-	_R_accel(U_az, U_az) = 1;
+	_R_accel(U_ax, U_ax) = 1.0e-2f;
+	_R_accel(U_ay, U_ay) = 1.0e-2f;
+	_R_accel(U_az, U_az) = 1.0e-2f;
 	_Q = _B*_R_accel*_B.transposed();
 
 	// perf counters
@@ -113,14 +112,12 @@ void BlockLocalPositionEstimator::update() {
 	// check for new updates
 	if (_param_update.updated()) updateParams();
 
-	// get new information from subscriptions
-	updateSubscriptions();
-
 	// do prediction
 	predict();
 
 	// update flow
 	if (_flow.updated()) { 
+		_flow.update();
 		perf_begin(_loop_perf);
 		update_flow();
 		update_sonar();

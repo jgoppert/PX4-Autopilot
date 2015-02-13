@@ -72,10 +72,10 @@ public:
 private:
 
 	// constants
-	static const uint8_t n_x = 9;
+	static const uint8_t n_x = 6;
 	static const uint8_t n_u = 3; // 3 accelerations
 	static const uint8_t n_y_flow = 2;
-	enum {X_px=0, X_py, X_pz, X_vx, X_vy, X_vz, X_bx, X_by, X_bz};
+	enum {X_px=0, X_py, X_pz, X_vx, X_vy, X_vz}; //, X_bx, X_by, X_bz};
 	enum {U_ax=0, U_ay, U_az};
 	enum {Y_baro_z=0};
 	enum {Y_lidar_z=0};
