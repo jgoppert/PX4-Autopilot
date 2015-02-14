@@ -38,7 +38,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_err_perf(),
 
 	// kf matrices
-	_A(), _B(), _Q(),
+	_A(), _B(),
 	_C_flow(), _R_flow(), _R_accel(),
 	_R_baro(), _R_lidar(),
 	_x(), _u(), _P()
@@ -70,12 +70,12 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// flow measurement matrix
 	_C_flow(Y_flow_vx, X_vx) = 1;
 	_C_flow(Y_flow_vy, X_vy) = 1;
-	_C_flow(Y_flow_z, X_pz) = 1;
+	_C_flow(Y_flow_z, X_pz) = -1; // measures altitude, negative down dir.
 
 	// baro measurement matrix
-	_C_baro(Y_baro_z, X_pz) = 1;
+	_C_baro(Y_baro_z, X_pz) = -1; // measured altitude, negative down dir.
 
-	// initialize P to identity
+	// initialize P to identity*0.1
 	_P.identity();
 	_P *= 0.1;
 
@@ -91,7 +91,6 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_R_accel(U_ax, U_ax) = _accel_xy_stddev.get()*_accel_xy_stddev.get();
 	_R_accel(U_ay, U_ay) = _accel_xy_stddev.get()*_accel_xy_stddev.get();
 	_R_accel(U_az, U_az) = _accel_z_stddev.get()*_accel_z_stddev.get();
-	_Q = _B*_R_accel*_B.transposed();
 
 	// perf counters
 	_loop_perf = perf_alloc(PC_ELAPSED,
@@ -191,7 +190,7 @@ void BlockLocalPositionEstimator::update() {
 void BlockLocalPositionEstimator::predict() {
 	// continuous time kalman filter prediction
 	_x += (_A*_x + _B*_u)*getDt();
-	_P += (_A*_P + _P*_A.transposed() + _Q)*getDt();
+	_P += (_A*_P + _P*_A.transposed() + _B*_R_accel*_B.transposed())*getDt();
 }
 
 void BlockLocalPositionEstimator::update_flow() {
@@ -278,7 +277,6 @@ void BlockLocalPositionEstimator::update_flow() {
 void BlockLocalPositionEstimator::update_baro() {
 	math::Vector<1> y_baro;
 	y_baro(0) = _sensor.baro_alt_meter;
-	
 
 	// residual
 	// TODO, just use scalars
