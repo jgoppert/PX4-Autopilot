@@ -94,8 +94,7 @@ private:
 	// update the state prediction wtih a measurement
 	void update_flow();
 	void update_baro();
-	void update_lidar();
-	void updateParams();
+	//void update_lidar();
 
 	// attributes
 	// ----------------------------
@@ -137,13 +136,8 @@ private:
 	math::Matrix<n_x, n_x>  _Q; // process noise
 	math::Matrix<n_y_flow, n_x> _C_flow; // flow measurement matrix
 	math::Matrix<n_y_baro, n_x> _C_baro; // baro measurement matrix
-	math::Matrix<n_y_flow, n_y_flow> _R_flow; // flow measuremnt covariance matrix, TODO init
-	math::Matrix<n_u, n_u> _R_accel; // accelerometer measuement covariance
-	math::Matrix<n_y_baro, n_y_baro> _R_baro; // baro measurement covariance
-	math::Matrix<n_y_lidar, n_y_lidar> _R_lidar; // lidar measurement covariance
 
 	math::Vector<n_x>  _x; // state vecotr
 	math::Vector<n_u>  _u; // input vector
 	math::Matrix<n_x, n_x>  _P; // state covariance matrix
 };
-

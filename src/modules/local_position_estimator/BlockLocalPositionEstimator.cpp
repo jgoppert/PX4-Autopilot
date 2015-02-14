@@ -38,9 +38,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_err_perf(),
 
 	// kf matrices
-	_A(), _B(),
-	_C_flow(), _R_flow(), _R_accel(),
-	_R_baro(), _R_lidar(),
+	_A(), _B(), _C_flow(),
 	_x(), _u(), _P()
 {
 	// setup event triggering based on new flow messages to integrate
@@ -67,9 +65,9 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_B(X_vy, U_ay) = 1;
 	_B(X_vz, U_az) = 1;
 
-	// flow measurement matrix, flow rotated + 90 degrees
-	_C_flow(Y_flow_vx, X_vy) = 1; // x' = y
-	_C_flow(Y_flow_vy, X_vx) = -1; // y' = -x
+	// flow measurement matrix
+	_C_flow(Y_flow_vx, X_vx) = 1;
+	_C_flow(Y_flow_vy, X_vy) = 1;
 	_C_flow(Y_flow_z, X_pz) = -1; // measures altitude, negative down dir.
 
 	// baro measurement matrix
@@ -178,9 +176,16 @@ void BlockLocalPositionEstimator::update() {
 }
 
 void BlockLocalPositionEstimator::predict() {
+	// measurement covariance
+	math::Matrix<n_u, n_u> R_accel;
+	
+	R_accel(U_ax, U_ax) = _accel_xy_stddev.get()*_accel_xy_stddev.get();
+	R_accel(U_ay, U_ay) = _accel_xy_stddev.get()*_accel_xy_stddev.get();
+	R_accel(U_az, U_az) = _accel_z_stddev.get()*_accel_z_stddev.get();
+
 	// continuous time kalman filter prediction
 	_x += (_A*_x + _B*_u)*getDt();
-	_P += (_A*_P + _P*_A.transposed() + _B*_R_accel*_B.transposed())*getDt();
+	_P += (_A*_P + _P*_A.transposed() + _B*R_accel*_B.transposed())*getDt();
 }
 
 void BlockLocalPositionEstimator::update_flow() {
@@ -248,62 +253,74 @@ void BlockLocalPositionEstimator::update_flow() {
 	y_flow(1) = global_speed[1];
 	y_flow(2) = _flow.ground_distance_m;
 
+	// measurement covariance
+	math::Matrix<n_y_flow, n_y_flow> R_flow; // flow measuremnt covariance matrix, TODO init
+	R_flow(Y_flow_vx, Y_flow_vx) = _flow_v_stddev.get()*_flow_v_stddev.get();
+	R_flow(Y_flow_vy, Y_flow_vy) = _flow_v_stddev.get()*_flow_v_stddev.get();
+	R_flow(Y_flow_z, Y_flow_z) = _flow_z_stddev.get()*_flow_z_stddev.get();
+
 	// residual
-	math::Matrix<n_y_flow, n_y_flow> S_I = (_C_flow*_P*_C_flow.transposed() + _R_flow).inversed();
 	math::Vector<3> r = y_flow - _C_flow*_x;
 
+	// residual covariance, (inversed)
+	math::Matrix<n_y_flow, n_y_flow> S_I =
+		(_C_flow*_P*_C_flow.transposed() + R_flow).inversed();
+
 	// fault detection
+	int fault = 0;
 	float beta = sqrtf(r*(S_I*r));
-	if (beta > 3) { // 3 std deviations away
-		r *= 0.1;
+	if (beta > 2) { // 2 std deviations away
+		fault = 1;
 	}
 
 	// zero is an error code for the sonar
 	if (y_flow(2) < 0.29f) {
-		r(2) *= 0;
+		fault = 2;
 	}
 
 	// kalman filter correction if no fault
-	math::Matrix<n_x, n_y_flow> K = _P*_C_flow.transposed()*S_I;
-	_x += K*r;
-	_P -= K*_C_flow*_P;
+	if (fault == 0) {
+		math::Matrix<n_x, n_y_flow> K =
+			_P*_C_flow.transposed()*S_I;
+		_x += K*r;
+		_P -= K*_C_flow*_P;
+	}
 }
 
 void BlockLocalPositionEstimator::update_baro() {
 	math::Vector<1> y_baro;
 	y_baro(0) = _sensor.baro_alt_meter;
 
+	// measurement covariance
+	math::Matrix<n_y_baro, n_y_baro> R_baro; // baro measurement covariance
+	R_baro(0,0) = _baro_stddev.get()*_baro_stddev.get();
+
 	// residual
 	// TODO, just use scalars
-	math::Matrix<1,1> S_I = ((_C_baro*_P*_C_baro.transposed()) + _R_baro).inversed();
+	math::Matrix<1,1> S_I = ((_C_baro*_P*_C_baro.transposed()) + R_baro).inversed();
 	math::Vector<1> r = y_baro - (_C_baro*_x);
 
+	// measurement covariance
+	math::Matrix<n_u, n_u> R_accel; // accelerometer measuement covariance
+	R_accel(U_ax, U_ax) = _accel_xy_stddev.get()*_accel_xy_stddev.get();
+	R_accel(U_ay, U_ay) = _accel_xy_stddev.get()*_accel_xy_stddev.get();
+	R_accel(U_az, U_az) = _accel_z_stddev.get()*_accel_z_stddev.get();
+
 	// fault detection
+	int fault = 0;
 	float beta = sqrtf(r*(S_I*r));
 	if (beta > 3) { // 3 standard deviations away
-		r *= 0.1;
+		R_accel *= 10; // don't trust as much, but this is our failsafe altitude
+		// measurement, so trust a little
 	}
 
 	// kalman filter correction if no fault
-	math::Matrix<n_x, n_y_baro> K = _P*_C_baro.transposed()*S_I;
-	_x = _x + K*math::Vector<1>(r);
-	_P -= K*_C_baro*_P;
+	if (fault == 0) {
+		math::Matrix<n_x, n_y_baro> K = _P*_C_baro.transposed()*S_I;
+		_x = _x + K*math::Vector<1>(r);
+		_P -= K*_C_baro*_P;
+	}
 }
 
-void BlockLocalPositionEstimator::updateParams() {
-	// initialize measurement noise
-	_R_flow(Y_flow_vx, Y_flow_vx) = _flow_v_stddev.get()*_flow_v_stddev.get();
-	_R_flow(Y_flow_vy, Y_flow_vy) = _flow_v_stddev.get()*_flow_v_stddev.get();
-	_R_flow(Y_flow_z, Y_flow_z) = _flow_z_stddev.get()*_flow_z_stddev.get();
-
-	_R_lidar(0,0) = _lidar_z_stddev.get()*_lidar_z_stddev.get();
-	_R_baro(0,0) = _baro_stddev.get()*_baro_stddev.get();
-
-	// initialize process noise
-	_R_accel(U_ax, U_ax) = _accel_xy_stddev.get()*_accel_xy_stddev.get();
-	_R_accel(U_ay, U_ay) = _accel_xy_stddev.get()*_accel_xy_stddev.get();
-	_R_accel(U_az, U_az) = _accel_z_stddev.get()*_accel_z_stddev.get();
-}
-
-void BlockLocalPositionEstimator::update_lidar() {
-}
+//void BlockLocalPositionEstimator::update_lidar() {
+//}
