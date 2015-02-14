@@ -95,6 +95,7 @@ private:
 	void update_flow();
 	void update_baro();
 	void update_lidar();
+	void updateParams();
 
 	// attributes
 	// ----------------------------
