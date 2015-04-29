@@ -58,17 +58,13 @@ Publication<T>::Publication(
 	const struct orb_metadata *meta,
 	int priority,
 	List<PublicationNode *> * list) :
-	T(), // initialize data structure to zero
-	PublicationNode(meta, priority, list) {
+		PublicationNode(meta, priority, list),
+		_data()
+{
 }
 
 template<class T>
 Publication<T>::~Publication() {}
-
-template<class T>
-void * Publication<T>::getDataVoidPtr() {
-	return (void *)(T *)(this);
-}
 
 template class __EXPORT Publication<vehicle_attitude_s>;
 template class __EXPORT Publication<vehicle_local_position_s>;

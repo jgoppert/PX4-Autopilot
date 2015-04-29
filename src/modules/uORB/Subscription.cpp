@@ -64,22 +64,13 @@ Subscription<T>::Subscription(
 		unsigned interval,
 		int instance,
 		List<SubscriptionNode *> * list) :
-	T(), // initialize data structure to zero
-	SubscriptionNode(meta, interval, instance, list) {
+	SubscriptionNode(meta, interval, instance, list),
+	_data() // initialize data structure to zero
+{
 }
 
 template<class T>
 Subscription<T>::~Subscription() {}
-
-template<class T>
-void * Subscription<T>::getDataVoidPtr() {
-	return (void *)(T *)(this);
-}
-
-template<class T>
-T Subscription<T>::getData() {
-	return T(*this);
-}
 
 template class __EXPORT Subscription<parameter_update_s>;
 template class __EXPORT Subscription<actuator_controls_s>;

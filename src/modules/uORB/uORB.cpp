@@ -137,6 +137,8 @@ protected:
 	virtual void		poll_notify_one(struct pollfd *fds, pollevent_t events);
 
 private:
+	ORBDevNode(const ORBDevNode & other); // disallow copy
+	ORBDevNode & operator=(const ORBDevNode & other); // disallow assignment
 	struct SubscriberData {
 		unsigned	generation;	/**< last generation the subscriber has seen */
 		unsigned	update_interval; /**< if nonzero minimum interval between updates */

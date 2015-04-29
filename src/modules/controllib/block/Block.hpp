@@ -44,11 +44,9 @@
 
 #include <containers/List.hpp>
 
-// forward declaration
-namespace uORB {
-	class SubscriptionNode;
-	class PublicationNode;
-}
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+#include <controllib/block/BlockParam.hpp>
 
 namespace control
 {

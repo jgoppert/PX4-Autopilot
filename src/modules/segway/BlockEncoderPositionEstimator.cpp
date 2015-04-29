@@ -9,7 +9,7 @@ BlockEncoderPositionEstimator::BlockEncoderPositionEstimator() :
 	_param_update(ORB_ID(parameter_update), 1000, 0, &getSubscriptions()), // limit to 1 Hz
 	_encoders(ORB_ID(encoders), 100, 0, &getSubscriptions()), // limit to  10 Hz
 	// publications
-	_localPos(ORB_ID(vehicle_local_position), ORB_PRIO_DEFAULT, &getPublications()),
+	_lpos(ORB_ID(vehicle_local_position), ORB_PRIO_DEFAULT, &getPublications()),
 	_pos(ORB_ID(vehicle_global_position), ORB_PRIO_DEFAULT, &getPublications()),
 	// data
 	_rWheel(this, "RWHEEL"),
@@ -47,53 +47,55 @@ void BlockEncoderPositionEstimator::update()
 
 	// roughtly estimate position
 	float countsTometers = 2 * M_PI_F * _rWheel.get() / _pulsesPerRev.get();
-	float x = countsTometers * (_encoders.counts[0] + _encoders.counts[1]) / 2.0f;
-	float xDot = countsTometers * (_encoders.velocity[0] + _encoders.velocity[1]) / 2.0f;
-	_localPos.timestamp = _timeStamp;
-	_localPos.xy_valid = true;
-	_localPos.z_valid = true;
-	_localPos.v_xy_valid = true;
-	_localPos.v_z_valid = true;
-	_localPos.x = x;
-	_localPos.y = 0;
-	_localPos.z = -10; // must be greater than 5 to start mission
-	_localPos.vx = xDot;
-	_localPos.vy = 0;
-	_localPos.vz = 0;
-	_localPos.yaw = _att.yaw;
-	_localPos.xy_global = true;
-	_localPos.z_global = true;
-	_localPos.ref_timestamp = _timeStamp;
-	_localPos.ref_lat = 0;
-	_localPos.ref_lon = 0;
-	_localPos.ref_alt = 0;
-	_localPos.dist_bottom = 0;
-	_localPos.dist_bottom_rate = 0;
-	_localPos.surface_bottom_timestamp = _timeStamp;
-	_localPos.dist_bottom_valid = true;
-	_localPos.eph = 1;
-	_localPos.epv = 1;
-	_localPos.update();
+	float x = countsTometers * (_encoders.get().counts[0] + _encoders.get().counts[1]) / 2.0f;
+	float xDot = countsTometers * (_encoders.get().velocity[0] + _encoders.get().velocity[1]) / 2.0f;
+	struct vehicle_local_position_s & lpos = _lpos.get();
+	lpos.timestamp = _timeStamp;
+	lpos.xy_valid = true;
+	lpos.z_valid = true;
+	lpos.v_xy_valid = true;
+	lpos.v_z_valid = true;
+	lpos.x = x;
+	lpos.y = 0;
+	lpos.z = -10; // must be greater than 5 to start mission
+	lpos.vx = xDot;
+	lpos.vy = 0;
+	lpos.vz = 0;
+	lpos.yaw = _att.get().yaw;
+	lpos.xy_global = true;
+	lpos.z_global = true;
+	lpos.ref_timestamp = _timeStamp;
+	lpos.ref_lat = 0;
+	lpos.ref_lon = 0;
+	lpos.ref_alt = 0;
+	lpos.dist_bottom = 0;
+	lpos.dist_bottom_rate = 0;
+	lpos.surface_bottom_timestamp = _timeStamp;
+	lpos.dist_bottom_valid = true;
+	lpos.eph = 1;
+	lpos.epv = 1;
+	_lpos.update();
 
 	// assume we are always at lat0, lon0 for now
 	double latDeg = 0;
 	double lonDeg = 0;
 	map_projection_reproject(&_pos_ref, x, 0, &latDeg, &lonDeg);
 
-	_pos.timestamp = _timeStamp;
-	_pos.time_utc_usec = _timeStamp;
-	_pos.lat = latDeg;
-	_pos.lon = lonDeg;
-	_pos.alt = 0;
-	_pos.vel_n = xDot;
-	_pos.vel_e = 0;
-	_pos.vel_d = 0;
-	_pos.yaw = _att.yaw;
-	_pos.eph = 1;
-	_pos.epv = 1;
-	_pos.terrain_alt = 0;
-	_pos.terrain_alt_valid = false;
-	_pos.dead_reckoning = true;
+	struct vehicle_global_position_s & pos = _pos.get();
+	pos.timestamp = _timeStamp;
+	pos.time_utc_usec = _timeStamp;
+	pos.lat = latDeg;
+	pos.lon = lonDeg;
+	pos.alt = 0;
+	pos.vel_n = xDot;
+	pos.vel_e = 0;
+	pos.vel_d = 0;
+	pos.yaw = _att.get().yaw;
+	pos.eph = 1;
+	pos.epv = 1;
+	pos.terrain_alt = 0;
+	pos.terrain_alt_valid = false;
+	pos.dead_reckoning = true;
 	_pos.update();
 }
 

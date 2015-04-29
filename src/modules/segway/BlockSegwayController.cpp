@@ -99,49 +99,49 @@ void BlockSegwayController::update()
 void BlockSegwayController::handleNormalModes()
 {
 	setControlsToZero();
-	if (_status.main_state == vehicle_status_s::MAIN_STATE_MANUAL) {
+	if (_status.get().main_state == vehicle_status_s::MAIN_STATE_MANUAL) {
 		// user controls vel cmd and yaw rate cmd
-		_thCmd = -_thLimit.getMax()*_manual.x; // note negative, since neg pitch goes fwd
-		_rCmd = _manual.y;
-	} else if (_status.main_state == vehicle_status_s::MAIN_STATE_ALTCTL) {
+		_thCmd = -_thLimit.getMax()*_manual.get().x; // note negative, since neg pitch goes fwd
+		_rCmd = _manual.get().y;
+	} else if (_status.get().main_state == vehicle_status_s::MAIN_STATE_ALTCTL) {
 		// user controls vel cmd and yaw rate cmd
-		_velCmd = _manual.x * _velLimit.getMax();
+		_velCmd = _manual.get().x * _velLimit.getMax();
 		velCmd2PitchCmd();
-		_rCmd = _manual.y;
-	} else if (_status.main_state == vehicle_status_s::MAIN_STATE_ACRO) {
+		_rCmd = _manual.get().y;
+	} else if (_status.get().main_state == vehicle_status_s::MAIN_STATE_ACRO) {
 		// user controls th cmd and yaw rate cmd
-		_thCmd = -_thLimit.getMax()*_manual.x; // note negative, since neg pitch goes fwd
-		_rCmd = _manual.y;
-	} else if (_status.main_state == vehicle_status_s::MAIN_STATE_POSCTL) {
+		_thCmd = -_thLimit.getMax()*_manual.get().x; // note negative, since neg pitch goes fwd
+		_rCmd = _manual.get().y;
+	} else if (_status.get().main_state == vehicle_status_s::MAIN_STATE_POSCTL) {
 		// user controls pos cmd and yaw rate cmd
-		_xCmd = 0.5f * _manual.x;
+		_xCmd = 0.5f * _manual.get().x;
 		xCmd2VelocityCmd();
 		velCmd2PitchCmd();
-		_rCmd = _manual.y;
-	} else if (_status.main_state == vehicle_status_s::MAIN_STATE_AUTO_MISSION) {
-		_xCmd = _localPosCmd.x;
+		_rCmd = _manual.get().y;
+	} else if (_status.get().main_state == vehicle_status_s::MAIN_STATE_AUTO_MISSION) {
+		_xCmd = _localPosCmd.get().x;
 		xCmd2VelocityCmd();
 		velCmd2PitchCmd();
-		_yawCmd = _localPosCmd.yaw;
+		_yawCmd = _localPosCmd.get().yaw;
 		yawCmd2YawRateCmd();
-	} else if (_status.main_state == vehicle_status_s::MAIN_STATE_AUTO_LOITER) {
-		_xCmd = _localPosCmd.x;
+	} else if (_status.get().main_state == vehicle_status_s::MAIN_STATE_AUTO_LOITER) {
+		_xCmd = _localPosCmd.get().x;
 		// TODO check if local pos cmd is set to loiter pos.
 		xCmd2VelocityCmd();
 		velCmd2PitchCmd();
-		_yawCmd = _localPosCmd.yaw;
+		_yawCmd = _localPosCmd.get().yaw;
 		yawCmd2YawRateCmd();
-	} else if (_status.main_state == vehicle_status_s::MAIN_STATE_AUTO_RTL) {
+	} else if (_status.get().main_state == vehicle_status_s::MAIN_STATE_AUTO_RTL) {
 		_xCmd = 0;
 		xCmd2VelocityCmd();
 		velCmd2PitchCmd();
-		_yawCmd = _localPosCmd.yaw;
+		_yawCmd = _localPosCmd.get().yaw;
 		yawCmd2YawRateCmd();
-	} else if (_status.main_state == vehicle_status_s::MAIN_STATE_OFFBOARD) {
+	} else if (_status.get().main_state == vehicle_status_s::MAIN_STATE_OFFBOARD) {
 	}
 
 	// compute angles and rates
-	float th = _att.pitch -_trimPitch.get();
+	float th = _att.get().pitch -_trimPitch.get();
 	//float th_dot = _att.pitchspeed;
 	//float r = _att.yawspeed;
 	//float alpha_dot_left = _encoders.velocity[0]/_pulsesPerRev.get();
@@ -169,14 +169,14 @@ void BlockSegwayController::handleNormalModes()
 
 	// compute control for pitch
 	_controlPitch = _th2v.update(_thCmd - th)
-		- _q2v.update(_att.pitchspeed); // - inv_dynamics_pitch;
+		- _q2v.update(_att.get().pitchspeed); // - inv_dynamics_pitch;
 
 	// compute control for yaw
-	_controlYaw = _r2v.update(_rCmd - _att.yawspeed); // - inv_dynamics_yaw;
+	_controlYaw = _r2v.update(_rCmd - _att.get().yawspeed); // - inv_dynamics_yaw;
 
 	// output scaling by manual throttle
-	_controlPitch *= _manual.z;
-	_controlYaw *= _manual.z;
+	_controlPitch *= _manual.get().z;
+	_controlYaw *= _manual.get().z;
 }
 
 void BlockSegwayController::handleSysIdModes()
@@ -190,82 +190,82 @@ void BlockSegwayController::handleSysIdModes()
 	} else {
 		squareWave = -_sysIdAmp.get();
 	}
-	if (_status.main_state == vehicle_status_s::MAIN_STATE_MANUAL) {
-		_controlPitch = _manual.x;
-	} else if (_status.main_state == vehicle_status_s::MAIN_STATE_ALTCTL) {
+	if (_status.get().main_state == vehicle_status_s::MAIN_STATE_MANUAL) {
+		_controlPitch = _manual.get().x;
+	} else if (_status.get().main_state == vehicle_status_s::MAIN_STATE_ALTCTL) {
 		_controlPitch = sineWave;
-	} else if (_status.main_state == vehicle_status_s::MAIN_STATE_POSCTL) {
+	} else if (_status.get().main_state == vehicle_status_s::MAIN_STATE_POSCTL) {
 		_controlPitch = squareWave;
 	}
 	// output scaling by manual throttle
-	_controlPitch *= _manual.z;
-	_controlYaw *= _manual.z;
+	_controlPitch *= _manual.get().z;
+	_controlYaw *= _manual.get().z;
 }
 
 void BlockSegwayController::updatePublications() {
 	// attitude set point
-	_attCmd.timestamp = _timeStamp;
-	_attCmd.pitch_body = _thCmd;
-	_attCmd.roll_body = 0;
-	_attCmd.yaw_body = _yawCmd;
-	_attCmd.R_valid = false;
-	_attCmd.q_d_valid = false;
-	_attCmd.q_e_valid = false;
-	_attCmd.thrust = 0;
-	_attCmd.roll_reset_integral = false;
+	_attCmd.get().timestamp = _timeStamp;
+	_attCmd.get().pitch_body = _thCmd;
+	_attCmd.get().roll_body = 0;
+	_attCmd.get().yaw_body = _yawCmd;
+	_attCmd.get().R_valid = false;
+	_attCmd.get().q_d_valid = false;
+	_attCmd.get().q_e_valid = false;
+	_attCmd.get().thrust = 0;
+	_attCmd.get().roll_reset_integral = false;
 	_attCmd.update();
 
 	// rates set point
-	_ratesCmd.timestamp = _timeStamp;
-	_ratesCmd.roll = 0;
-	_ratesCmd.pitch = 0;
-	_ratesCmd.yaw = _rCmd;
-	_ratesCmd.thrust = 0;
+	_ratesCmd.get().timestamp = _timeStamp;
+	_ratesCmd.get().roll = 0;
+	_ratesCmd.get().pitch = 0;
+	_ratesCmd.get().yaw = _rCmd;
+	_ratesCmd.get().thrust = 0;
 	_ratesCmd.update();
 
 	// global velocity set point
-	_globalVelCmd.vx = _velCmd;
-	_globalVelCmd.vy = 0;
-	_globalVelCmd.vz = 0;
+	_globalVelCmd.get().vx = _velCmd;
+	_globalVelCmd.get().vy = 0;
+	_globalVelCmd.get().vz = 0;
 	_globalVelCmd.update();
 
 	// normalize output using battery voltage,
 	// keeps performance same as battery voltage decreases
-	float V_batt = _battery.voltage_v;
+	float V_batt = _battery.get().voltage_v;
 	float dutyPitch = _controlPitch*(12.0f/V_batt);
 	float dutyYaw = _controlYaw*(12.0f/V_batt);
 
 	// send outputs if armed and pitch less
 	// than shut off pitch
-	if (_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED &&
-	    fabsf(_att.pitch) < _thStop.get()) {
+	if (_status.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED &&
+	    fabsf(_att.get().pitch) < _thStop.get()) {
 		// controls
-		_actuators.timestamp = _timeStamp;
-		_actuators.control[0] = 0; // roll
-		_actuators.control[1] = dutyPitch; // pitch
-		_actuators.control[2] = dutyYaw; // yaw
-		_actuators.control[3] = 0; // thrust
+		_actuators.get().timestamp = _timeStamp;
+		_actuators.get().control[0] = 0; // roll
+		_actuators.get().control[1] = dutyPitch; // pitch
+		_actuators.get().control[2] = dutyYaw; // yaw
+		_actuators.get().control[3] = 0; // thrust
 		_actuators.update();
 
 	} else {
 		// controls
-		_actuators.timestamp = _timeStamp;
-		_actuators.control[0] = 0; // roll
-		_actuators.control[1] = 0; // pitch
-		_actuators.control[2] = 0; // yaw
-		_actuators.control[3] = 0; // thrust
+		_actuators.get().timestamp = _timeStamp;
+		_actuators.get().control[0] = 0; // roll
+		_actuators.get().control[1] = 0; // pitch
+		_actuators.get().control[2] = 0; // yaw
+		_actuators.get().control[3] = 0; // thrust
 		_actuators.update();
 	}
 }
 
 void BlockSegwayController::xCmd2VelocityCmd()
 {
-	_velCmd = _velLimit.update(_x2vel.update(_xCmd - _localPos.x));
+	_velCmd = _velLimit.update(_x2vel.update(_xCmd - _localPos.get().x));
 }
 
 void BlockSegwayController::yawCmd2YawRateCmd()
 {
-	float yawError = _yawCmd - _att.yaw;
+	float yawError = _yawCmd - _att.get().yaw;
 
 	// wrap yaw error to between -180 and 180
 	if (yawError > M_PI_F / 2) { yawError = yawError - 2 * M_PI_F; }
@@ -278,7 +278,7 @@ void BlockSegwayController::yawCmd2YawRateCmd()
 void BlockSegwayController::velCmd2PitchCmd()
 {
 	// negative sign since need to lean in negative pitch to move forward
-	_thCmd = -_thLimit.update(_vel2th.update(_velCmd - _localPos.vx));
+	_thCmd = -_thLimit.update(_vel2th.update(_velCmd - _localPos.get().vx));
 }
 
 void BlockSegwayController::setControlsToZero() {

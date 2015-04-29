@@ -245,7 +245,7 @@ void RoboClawDevice::update()
 				      &valid_encoder1);
 
 	if (valid_encoder1) {
-		m_encoders.counts[0] = encoderToInt64(counts, status,
+		m_encoders.get().counts[0] = encoderToInt64(counts, status,
 						      &m_motor1Overflows);
 
 	} else {
@@ -257,7 +257,7 @@ void RoboClawDevice::update()
 				      &valid_encoder2);
 
 	if (valid_encoder2) {
-		m_encoders.counts[1] = encoderToInt64(counts, status,
+		m_encoders.get().counts[1] = encoderToInt64(counts, status,
 						      &m_motor2Overflows);
 
 	} else {
@@ -277,14 +277,14 @@ void RoboClawDevice::update()
 	speedRes =  m_roboclaw.ReadISpeedM1(m_address, &status, &valid_speed1);
 
 	if (valid_speed1) {
-		m_encoders.velocity[0] = speedRes * speedSampleRate * vel_factor;
+		m_encoders.get().velocity[0] = speedRes * speedSampleRate * vel_factor;
 	}
 
 	// speed 2
 	speedRes =  m_roboclaw.ReadISpeedM2(m_address, &status, &valid_speed2);
 
 	if (valid_speed2) {
-		m_encoders.velocity[1] = speedRes * speedSampleRate * vel_factor;
+		m_encoders.get().velocity[1] = speedRes * speedSampleRate * vel_factor;
 	}
 
 	// test for all data valid
@@ -293,7 +293,7 @@ void RoboClawDevice::update()
 
 	// publish new data if it is all valid
 	if (all_data_valid) {
-		m_encoders.timestamp = now;
+		m_encoders.get().timestamp = now;
 		m_encoders.update();
 		// let waiting processes know the driver
 		// has new information
@@ -310,8 +310,8 @@ void RoboClawDevice::update()
 			m_timeActuatorCommand = now;
 			m_controls.update(); // get data
 			// NOTE channels (0 roll, 1 pitch, 2 yaw)
-			controlPitch = m_controls.control[1];
-			controlYaw = m_controls.control[2];
+			controlPitch = m_controls.get().control[1];
+			controlYaw = m_controls.get().control[2];
 		}
 	}
 
@@ -340,10 +340,10 @@ void RoboClawDevice::update()
 	}
 
 	// publish duty cycles
-	m_outputs.timestamp = now;
-	m_outputs.output[0] = duty[0] + scaleDuty; // have to add scale so positive (like servo)
-	m_outputs.output[1] = duty[1] + scaleDuty;
-	m_outputs.noutputs = 2;
+	m_outputs.get().timestamp = now;
+	m_outputs.get().output[0] = duty[0] + scaleDuty; // have to add scale so positive (like servo)
+	m_outputs.get().output[1] = duty[1] + scaleDuty;
+	m_outputs.get().noutputs = 2;
 	m_outputs.update(); // publish
 
 	// send command to motor

@@ -103,7 +103,7 @@ public:
 	}
 // accessors
 	const struct orb_metadata *getMeta() { return _meta; }
-	int getHandle() { return _handle; }
+	int getHandle() { return _handle; }	
 protected:
 // accessors
 	void setHandle(int handle) { _handle = handle; }
@@ -111,6 +111,11 @@ protected:
 	const struct orb_metadata *_meta;
 	int _instance;
 	int _handle;
+private:
+	// disallow copy
+	SubscriptionBase(const SubscriptionBase & other);
+	// disallow assignment
+	SubscriptionBase & operator=(const SubscriptionBase & other);
 };
 
 /**
@@ -165,7 +170,6 @@ protected:
  */
 template<class T>
 class __EXPORT Subscription :
-	public T, // this must be first!
 	public SubscriptionNode
 {
 public:
@@ -193,18 +197,15 @@ public:
 	 * Create an update function that uses the embedded struct.
 	 */
 	void update() {
-		SubscriptionBase::update(getDataVoidPtr());
+		SubscriptionBase::update((void *)(&_data));
 	}
 
 	/*
-	 * XXX
-	 * This function gets the T struct, assuming
-	 * the struct is the first base class, this
-	 * should use dynamic cast, but doesn't
-	 * seem to be available
-	 */
-	void *getDataVoidPtr();
-	T getData();
+	 * This function gets the T struct data
+	 * */
+	const T & get() { return _data; }
+private:
+	T _data;
 };
 
 } // namespace uORB

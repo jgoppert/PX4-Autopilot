@@ -44,4 +44,4 @@ SRCS			= uORB.cpp \
 			  Publication.cpp \
 			  Subscription.cpp
 
-MAXOPTIMIZATION	 = -Os
+MAXOPTIMIZATION	 = -Os -Weffc++

@@ -49,7 +49,7 @@ namespace uORB
 {
 
 /**
- * Base publication warapper class, used in list traversal
+ * Base publication wrapper class, used in list traversal
  * of various publications.
  */
 class __EXPORT PublicationBase
@@ -96,6 +96,10 @@ public:
 	const struct orb_metadata *getMeta() { return _meta; }
 	int getHandle() { return _handle; }
 protected:
+	// disallow copy
+	PublicationBase(const PublicationBase & other);
+	// disallow assignment
+	PublicationBase & operator=(const PublicationBase & other);
 // accessors
 	void setHandle(orb_advert_t handle) { _handle = handle; }
 // attributes
@@ -147,7 +151,6 @@ public:
  */
 template<class T>
 class Publication :
-	public T, // this must be first!
 	public PublicationNode
 {
 public:
@@ -170,20 +173,18 @@ public:
 	virtual ~Publication();
 
 	/*
-	 * XXX
-	 * This function gets the T struct, assuming
-	 * the struct is the first base class, this
-	 * should use dynamic cast, but doesn't
-	 * seem to be available
-	 */
-	void *getDataVoidPtr();
+	 * This function gets the T struct
+	 * */
+	T & get() { return _data; }
 
 	/**
 	 * Create an update function that uses the embedded struct.
 	 */
 	void update() {
-		PublicationBase::update(getDataVoidPtr());
+		PublicationBase::update((void *)(&_data));
 	}
+private:
+	T _data;
 };
 
 } // namespace uORB

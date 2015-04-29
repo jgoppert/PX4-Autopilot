@@ -18,7 +18,7 @@ private:
 	uORB::Subscription<parameter_update_s> _param_update;
 	uORB::Subscription<encoders_s> _encoders;
 	// publications
-	uORB::Publication<vehicle_local_position_s> _localPos;
+	uORB::Publication<vehicle_local_position_s> _lpos;
 	uORB::Publication<vehicle_global_position_s> _pos;
 	// data
 	BlockParamFloat _rWheel;
