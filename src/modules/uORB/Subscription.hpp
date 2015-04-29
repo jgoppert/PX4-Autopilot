@@ -60,15 +60,21 @@ public:
 	 *
 	 * @param meta The uORB metadata (usually from the ORB_ID()
 	 * 	macro) for the topic.
-	 *
 	 * @param interval  The minimum interval in milliseconds
 	 * 	between updates
+	 * @param instance The instance for multi sub.
 	 */
 	SubscriptionBase(const struct orb_metadata *meta,
-		unsigned interval=0) :
-		_meta(meta),
-		_handle() {
-		setHandle(orb_subscribe(getMeta()));
+			unsigned interval=0, unsigned instance=0) :
+			_meta(meta),
+			_instance(instance),
+			_handle() {
+		if (instance == 0) {
+			_handle = orb_subscribe(getMeta());
+		} else {
+			_handle = orb_subscribe_multi(
+					getMeta(), instance);
+		}
 		orb_set_interval(getHandle(), interval);
 	}
 
@@ -105,6 +111,7 @@ protected:
 	void setHandle(int handle) { _handle = handle; }
 // attributes
 	const struct orb_metadata *_meta;
+	int _instance;
 	int _handle;
 };
 
@@ -114,7 +121,7 @@ protected:
 typedef SubscriptionBase SubscriptionTiny;
 
 /**
- * The publication base class as a list node.
+ * The subscription base class as a list node.
  */
 class __EXPORT SubscriptionNode :
 
@@ -125,18 +132,19 @@ public:
 	/**
 	 * Constructor
 	 *
-	 *
 	 * @param meta The uORB metadata (usually from the ORB_ID()
 	 * 	macro) for the topic.
 	 * @param interval  The minimum interval in milliseconds
 	 * 	between updates
+	 * @param instance The instance for multi sub.
 	 * @param list 	A pointer to a list of subscriptions
 	 * 	that this should be appended to.
 	 */
 	SubscriptionNode(const struct orb_metadata *meta,
-		unsigned interval=0,
-		List<SubscriptionNode *> * list=nullptr) :
-		SubscriptionBase(meta, interval),
+			unsigned interval=0,
+			int instance=0,
+			List<SubscriptionNode *> * list=nullptr) :
+		SubscriptionBase(meta, interval, instance),
 		_interval(interval) {
 		if (list != nullptr) list->add(this);
 	}
@@ -175,6 +183,7 @@ public:
 	 */
 	Subscription(const struct orb_metadata *meta,
 		unsigned interval=0,
+		int instance=0,
 		List<SubscriptionNode *> * list=nullptr);
 	/**
 	 * Deconstructor

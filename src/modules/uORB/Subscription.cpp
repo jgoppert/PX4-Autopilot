@@ -59,11 +59,12 @@ namespace uORB
 
 template<class T>
 Subscription<T>::Subscription(
-	const struct orb_metadata *meta,
-	unsigned interval,
-	List<SubscriptionNode *> * list) :
+		const struct orb_metadata *meta,
+		unsigned interval,
+		int instance,
+		List<SubscriptionNode *> * list) :
 	T(), // initialize data structure to zero
-	SubscriptionNode(meta, interval, list) {
+	SubscriptionNode(meta, interval, instance, list) {
 }
 
 template<class T>

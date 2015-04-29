@@ -56,9 +56,10 @@ namespace uORB {
 template<class T>
 Publication<T>::Publication(
 	const struct orb_metadata *meta,
+	int * instance, int priority,
 	List<PublicationNode *> * list) :
 	T(), // initialize data structure to zero
-	PublicationNode(meta, list) {
+	PublicationNode(meta, instance, priority, list) {
 }
 
 template<class T>

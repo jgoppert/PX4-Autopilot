@@ -58,12 +58,16 @@ public:
 	/**
 	 * Constructor
 	 *
-	 *
-	 * @param meta The uORB metadata (usually from the ORB_ID()
-	 * 	macro) for the topic.
+	 * @param meta The uORB metadata (usually from
+	 * 	the ORB_ID() macro) for the topic.
+	 * @param instance The instance for multi pub.
+	 * @param priority The priority for multi pub, 0-based.
 	 */
-	PublicationBase(const struct orb_metadata *meta) :
+	PublicationBase(const struct orb_metadata *meta,
+			int *instance=nullptr, int priority=0) :
 		_meta(meta),
+		_instance(instance),
+		_priority(priority),
 		_handle(-1) {
 	}
 
@@ -75,7 +79,14 @@ public:
 		if (_handle > 0) {
 			orb_publish(getMeta(), getHandle(), data);
 		} else {
-			setHandle(orb_advertise(getMeta(), data));
+			if (_instance == nullptr) {
+				setHandle(orb_advertise(
+					getMeta(), data));
+			} else {
+				setHandle(orb_advertise_multi(
+					getMeta(), data,
+					_instance, _priority));
+			}
 		}
 	}
 
@@ -93,6 +104,8 @@ protected:
 	void setHandle(orb_advert_t handle) { _handle = handle; }
 // attributes
 	const struct orb_metadata *_meta;
+	int * _instance;
+	int _priority;
 	orb_advert_t _handle;
 };
 
@@ -113,15 +126,17 @@ public:
 	/**
 	 * Constructor
 	 *
-	 *
-	 * @param meta The uORB metadata (usually from the ORB_ID()
-	 * 	macro) for the topic.
-	 * @param list 	A pointer to a list of subscriptions
-	 * 	that this should be appended to.
+	 * @param meta The uORB metadata (usually from
+	 * 	the ORB_ID() macro) for the topic.
+	 * @param instance The instance for multi pub.
+	 * @param priority The priority for multi pub, 0-based.
+	 * @param list A list interface for adding to
+	 * 	list during construction
 	 */
 	PublicationNode(const struct orb_metadata *meta,
+		int * instance=nullptr, int priority=0,
 		List<PublicationNode *> * list=nullptr) :
-		PublicationBase(meta) {
+		PublicationBase(meta, instance, priority) {
 		if (list != nullptr) list->add(this);
 	}
 
@@ -146,10 +161,13 @@ public:
 	 *
 	 * @param meta The uORB metadata (usually from
 	 * 	the ORB_ID() macro) for the topic.
+	 * @param instance The instance for multi pub.
+	 * @param priority The priority for multi pub, 0-based.
 	 * @param list A list interface for adding to
 	 * 	list during construction
 	 */
 	Publication(const struct orb_metadata *meta,
+		int * instance=nullptr, int priority=0,
 		List<PublicationNode *> * list=nullptr);
 
 	/**
