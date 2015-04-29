@@ -42,6 +42,7 @@
 
 #include <uORB/uORB.h>
 #include <containers/List.hpp>
+#include <systemlib/err.h>
 
 
 namespace uORB
@@ -63,7 +64,7 @@ public:
 	 * @param priority The priority for multi pub, 0-based.
 	 */
 	PublicationBase(const struct orb_metadata *meta,
-			int priority=0) :
+			int priority=ORB_PRIO_DEFAULT) :
 		_meta(meta),
 		_instance(),
 		_priority(priority),
@@ -80,7 +81,8 @@ public:
 		} else {
 			setHandle(orb_advertise_multi(
 				getMeta(), data,
-				_instance, _priority));
+				&_instance, _priority));
+			if (_handle < 0) warnx("advert fail");
 		}
 	}
 
@@ -98,7 +100,7 @@ protected:
 	void setHandle(orb_advert_t handle) { _handle = handle; }
 // attributes
 	const struct orb_metadata *_meta;
-	int * _instance;
+	int _instance;
 	int _priority;
 	orb_advert_t _handle;
 };
@@ -127,7 +129,7 @@ public:
 	 * 	list during construction
 	 */
 	PublicationNode(const struct orb_metadata *meta,
-			int priority=0,
+			int priority=ORB_PRIO_DEFAULT,
 			List<PublicationNode *> * list=nullptr) :
 			PublicationBase(meta, priority) {
 		if (list != nullptr) list->add(this);
@@ -159,7 +161,7 @@ public:
 	 * 	list during construction
 	 */
 	Publication(const struct orb_metadata *meta,
-		int priority=0,
+		int priority=ORB_PRIO_DEFAULT,
 		List<PublicationNode *> * list=nullptr);
 
 	/**

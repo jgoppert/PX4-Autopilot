@@ -42,6 +42,7 @@
 
 #include <uORB/uORB.h>
 #include <containers/List.hpp>
+#include <systemlib/err.h>
 
 namespace uORB
 {
@@ -69,12 +70,9 @@ public:
 			_meta(meta),
 			_instance(instance),
 			_handle() {
-		if (instance == 0) {
-			_handle = orb_subscribe(getMeta());
-		} else {
-			_handle = orb_subscribe_multi(
-					getMeta(), instance);
-		}
+		_handle =  orb_subscribe_multi(
+			getMeta(), instance);
+		if (_handle < 0) warnx("sub failed");
 		orb_set_interval(getHandle(), interval);
 	}
 
