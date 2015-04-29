@@ -668,7 +668,7 @@ then
 	#
 	if [ $VEHICLE_TYPE == segway ]
 	then
-		set MAV_TYPE 10
+		param set MAV_TYPE 10
 		# Start standard segway apps
 		if [ $LOAD_DAPPS == yes ]
 		then

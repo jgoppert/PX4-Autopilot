@@ -82,7 +82,6 @@ RoboClawDevice::RoboClawDevice(const char *port, uint8_t address,
 	// data
 	m_mavlink_fd(-1),
 	m_address(address),
-	m_period(1e6 / 400), // 400 Hz
 	m_error(ROBO_ERROR_NONE),
 	m_timeErrorSent(0),
 	m_timeActuatorCommand(0),
@@ -122,8 +121,8 @@ int RoboClawDevice::init()
 	m_roboclaw.ResetEncoders(m_address);
 	char version[200];
 	m_roboclaw.ReadVersion(m_address, version);
-	mavlink_log_critical(m_mavlink_fd, version);
-	//warnx(version);
+	mavlink_log_info(m_mavlink_fd, version);
+	warnx("[ROBO] %s", version);
 	return OK;
 }
 
@@ -142,7 +141,8 @@ void RoboClawDevice::update()
 
 	// if failed to read error status, use last
 	if (!error_status_valid) {
-		warnx("read error failed");
+		mavlink_log_info(m_mavlink_fd, "[ROBO] ERR STAT READ FAILED");
+		warnx("[ROBO] ERR STAT READ FAILED");
 		error = m_error;
 	}
 
@@ -150,7 +150,8 @@ void RoboClawDevice::update()
 	if (error == ROBO_ERROR_NONE) {
 		// if there was an error, notify ground station
 		if (m_error != ROBO_ERROR_NONE) {
-			mavlink_log_critical(m_mavlink_fd, "[ROBO] OK");
+			mavlink_log_info(m_mavlink_fd, "[ROBO] OK");
+			warnx("[ROBO] OK");
 		}
 
 		// if there is an error now
@@ -163,9 +164,9 @@ void RoboClawDevice::update()
 			// general handling of errors
 			char error_msg[200];
 			errorToString(error, error_msg, 200);
-			mavlink_log_critical(m_mavlink_fd, error_msg);
+			mavlink_log_info(m_mavlink_fd, error_msg);
+			warnx("%s", error_msg);
 			m_timeErrorSent = now;
-			//warnx(error_msg);
 
 			// handle logic battery voltage error
 			if (error & ROBO_ERROR_LOGIC_BATTERY_LOW ||
@@ -175,6 +176,7 @@ void RoboClawDevice::update()
 				uint16_t max = 0;
 
 				if (m_roboclaw.ReadMinMaxLogicVoltages(m_address, min, max)) {
+					mavlink_log_info(m_mavlink_fd, "[ROBO] ERR LOGIC VOLTAGE");
 					warnx("logic voltage out of range: "
 					      "min: %5.1f max: %5.1f V: %5.1f",
 					      min / 10.0, max / 10.0, voltage / 10.0);
@@ -189,7 +191,8 @@ void RoboClawDevice::update()
 				uint16_t max = 0;
 
 				if (m_roboclaw.ReadMinMaxMainVoltages(m_address, min, max)) {
-					warnx("main voltage out of range: "
+					mavlink_log_info(m_mavlink_fd, "[ROBO] ERR MAIN VOLTAGE");
+					warnx("[ROBO] main voltage out of range: "
 					      "min: %5.1f max: %5.1f V: %5.1f",
 					      min / 10.0, max / 10.0, voltage / 10.0);
 				}
@@ -202,7 +205,8 @@ void RoboClawDevice::update()
 				uint8_t current2;
 
 				if (m_roboclaw.ReadCurrents(m_address, current1, current2)) {
-					warnx("motor overcurrent: "
+					mavlink_log_info(m_mavlink_fd, "[ROBO] OVER CURRENT");
+					warnx("[ROBO] motor overcurrent: "
 					      "c1: %6.2f c2: %6.2f", current1 / 100.0, current2 / 100.0);
 				}
 			}
@@ -212,7 +216,8 @@ void RoboClawDevice::update()
 				uint16_t temperature;
 
 				if (m_roboclaw.ReadTemp(m_address, temperature)) {
-					warnx("temperature over max: %7.1f", temperature / 10.0);
+					mavlink_log_info(m_mavlink_fd, "[ROBO] OVER TEMP");
+					warnx("[ROBO] temperature over max: %7.1f", temperature / 10.0);
 				}
 			}
 		}
@@ -221,17 +226,15 @@ void RoboClawDevice::update()
 	// save error for next update
 	m_error = error;
 
-	// sleep to set rate
+	// calculate rate
 	int32_t timeElapsed = now - m_timeUpdate;
 	m_timeUpdate = now;
-	int32_t sleepTime = m_period - timeElapsed;
 
-	if (sleepTime > 5000) {
-		usleep(sleepTime - 5000);
+	float freq = 1.0e6 / timeElapsed;
 
-	} else if (sleepTime < -20000 && m_timeUpdate != 0) {
-		mavlink_log_critical(m_mavlink_fd,
-				     "[ROBO] slow, %10.2f Hz", 1.0e6 / timeElapsed);
+	if (freq < 30.0f && m_timeUpdate != 0) {
+		mavlink_log_info(m_mavlink_fd, "[ROBO] slow, %10.2f Hz", double(freq));
+		warnx("[ROBO] slow, %10.2f Hz", double(freq));
 	}
 
 	// read encoders
@@ -247,9 +250,9 @@ void RoboClawDevice::update()
 	if (valid_encoder1) {
 		m_encoders.get().counts[0] = encoderToInt64(counts, status,
 						      &m_motor1Overflows);
-
 	} else {
-		warnx("encoder 1 read failed");
+		mavlink_log_info(m_mavlink_fd, "[ROBO] ENCD 1 READ FAIL");
+		warnx("[ROBO] encoder 1 read failed");
 	}
 
 	// position 2
@@ -261,7 +264,8 @@ void RoboClawDevice::update()
 						      &m_motor2Overflows);
 
 	} else {
-		warnx("encoder 2 read failed");
+		mavlink_log_info(m_mavlink_fd, "[ROBO] ENCD 2 READ FAIL");
+		warnx("[ROBO] encoder 2 read failed");
 	}
 
 	bool valid_speed1 = false;
@@ -301,17 +305,16 @@ void RoboClawDevice::update()
 	}
 
 	// default commands to zero unless we receive data
-	float controlPitch = 0;
-	float controlYaw = 0;
+	float motor1 = 0;
+	float motor2 = 0;
 
 	// send new actuator commands to motors if there is no error
 	if ((m_error == ROBO_ERROR_NONE) && all_data_valid) {
 		if (m_controls.updated()) {
 			m_timeActuatorCommand = now;
 			m_controls.update(); // get data
-			// NOTE channels (0 roll, 1 pitch, 2 yaw)
-			controlPitch = m_controls.get().control[1];
-			controlYaw = m_controls.get().control[2];
+			motor1 = m_controls.get().control[0];
+			motor2 = m_controls.get().control[1];
 		}
 	}
 
@@ -321,10 +324,9 @@ void RoboClawDevice::update()
 		m_timeActuatorCommand = now;
 	}
 
-	// do mixing
 	float control[2];
-	control[0] = controlPitch + controlYaw;
-	control[1] = controlPitch - controlYaw;
+	control[0] = motor1;
+	control[1] = motor2;
 
 	// limit
 	for (int i = 0; i < 2; i++) {

@@ -240,19 +240,19 @@ void BlockSegwayController::updatePublications() {
 	    fabsf(_att.get().pitch) < _thStop.get()) {
 		// controls
 		_actuators.get().timestamp = _timeStamp;
-		_actuators.get().control[0] = 0; // roll
-		_actuators.get().control[1] = dutyPitch; // pitch
-		_actuators.get().control[2] = dutyYaw; // yaw
-		_actuators.get().control[3] = 0; // thrust
+		_actuators.get().control[0] = dutyPitch - dutyYaw;
+		_actuators.get().control[1] = dutyPitch + dutyYaw;
+		_actuators.get().control[2] = 0;
+		_actuators.get().control[3] = 0;
 		_actuators.update();
 
 	} else {
 		// controls
 		_actuators.get().timestamp = _timeStamp;
-		_actuators.get().control[0] = 0; // roll
-		_actuators.get().control[1] = 0; // pitch
-		_actuators.get().control[2] = 0; // yaw
-		_actuators.get().control[3] = 0; // thrust
+		_actuators.get().control[0] = 0;
+		_actuators.get().control[1] = 0;
+		_actuators.get().control[2] = 0;
+		_actuators.get().control[3] = 0;
 		_actuators.update();
 	}
 }

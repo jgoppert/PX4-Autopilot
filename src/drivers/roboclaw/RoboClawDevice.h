@@ -108,7 +108,6 @@ private:
 	uORB::Publication<encoders_s> m_encoders;
 	int m_mavlink_fd;
 	uint8_t m_address;
-	uint32_t m_period;
 	uint8_t m_error;
 	uint64_t m_timeErrorSent;
 	uint64_t m_timeActuatorCommand;
