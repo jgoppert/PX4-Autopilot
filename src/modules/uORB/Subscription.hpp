@@ -70,8 +70,12 @@ public:
 			_meta(meta),
 			_instance(instance),
 			_handle() {
-		_handle =  orb_subscribe_multi(
-			getMeta(), instance);
+		if (_instance > 0) {
+			_handle =  orb_subscribe_multi(
+				getMeta(), instance);
+		} else {
+			_handle =  orb_subscribe(getMeta());
+		}
 		if (_handle < 0) warnx("sub failed");
 		orb_set_interval(getHandle(), interval);
 	}

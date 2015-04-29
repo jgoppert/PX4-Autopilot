@@ -603,18 +603,6 @@ then
 	fi
 
 	#
-	# Segway setup
-	#
-	if [ $VEHICLE_TYPE == segway ]
-	then
-		# Start standard segway apps
-		if [ $LOAD_DAPPS == yes ]
-		then
-			sh /etc/init.d/rc.segway_apps
-		fi
-	fi
-
-	#
 	# VTOL setup
 	#
 	if [ $VEHICLE_TYPE == vtol ]
@@ -672,6 +660,19 @@ then
 		if [ $LOAD_DAPPS == yes ]
 		then
 			sh /etc/init.d/rc.axialracing_ax10_apps
+		fi
+	fi
+
+	#
+	# Segway setup
+	#
+	if [ $VEHICLE_TYPE == segway ]
+	then
+		set MAV_TYPE 10
+		# Start standard segway apps
+		if [ $LOAD_DAPPS == yes ]
+		then
+			sh /etc/init.d/rc.segway_apps
 		fi
 	fi
 

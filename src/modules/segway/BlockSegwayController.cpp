@@ -21,11 +21,10 @@ BlockSegwayController::BlockSegwayController() :
 	_battery(ORB_ID(battery_status), 0, 0, &getSubscriptions()),
 
 	// publications
-	_attCmd(ORB_ID(vehicle_attitude_setpoint), ORB_PRIO_DEFAULT, &getPublications()),
-	_ratesCmd(ORB_ID(vehicle_rates_setpoint), ORB_PRIO_DEFAULT,  &getPublications()),
-	_globalVelCmd(ORB_ID(vehicle_global_velocity_setpoint),
-			ORB_PRIO_DEFAULT, &getPublications()),
-	_actuators(ORB_ID(actuator_controls_1), ORB_PRIO_DEFAULT, &getPublications()),
+	_attCmd(ORB_ID(vehicle_attitude_setpoint), -1, &getPublications()),
+	_ratesCmd(ORB_ID(vehicle_rates_setpoint), -1,  &getPublications()),
+	_globalVelCmd(ORB_ID(vehicle_global_velocity_setpoint), -1, &getPublications()),
+	_actuators(ORB_ID(actuator_controls_1), -1, &getPublications()),
 
 	_yaw2r(this, "YAW2R"),
 	_r2v(this, "R2V"),

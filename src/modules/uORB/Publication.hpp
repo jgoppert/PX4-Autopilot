@@ -61,13 +61,14 @@ public:
 	 *
 	 * @param meta The uORB metadata (usually from
 	 * 	the ORB_ID() macro) for the topic.
-	 * @param priority The priority for multi pub, 0-based.
+	 * @param priority The priority for multi pub/sub, 0-based, -1 means
+	 * 	don't publish as multi
 	 */
 	PublicationBase(const struct orb_metadata *meta,
-			int priority=ORB_PRIO_DEFAULT) :
+			int priority=-1) :
 		_meta(meta),
-		_instance(),
 		_priority(priority),
+		_instance(),
 		_handle(-1) {
 	}
 
@@ -79,9 +80,13 @@ public:
 		if (_handle > 0) {
 			orb_publish(getMeta(), getHandle(), data);
 		} else {
-			setHandle(orb_advertise_multi(
-				getMeta(), data,
-				&_instance, _priority));
+			if (_priority > 0) {
+				setHandle(orb_advertise_multi(
+					getMeta(), data,
+					&_instance, _priority));
+			} else {
+				setHandle(orb_advertise(getMeta(), data));
+			}
 			if (_handle < 0) warnx("advert fail");
 		}
 	}
@@ -104,8 +109,8 @@ protected:
 	void setHandle(orb_advert_t handle) { _handle = handle; }
 // attributes
 	const struct orb_metadata *_meta;
-	int _instance;
 	int _priority;
+	int _instance;
 	orb_advert_t _handle;
 };
 
@@ -133,7 +138,7 @@ public:
 	 * 	list during construction
 	 */
 	PublicationNode(const struct orb_metadata *meta,
-			int priority=ORB_PRIO_DEFAULT,
+			int priority=-1,
 			List<PublicationNode *> * list=nullptr) :
 			PublicationBase(meta, priority) {
 		if (list != nullptr) list->add(this);
@@ -164,7 +169,7 @@ public:
 	 * 	list during construction
 	 */
 	Publication(const struct orb_metadata *meta,
-		int priority=ORB_PRIO_DEFAULT,
+		int priority=-1,
 		List<PublicationNode *> * list=nullptr);
 
 	/**
