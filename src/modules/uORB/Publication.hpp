@@ -60,13 +60,12 @@ public:
 	 *
 	 * @param meta The uORB metadata (usually from
 	 * 	the ORB_ID() macro) for the topic.
-	 * @param instance The instance for multi pub.
 	 * @param priority The priority for multi pub, 0-based.
 	 */
 	PublicationBase(const struct orb_metadata *meta,
-			int *instance=nullptr, int priority=0) :
+			int priority=0) :
 		_meta(meta),
-		_instance(instance),
+		_instance(),
 		_priority(priority),
 		_handle(-1) {
 	}
@@ -79,14 +78,9 @@ public:
 		if (_handle > 0) {
 			orb_publish(getMeta(), getHandle(), data);
 		} else {
-			if (_instance == nullptr) {
-				setHandle(orb_advertise(
-					getMeta(), data));
-			} else {
-				setHandle(orb_advertise_multi(
-					getMeta(), data,
-					_instance, _priority));
-			}
+			setHandle(orb_advertise_multi(
+				getMeta(), data,
+				_instance, _priority));
 		}
 	}
 
@@ -128,15 +122,14 @@ public:
 	 *
 	 * @param meta The uORB metadata (usually from
 	 * 	the ORB_ID() macro) for the topic.
-	 * @param instance The instance for multi pub.
 	 * @param priority The priority for multi pub, 0-based.
 	 * @param list A list interface for adding to
 	 * 	list during construction
 	 */
 	PublicationNode(const struct orb_metadata *meta,
-		int * instance=nullptr, int priority=0,
-		List<PublicationNode *> * list=nullptr) :
-		PublicationBase(meta, instance, priority) {
+			int priority=0,
+			List<PublicationNode *> * list=nullptr) :
+			PublicationBase(meta, priority) {
 		if (list != nullptr) list->add(this);
 	}
 
@@ -161,13 +154,12 @@ public:
 	 *
 	 * @param meta The uORB metadata (usually from
 	 * 	the ORB_ID() macro) for the topic.
-	 * @param instance The instance for multi pub.
 	 * @param priority The priority for multi pub, 0-based.
 	 * @param list A list interface for adding to
 	 * 	list during construction
 	 */
 	Publication(const struct orb_metadata *meta,
-		int * instance=nullptr, int priority=0,
+		int priority=0,
 		List<PublicationNode *> * list=nullptr);
 
 	/**
