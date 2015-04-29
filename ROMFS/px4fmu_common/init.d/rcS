@@ -603,6 +603,18 @@ then
 	fi
 
 	#
+	# Segway setup
+	#
+	if [ $VEHICLE_TYPE == segway ]
+	then
+		# Start standard segway apps
+		if [ $LOAD_DAPPS == yes ]
+		then
+			sh /etc/init.d/rc.segway_apps
+		fi
+	fi
+
+	#
 	# VTOL setup
 	#
 	if [ $VEHICLE_TYPE == vtol ]

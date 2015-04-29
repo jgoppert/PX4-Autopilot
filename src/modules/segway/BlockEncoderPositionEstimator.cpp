@@ -4,13 +4,14 @@
 
 BlockEncoderPositionEstimator::BlockEncoderPositionEstimator() :
 	SuperBlock(NULL, "ENCP"),
-	_att(&getSubscriptions(), ORB_ID(vehicle_attitude), 20), // 50 Hz
-	_param_update(&getSubscriptions(),
-		      ORB_ID(parameter_update), 1000), // limit to 1 Hz
-	_localPos(&getPublications(), ORB_ID(vehicle_local_position)),
-	_pos(&getPublications(), ORB_ID(vehicle_global_position)),
-	_encoders(&getSubscriptions(),
-		  ORB_ID(encoders), 100), // limit to  10 Hz
+	// subscriptions
+	_att(ORB_ID(vehicle_attitude), 20, 0, &getSubscriptions()), // 50 Hz
+	_param_update(ORB_ID(parameter_update), 1000, 0, &getSubscriptions()), // limit to 1 Hz
+	_encoders(ORB_ID(encoders), 100, 0, &getSubscriptions()), // limit to  10 Hz
+	// publications
+	_localPos(ORB_ID(vehicle_local_position), ORB_PRIO_DEFAULT, &getPublications()),
+	_pos(ORB_ID(vehicle_global_position), ORB_PRIO_DEFAULT, &getPublications()),
+	// data
 	_rWheel(this, "RWHEEL"),
 	_pulsesPerRev(this, "PPR"),
 	_poll(),
@@ -66,7 +67,6 @@ void BlockEncoderPositionEstimator::update()
 	_localPos.ref_lat = 0;
 	_localPos.ref_lon = 0;
 	_localPos.ref_alt = 0;
-	_localPos.landed = false;
 	_localPos.dist_bottom = 0;
 	_localPos.dist_bottom_rate = 0;
 	_localPos.surface_bottom_timestamp = _timeStamp;
@@ -81,9 +81,9 @@ void BlockEncoderPositionEstimator::update()
 	map_projection_reproject(&_pos_ref, x, 0, &latDeg, &lonDeg);
 
 	_pos.timestamp = _timeStamp;
-	_pos.time_gps_usec = _timeStamp;
-	_pos.lat = 1e7 * latDeg;
-	_pos.lon = 1e7 * lonDeg;
+	_pos.time_utc_usec = _timeStamp;
+	_pos.lat = latDeg;
+	_pos.lon = lonDeg;
 	_pos.alt = 0;
 	_pos.vel_n = xDot;
 	_pos.vel_e = 0;
@@ -92,7 +92,8 @@ void BlockEncoderPositionEstimator::update()
 	_pos.eph = 1;
 	_pos.epv = 1;
 	_pos.terrain_alt = 0;
-	_pos.terrain_alt_valid = true;
+	_pos.terrain_alt_valid = false;
+	_pos.dead_reckoning = true;
 	_pos.update();
 }
 

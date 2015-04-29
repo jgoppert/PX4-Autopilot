@@ -75,10 +75,11 @@ RoboClawDevice::RoboClawDevice(const char *port, uint8_t address,
 	CDev("roboclaw", "/dev/roboclaw"),
 	m_roboclaw(port, tout, doack),
 	// subscriptions
-	m_controls(ORB_ID(actuator_controls_1), 20),
+	m_controls(ORB_ID(actuator_controls_1)),
 	// publication
-	m_outputs(ORB_ID(actuator_outputs), 20, 1, 1),
+	m_outputs(ORB_ID(actuator_outputs)),
 	m_encoders(ORB_ID(encoders)),
+	// data
 	m_mavlink_fd(-1),
 	m_address(address),
 	m_period(1e6 / 400), // 400 Hz

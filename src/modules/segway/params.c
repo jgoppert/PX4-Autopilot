@@ -14,11 +14,12 @@ PARAM_DEFINE_FLOAT(SEG_X2VEL_I_MAX, 0.0f); // max integrator windup
 
 // for dynamics
 PARAM_DEFINE_FLOAT(SEG_MGL, 7.0f); // feedforward term, gravity torque
-PARAM_DEFINE_FLOAT(SEG_J, 7.0f); // feedforward term, gravity torque
-PARAM_DEFINE_FLOAT(SEG_K_EMF, 1.0f); // motor backemf voltage
-PARAM_DEFINE_FLOAT(SEG_K_DAMP, 1.0f); // motor backemf voltage
-PARAM_DEFINE_FLOAT(SEG_WN_THETA, 1.0f); // motor backemf voltage
-PARAM_DEFINE_FLOAT(SEG_ZETA_THETA, 1.0f); // motor backemf voltage
+PARAM_DEFINE_FLOAT(SEG_J, 7.0f); // inertia
+PARAM_DEFINE_FLOAT(SEG_K_EMF, 1.0f); // motor electromotive force constant
+PARAM_DEFINE_FLOAT(SEG_K_DAMP, 1.0f); // motor damping
+PARAM_DEFINE_FLOAT(SEG_WN_THETA, 1.0f); // desired natural freq
+PARAM_DEFINE_FLOAT(SEG_ZETA_THETA, 0.7f); // desired damping ratio
+PARAM_DEFINE_FLOAT(SEG_BEMF, 0.0f); // desired damping ratio
 
 // velocity error to pitch command
 PARAM_DEFINE_FLOAT(SEG_VEL2TH_P, 0.2f); // proportional gain

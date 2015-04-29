@@ -3,27 +3,29 @@
 // px4
 #include <geo/geo.h>
 #include <drivers/drv_hrt.h>
+#include <uORB/topics/vehicle_status.h>
 
 BlockSegwayController::BlockSegwayController() :
 	SuperBlock(NULL, "SEG"),
 
 	// subscriptions
-	_att(&getSubscriptions(), ORB_ID(vehicle_attitude), 3),
-	_pos(&getSubscriptions() , ORB_ID(vehicle_global_position), 3),
-	_posCmd(&getSubscriptions(), ORB_ID(position_setpoint_triplet), 3),
-	_localPos(&getSubscriptions() , ORB_ID(vehicle_local_position), 3),
-	_localPosCmd(&getSubscriptions(), ORB_ID(vehicle_local_position_setpoint), 3),
-	_manual(&getSubscriptions(), ORB_ID(manual_control_setpoint), 3),
-	_status(&getSubscriptions(), ORB_ID(vehicle_status), 3),
-	_param_update(&getSubscriptions(), ORB_ID(parameter_update), 1000), // limit to 1 Hz
-	_encoders(&getSubscriptions(), ORB_ID(encoders), 10), // limit to 100 Hz
-	_battery(&getSubscriptions(), ORB_ID(battery_status), 10), // limit to 100 Hz
+	_att(ORB_ID(vehicle_attitude), 0, 0, &getSubscriptions()),
+	_pos(ORB_ID(vehicle_global_position), 0, 0, &getSubscriptions()),
+	_posCmd(ORB_ID(position_setpoint_triplet), 0, 0, &getSubscriptions()),
+	_localPos(ORB_ID(vehicle_local_position), 0, 0, &getSubscriptions()),
+	_localPosCmd(ORB_ID(vehicle_local_position_setpoint), 0, 0, &getSubscriptions()),
+	_manual(ORB_ID(manual_control_setpoint), 0, 0, &getSubscriptions()),
+	_status(ORB_ID(vehicle_status), 0, 0, &getSubscriptions()),
+	_param_update(ORB_ID(parameter_update), 0, 0, &getSubscriptions()),
+	_encoders(ORB_ID(encoders), 0, 0, &getSubscriptions()),
+	_battery(ORB_ID(battery_status), 0, 0, &getSubscriptions()),
 
 	// publications
-	_attCmd(&getPublications(), ORB_ID(vehicle_attitude_setpoint)),
-	_ratesCmd(&getPublications(), ORB_ID(vehicle_rates_setpoint)),
-	_globalVelCmd(&getPublications(), ORB_ID(vehicle_global_velocity_setpoint)),
-	_actuators(&getPublications(), ORB_ID(actuator_controls_1)),
+	_attCmd(ORB_ID(vehicle_attitude_setpoint), ORB_PRIO_DEFAULT, &getPublications()),
+	_ratesCmd(ORB_ID(vehicle_rates_setpoint), ORB_PRIO_DEFAULT,  &getPublications()),
+	_globalVelCmd(ORB_ID(vehicle_global_velocity_setpoint),
+			ORB_PRIO_DEFAULT, &getPublications()),
+	_actuators(ORB_ID(actuator_controls_1), ORB_PRIO_DEFAULT, &getPublications()),
 
 	_yaw2r(this, "YAW2R"),
 	_r2v(this, "R2V"),
@@ -43,7 +45,6 @@ BlockSegwayController::BlockSegwayController() :
 	_k_damp(this, "K_DAMP"),
 	_wn_theta(this, "WN_THETA"),
 	_zeta_theta(this, "ZETA_THETA"),
-	_trimPitch(this, "TRIM_PITCH", false),
 	_bemf(this, "BEMF"),
 	_sysIdEnable(this, "SYSID_ENABLE"),
 	_sysIdAmp(this, "SYSID_AMP"),
@@ -98,86 +99,80 @@ void BlockSegwayController::update()
 void BlockSegwayController::handleNormalModes()
 {
 	setControlsToZero();
-	if (_status.main_state == MAIN_STATE_MANUAL) {
+	if (_status.main_state == vehicle_status_s::MAIN_STATE_MANUAL) {
 		// user controls vel cmd and yaw rate cmd
 		_thCmd = -_thLimit.getMax()*_manual.x; // note negative, since neg pitch goes fwd
 		_rCmd = _manual.y;
-	} else if (_status.main_state == MAIN_STATE_ALTCTL) {
+	} else if (_status.main_state == vehicle_status_s::MAIN_STATE_ALTCTL) {
 		// user controls vel cmd and yaw rate cmd
 		_velCmd = _manual.x * _velLimit.getMax();
 		velCmd2PitchCmd();
 		_rCmd = _manual.y;
-	} else if (_status.main_state == MAIN_STATE_ACRO) {
+	} else if (_status.main_state == vehicle_status_s::MAIN_STATE_ACRO) {
 		// user controls th cmd and yaw rate cmd
 		_thCmd = -_thLimit.getMax()*_manual.x; // note negative, since neg pitch goes fwd
 		_rCmd = _manual.y;
-	} else if (_status.main_state == MAIN_STATE_POSCTL) {
+	} else if (_status.main_state == vehicle_status_s::MAIN_STATE_POSCTL) {
 		// user controls pos cmd and yaw rate cmd
 		_xCmd = 0.5f * _manual.x;
 		xCmd2VelocityCmd();
 		velCmd2PitchCmd();
 		_rCmd = _manual.y;
-	} else if (_status.main_state == MAIN_STATE_AUTO_MISSION) {
+	} else if (_status.main_state == vehicle_status_s::MAIN_STATE_AUTO_MISSION) {
 		_xCmd = _localPosCmd.x;
 		xCmd2VelocityCmd();
 		velCmd2PitchCmd();
 		_yawCmd = _localPosCmd.yaw;
 		yawCmd2YawRateCmd();
-	} else if (_status.main_state == MAIN_STATE_AUTO_LOITER) {
+	} else if (_status.main_state == vehicle_status_s::MAIN_STATE_AUTO_LOITER) {
 		_xCmd = _localPosCmd.x;
 		// TODO check if local pos cmd is set to loiter pos.
 		xCmd2VelocityCmd();
 		velCmd2PitchCmd();
 		_yawCmd = _localPosCmd.yaw;
 		yawCmd2YawRateCmd();
-	} else if (_status.main_state == MAIN_STATE_AUTO_RTL) {
+	} else if (_status.main_state == vehicle_status_s::MAIN_STATE_AUTO_RTL) {
 		_xCmd = 0;
 		xCmd2VelocityCmd();
 		velCmd2PitchCmd();
 		_yawCmd = _localPosCmd.yaw;
 		yawCmd2YawRateCmd();
-	} else if (_status.main_state == MAIN_STATE_OFFBOARD) {
-	} else if (_status.main_state == MAIN_STATE_MAX) {
+	} else if (_status.main_state == vehicle_status_s::MAIN_STATE_OFFBOARD) {
 	}
 
 	// compute angles and rates
 	float th = _att.pitch -_trimPitch.get();
-	float th_dot = _att.pitchspeed;
-	float r = _att.yawspeed;
-	float alpha_dot_left = _encoders.velocity[0]/_pulsesPerRev.get();
-	float alpha_dot_right = _encoders.velocity[1]/_pulsesPerRev.get();
-	float alpha_dot_mean = (alpha_dot_left + alpha_dot_right)/2;
-	float alpha_dot_diff = (alpha_dot_left - alpha_dot_right);
+	//float th_dot = _att.pitchspeed;
+	//float r = _att.yawspeed;
+	//float alpha_dot_left = _encoders.velocity[0]/_pulsesPerRev.get();
+	//float alpha_dot_right = _encoders.velocity[1]/_pulsesPerRev.get();
+	//float alpha_dot_mean = (alpha_dot_left + alpha_dot_right)/2;
+	//float alpha_dot_diff = (alpha_dot_left - alpha_dot_right);
 
 	// constants
-	float k_emf = _k_emf.get();
-	float k_damp = _k_damp.get();
-	float wn_theta = _wn_theta.get();
-	float zeta_theta = _zeta_theta.get();
-	float J = _J.get();
-	float mgl = _mgl.get();
-	float V_batt = _battery.voltage_filtered_v;
+	//float k_emf = _k_emf.get();
+	//float k_damp = _k_damp.get();
+	//float wn_theta = _wn_theta.get();
+	//float zeta_theta = _zeta_theta.get();
+	//float J = _J.get();
+	//float mgl = _mgl.get();
 
 	// dynamic inversion
-	float th_ddot_d = -2*zeta_theta*wn_theta*th_dot - wn_theta**2(th - _thCmd);
-	float V_pitch = -J*th_ddot_d/(2*k_emf) - mgl*sinf(th)/(2*k_emf) + alpha_dot_mean*k_damp/k_emf;
-	float V_yaw = _r2v.update(_rCmd - r) + alpha_dot_diff*k_damp/k_emf;
+	//float th_ddot_d = -2*zeta_theta*wn_theta*th_dot - wn_theta*wn_theta*(th - _thCmd);
+	//float V_pitch = -J*th_ddot_d/(2*k_emf) - mgl*sinf(th)/(2*k_emf) + alpha_dot_mean*k_damp/k_emf;
+	//float V_yaw = _r2v.update(_rCmd - r) + alpha_dot_diff*k_damp/k_emf;
 
-	// compute duty (0-1)
-	float dutyPitch = V_pitch/V_batt;
-	float dutyYaw = V_yaw/V_batt;
-
-	float inv_dynamics_yaw = _bemf.get()*
-		(alpha_dot_left - alpha_dot_right)/2;
-	float inv_dynamics_pitch = _mgl.get()*sinf(th)
-		+ _bemf.get()*(alpha_dot_left + alpha_dot_right)/2;
+	//float inv_dynamics_yaw = _bemf.get()*
+	//	(alpha_dot_left - alpha_dot_right)/2;
+	//float inv_dynamics_pitch = _mgl.get()*sinf(th)
+	//	+ _bemf.get()*(alpha_dot_left + alpha_dot_right)/2;
 
 	// compute control for pitch
 	_controlPitch = _th2v.update(_thCmd - th)
-		- _q2v.update(_att.pitchspeed) - inv_dynamics_pitch;
+		- _q2v.update(_att.pitchspeed); // - inv_dynamics_pitch;
 
 	// compute control for yaw
-	_controlYaw = _r2v.update(_rCmd - _att.yawspeed) - inv_dynamics_yaw;
+	_controlYaw = _r2v.update(_rCmd - _att.yawspeed); // - inv_dynamics_yaw;
 
 	// output scaling by manual throttle
 	_controlPitch *= _manual.z;
@@ -195,16 +190,16 @@ void BlockSegwayController::handleSysIdModes()
 	} else {
 		squareWave = -_sysIdAmp.get();
 	}
-	if (_status.main_state == MAIN_STATE_MANUAL) {
+	if (_status.main_state == vehicle_status_s::MAIN_STATE_MANUAL) {
 		_controlPitch = _manual.x;
-	} else if (_status.main_state == MAIN_STATE_ALTCTL) {
+	} else if (_status.main_state == vehicle_status_s::MAIN_STATE_ALTCTL) {
 		_controlPitch = sineWave;
-	} else if (_status.main_state == MAIN_STATE_POSCTL) {
+	} else if (_status.main_state == vehicle_status_s::MAIN_STATE_POSCTL) {
 		_controlPitch = squareWave;
 	}
 	// output scaling by manual throttle
-	dutyPitch *= _manual.z;
-	dutyYaw *= _manual.z;
+	_controlPitch *= _manual.z;
+	_controlYaw *= _manual.z;
 }
 
 void BlockSegwayController::updatePublications() {
@@ -234,9 +229,15 @@ void BlockSegwayController::updatePublications() {
 	_globalVelCmd.vz = 0;
 	_globalVelCmd.update();
 
+	// normalize output using battery voltage,
+	// keeps performance same as battery voltage decreases
+	float V_batt = _battery.voltage_v;
+	float dutyPitch = _controlPitch*(12.0f/V_batt);
+	float dutyYaw = _controlYaw*(12.0f/V_batt);
+
 	// send outputs if armed and pitch less
 	// than shut off pitch
-	if (_status.arming_state == ARMING_STATE_ARMED &&
+	if (_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED &&
 	    fabsf(_att.pitch) < _thStop.get()) {
 		// controls
 		_actuators.timestamp = _timeStamp;

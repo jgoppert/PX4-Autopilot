@@ -13,11 +13,14 @@ public:
 	BlockEncoderPositionEstimator();
 	void update();
 private:
+	// subscriptions
 	uORB::Subscription<vehicle_attitude_s> _att;
 	uORB::Subscription<parameter_update_s> _param_update;
+	uORB::Subscription<encoders_s> _encoders;
+	// publications
 	uORB::Publication<vehicle_local_position_s> _localPos;
 	uORB::Publication<vehicle_global_position_s> _pos;
-	uORB::Subscription<encoders_s> _encoders;
+	// data
 	BlockParamFloat _rWheel;
 	BlockParamFloat _pulsesPerRev;
 	struct pollfd _poll;

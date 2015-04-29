@@ -41,3 +41,9 @@ SRCS		= BlockEncoderPositionEstimator.cpp \
 		  BlockSegwayController.cpp \
 		  segway_main.cpp \
 		  params.c
+
+MODULE_STACKSIZE = 1200
+
+EXTRACFLAGS = -Wno-float-equal -Wframe-larger-than=3700
+
+EXTRACXXFLAGS = -Wframe-larger-than=3700
