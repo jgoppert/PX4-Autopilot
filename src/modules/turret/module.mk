@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,9 +32,17 @@
 ############################################################################
 
 #
-# RoboClaw Motor Controller
+# turret controller
 #
 
-MODULE_COMMAND		= roboclaw
+MODULE_COMMAND	= turret
 
-SRCS			= roboclaw.cpp RoboClaw.cpp RoboClawDevice.cpp
+SRCS		= BlockTurretController.cpp \
+		  turret_main.cpp \
+		  params.c
+
+MODULE_STACKSIZE = 1200
+
+EXTRACFLAGS = -Wno-float-equal -Wframe-larger-than=3700
+
+EXTRACXXFLAGS = -Wframe-larger-than=3700

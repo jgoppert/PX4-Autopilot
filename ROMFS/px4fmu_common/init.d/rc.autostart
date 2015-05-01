@@ -17,6 +17,7 @@
 # 12000	..	12999		Octo Cox
 # 13000 ..  13999		VTOL
 # 14000 ..  14999       Tri Y
+# 50000	..	50999		Ground Vehicles
 
 #
 # Simulation
@@ -287,10 +288,16 @@ fi
 
 
 #
-# Ground Rover AxialRacing AX10
+# Ground Vehicles
 #
+
 if param compare SYS_AUTOSTART 50001
 then
 	sh /etc/init.d/50001_axialracing_ax10
+fi
+
+if param compare SYS_AUTOSTART 50098
+then
+	sh /etc/init.d/50098_turret
 fi
 
