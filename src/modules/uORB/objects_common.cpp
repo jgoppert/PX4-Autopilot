@@ -163,8 +163,8 @@ ORB_DEFINE(manual_control_setpoint, struct manual_control_setpoint_s);
 #include "topics/vehicle_control_debug.h"
 ORB_DEFINE(vehicle_control_debug, struct vehicle_control_debug_s);
 
-#include "topics/offboard_control_setpoint.h"
-ORB_DEFINE(offboard_control_setpoint, struct offboard_control_setpoint_s);
+#include "topics/offboard_control_mode.h"
+ORB_DEFINE(offboard_control_mode, struct offboard_control_mode_s);
 
 #include "topics/optical_flow.h"
 ORB_DEFINE(optical_flow, struct optical_flow_s);
@@ -250,3 +250,9 @@ ORB_DEFINE(wind_estimate, struct wind_estimate_s);
 
 #include "topics/rc_parameter_map.h"
 ORB_DEFINE(rc_parameter_map, struct rc_parameter_map_s);
+
+#include "topics/time_offset.h"
+ORB_DEFINE(time_offset, struct time_offset_s);
+
+#include "topics/mc_att_ctrl_status.h"
+ORB_DEFINE(mc_att_ctrl_status, struct mc_att_ctrl_status_s);

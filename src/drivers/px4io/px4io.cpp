@@ -88,6 +88,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/servorail_status.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/multirotor_motor_limits.h>
 
 #include <debug.h>
 
@@ -288,6 +289,7 @@ private:
 	orb_advert_t		_to_battery;		///< battery status / voltage
 	orb_advert_t		_to_servorail;		///< servorail status
 	orb_advert_t		_to_safety;		///< status of safety
+	orb_advert_t 		_to_mixer_status; 	///< mixer status flags
 
 	actuator_outputs_s	_outputs;		///< mixed outputs
 	servorail_status_s	_servorail_status;	///< servorail status
@@ -300,6 +302,10 @@ private:
 	float			_battery_mamphour_total;///< amp hours consumed so far
 	uint64_t		_battery_last_timestamp;///< last amp hour calculation timestamp
 	bool			_cb_flighttermination;	///< true if the flight termination circuit breaker is enabled
+
+	int32_t			_rssi_pwm_chan; ///< RSSI PWM input channel
+	int32_t			_rssi_pwm_max; ///< max RSSI input on PWM channel
+	int32_t			_rssi_pwm_min; ///< min RSSI input on PWM channel
 
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	bool			_dsm_vcc_ctl;		///< true if relay 1 controls DSM satellite RX power
@@ -513,6 +519,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_to_battery(0),
 	_to_servorail(0),
 	_to_safety(0),
+	_to_mixer_status(0),
 	_outputs{},
 	_servorail_status{},
 	_primary_pwm_device(false),
@@ -521,7 +528,10 @@ PX4IO::PX4IO(device::Device *interface) :
 	_battery_amp_bias(0),
 	_battery_mamphour_total(0),
 	_battery_last_timestamp(0),
-	_cb_flighttermination(true)
+	_cb_flighttermination(true),
+	_rssi_pwm_chan(0),
+	_rssi_pwm_max(0),
+	_rssi_pwm_min(0)
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	, _dsm_vcc_ctl(false)
 #endif
@@ -660,6 +670,10 @@ PX4IO::init()
 
 	if (_max_rc_input > RC_INPUT_MAX_CHANNELS)
 		_max_rc_input = RC_INPUT_MAX_CHANNELS;
+
+	param_get(param_find("RC_RSSI_PWM_CHAN"), &_rssi_pwm_chan);
+	param_get(param_find("RC_RSSI_PWM_MAX"), &_rssi_pwm_max);
+	param_get(param_find("RC_RSSI_PWM_MIN"), &_rssi_pwm_min);
 
 	/*
 	 * Check for IO flight state - if FMU was flagged to be in
@@ -1066,6 +1080,10 @@ PX4IO::task_main()
 				/* Update Circuit breakers */
 				_cb_flighttermination = circuit_breaker_enabled("CBRK_FLIGHTTERM", CBRK_FLIGHTTERM_KEY);
 
+				param_get(param_find("RC_RSSI_PWM_CHAN"), &_rssi_pwm_chan);
+				param_get(param_find("RC_RSSI_PWM_MAX"), &_rssi_pwm_max);
+				param_get(param_find("RC_RSSI_PWM_MIN"), &_rssi_pwm_min);
+
 			}
 
 		}
@@ -1289,6 +1307,24 @@ PX4IO::io_set_rc_config()
 	param_get(param_find("RC_MAP_FLAPS"), &ichan);
 	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
 		input_map[ichan - 1] = 4;
+	}
+
+	/* AUX 1*/
+	param_get(param_find("RC_MAP_AUX1"), &ichan);
+	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
+		input_map[ichan - 1] = 5;
+	}
+
+	/* AUX 2*/
+	param_get(param_find("RC_MAP_AUX2"), &ichan);
+	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
+		input_map[ichan - 1] = 6;
+	}
+
+	/* AUX 3*/
+	param_get(param_find("RC_MAP_AUX3"), &ichan);
+	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
+		input_map[ichan - 1] = 7;
 	}
 
 	/* MAIN MODE SWITCH */
@@ -1612,6 +1648,15 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 		input_rc.values[i] = regs[prolog + i];
 	}
 
+	/* get RSSI from input channel */
+	if (_rssi_pwm_chan > 0 && _rssi_pwm_chan <= RC_INPUT_MAX_CHANNELS && _rssi_pwm_max - _rssi_pwm_min != 0) {
+		int rssi = (input_rc.values[_rssi_pwm_chan - 1] - _rssi_pwm_min) /
+			((_rssi_pwm_max - _rssi_pwm_min) / 100);
+		rssi = rssi > 100 ? 100 : rssi;
+		rssi = rssi < 0 ? 0 : rssi;
+		input_rc.rssi = rssi;
+	}
+
 	return ret;
 }
 
@@ -1669,20 +1714,28 @@ PX4IO::io_publish_pwm_outputs()
 {
 	/* data we are going to fetch */
 	actuator_outputs_s outputs;
+	multirotor_motor_limits_s motor_limits;
+
 	outputs.timestamp = hrt_absolute_time();
 
 	/* get servo values from IO */
 	uint16_t ctl[_max_actuators];
 	int ret = io_reg_get(PX4IO_PAGE_SERVOS, 0, ctl, _max_actuators);
 
-	if (ret != OK)
+	if (ret != OK){
 		return ret;
+	}
+
+	unsigned maxouts = sizeof(outputs.output) / sizeof(outputs.output[0]);
+	unsigned actuator_max = (_max_actuators > maxouts) ? maxouts : _max_actuators;
+
 
 	/* convert from register format to float */
-	for (unsigned i = 0; i < _max_actuators; i++)
+	for (unsigned i = 0; i < actuator_max; i++){
 		outputs.output[i] = ctl[i];
+	}
 
-	outputs.noutputs = _max_actuators;
+	outputs.noutputs = actuator_max;
 
 	/* lazily advertise on first publication */
 	if (_to_outputs == 0) {
@@ -1692,6 +1745,21 @@ PX4IO::io_publish_pwm_outputs()
 
 	} else {
 		orb_publish(ORB_ID(actuator_outputs), _to_outputs, &outputs);
+	}
+
+	/* get mixer status flags from IO */
+	uint16_t mixer_status;
+	ret = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_MIXER, &mixer_status,sizeof(mixer_status)/sizeof(uint16_t));
+	memcpy(&motor_limits,&mixer_status,sizeof(motor_limits));
+
+	if (ret != OK)
+		return ret;
+
+	/* publish mixer status */
+	if(_to_mixer_status == 0) {
+		_to_mixer_status = orb_advertise(ORB_ID(multirotor_motor_limits), &motor_limits);
+	} else {
+		orb_publish(ORB_ID(multirotor_motor_limits),_to_mixer_status, &motor_limits);
 	}
 
 	return OK;
@@ -1998,13 +2066,13 @@ PX4IO::print_status(bool extended_status)
 		printf("vrssi %u\n", io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_VRSSI));
 	}
 
-	printf("actuators");
+	printf("actuators (including S.BUS)");
 
 	for (unsigned i = 0; i < _max_actuators; i++)
 		printf(" %hi", int16_t(io_reg_get(PX4IO_PAGE_ACTUATORS, i)));
 
 	printf("\n");
-	printf("servos");
+	printf("hardware servo ports");
 
 	for (unsigned i = 0; i < _max_actuators; i++)
 		printf(" %u", io_reg_get(PX4IO_PAGE_SERVOS, i));
@@ -2823,12 +2891,12 @@ checkcrc(int argc, char *argv[])
 	  check IO CRC against CRC of a file
 	 */
 	if (argc < 2) {
-		printf("usage: px4io checkcrc filename\n");
+		warnx("usage: px4io checkcrc filename");
 		exit(1);
 	}
 	int fd = open(argv[1], O_RDONLY);
 	if (fd == -1) {
-		printf("open of %s failed - %d\n", argv[1], errno);
+		warnx("open of %s failed: %d", argv[1], errno);
 		exit(1);
 	}
 	const uint32_t app_size_max = 0xf000;
@@ -2856,10 +2924,10 @@ checkcrc(int argc, char *argv[])
 	}
 
 	if (ret != OK) {
-		printf("[PX4IO::checkcrc] check CRC failed - %d\n", ret);
+		warn("check CRC failed: %d", ret);
 		exit(1);
 	}
-	printf("[PX4IO::checkcrc] CRCs match\n");
+	warnx("CRCs match");
 	exit(0);
 }
 
@@ -3126,7 +3194,7 @@ px4io_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "update")) {
 
 		if (g_dev != nullptr) {
-			printf("[px4io] loaded, detaching first\n");
+			warnx("loaded, detaching first");
 			/* stop the driver */
 			delete g_dev;
 			g_dev = nullptr;
@@ -3218,7 +3286,7 @@ px4io_main(int argc, char *argv[])
 		uint16_t arg = atol(argv[2]);
 		int ret = g_dev->ioctl(nullptr, PX4IO_REBOOT_BOOTLOADER, arg);
 		if (ret != OK) {
-			printf("reboot failed - %d\n", ret);
+			warnx("reboot failed - %d", ret);
 			exit(1);
 		}
 
@@ -3275,7 +3343,7 @@ px4io_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "safety_off")) {
 		int ret = g_dev->ioctl(NULL, PWM_SERVO_SET_FORCE_SAFETY_OFF, 0);
 		if (ret != OK) {
-			printf("failed to disable safety\n");
+			warnx("failed to disable safety");
 			exit(1);
 		}
 		exit(0);
@@ -3284,7 +3352,7 @@ px4io_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "safety_on")) {
 		int ret = g_dev->ioctl(NULL, PWM_SERVO_SET_FORCE_SAFETY_ON, 0);
 		if (ret != OK) {
-			printf("failed to enable safety\n");
+			warnx("failed to enable safety");
 			exit(1);
 		}
 		exit(0);
@@ -3312,7 +3380,7 @@ px4io_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 
-		printf("[px4io] loaded\n");
+		warnx("loaded");
 		g_dev->print_status(true);
 
 		exit(0);
@@ -3320,12 +3388,12 @@ px4io_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "debug")) {
 		if (argc <= 2) {
-			printf("usage: px4io debug LEVEL\n");
+			warnx("usage: px4io debug LEVEL");
 			exit(1);
 		}
 
 		if (g_dev == nullptr) {
-			printf("px4io is not started\n");
+			warnx("not started");
 			exit(1);
 		}
 
@@ -3336,11 +3404,11 @@ px4io_main(int argc, char *argv[])
 		int ret = g_dev->ioctl(nullptr, PX4IO_SET_DEBUG, level);
 
 		if (ret != 0) {
-			printf("SET_DEBUG failed - %d\n", ret);
+			warnx("SET_DEBUG failed: %d", ret);
 			exit(1);
 		}
 
-		printf("SET_DEBUG %u OK\n", (unsigned)level);
+		warnx("SET_DEBUG %u OK", (unsigned)level);
 		exit(0);
 	}
 

@@ -183,6 +183,7 @@ private:
 		float y_roll_feedforward;
 		float y_integrator_max;
 		float y_coordinated_min_speed;
+		int32_t y_coordinated_method;
 		float y_rmax;
 
 		float airspeed_min;
@@ -225,6 +226,7 @@ private:
 		param_t y_roll_feedforward;
 		param_t y_integrator_max;
 		param_t y_coordinated_min_speed;
+		param_t y_coordinated_method;
 		param_t y_rmax;
 
 		param_t airspeed_min;
@@ -391,6 +393,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_parameter_handles.airspeed_max = param_find("FW_AIRSPD_MAX");
 
 	_parameter_handles.y_coordinated_min_speed = param_find("FW_YCO_VMIN");
+	_parameter_handles.y_coordinated_method = param_find("FW_YCO_METHOD");
 
 	_parameter_handles.trim_roll = param_find("TRIM_ROLL");
 	_parameter_handles.trim_pitch = param_find("TRIM_PITCH");
@@ -459,6 +462,7 @@ FixedwingAttitudeControl::parameters_update()
 	param_get(_parameter_handles.y_ff, &(_parameters.y_ff));
 	param_get(_parameter_handles.y_integrator_max, &(_parameters.y_integrator_max));
 	param_get(_parameter_handles.y_coordinated_min_speed, &(_parameters.y_coordinated_min_speed));
+	param_get(_parameter_handles.y_coordinated_method, &(_parameters.y_coordinated_method));
 	param_get(_parameter_handles.y_rmax, &(_parameters.y_rmax));
 
 	param_get(_parameter_handles.airspeed_min, &(_parameters.airspeed_min));
@@ -501,6 +505,7 @@ FixedwingAttitudeControl::parameters_update()
 	_yaw_ctrl.set_k_ff(_parameters.y_ff);
 	_yaw_ctrl.set_integrator_max(_parameters.y_integrator_max);
 	_yaw_ctrl.set_coordinated_min_speed(_parameters.y_coordinated_min_speed);
+	_yaw_ctrl.set_coordinated_method(_parameters.y_coordinated_method);
 	_yaw_ctrl.set_max_rate(math::radians(_parameters.y_rmax));
 
 	return OK;
@@ -515,7 +520,7 @@ FixedwingAttitudeControl::vehicle_control_mode_poll()
 	orb_check(_vcontrol_mode_sub, &vcontrol_mode_updated);
 
 	if (vcontrol_mode_updated) {
-
+		
 		orb_copy(ORB_ID(vehicle_control_mode), _vcontrol_mode_sub, &_vcontrol_mode);
 	}
 }
@@ -790,10 +795,10 @@ FixedwingAttitudeControl::task_main()
 			/* Simple handling of failsafe: deploy parachute if failsafe is on */
 			if (_vcontrol_mode.flag_control_termination_enabled) {
 				_actuators_airframe.control[7] = 1.0f;
-//				warnx("_actuators_airframe.control[1] = 1.0f;");
+				//warnx("_actuators_airframe.control[1] = 1.0f;");
 			} else {
 				_actuators_airframe.control[7] = 0.0f;
-//				warnx("_actuators_airframe.control[1] = -1.0f;");
+				//warnx("_actuators_airframe.control[1] = -1.0f;");
 			}
 
 			/* decide if in stabilized or full manual control */
@@ -949,6 +954,9 @@ FixedwingAttitudeControl::task_main()
 				control_input.speed_body_u = speed_body_u;
 				control_input.speed_body_v = speed_body_v;
 				control_input.speed_body_w = speed_body_w;
+				control_input.acc_body_x = _accel.x;
+				control_input.acc_body_y = _accel.y;
+				control_input.acc_body_z = _accel.z;
 				control_input.roll_setpoint = roll_sp;
 				control_input.pitch_setpoint = pitch_sp;
 				control_input.airspeed_min = _parameters.airspeed_min;
@@ -1069,20 +1077,26 @@ FixedwingAttitudeControl::task_main()
 			_actuators_airframe.timestamp = hrt_absolute_time();
 			_actuators_airframe.timestamp_sample = _att.timestamp;
 
-			/* publish the actuator controls */
-			if (_actuators_0_pub > 0) {
-				orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
-			} else if (_actuators_id) {
-				_actuators_0_pub= orb_advertise(_actuators_id, &_actuators);
-			}
+			/* Only publish if any of the proper modes are enabled */
+			if(_vcontrol_mode.flag_control_rates_enabled ||
+               _vcontrol_mode.flag_control_attitude_enabled ||
+               _vcontrol_mode.flag_control_manual_enabled)
+			{
+				/* publish the actuator controls */
+				if (_actuators_0_pub > 0) {
+					orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
+				} else if (_actuators_id) {
+					_actuators_0_pub= orb_advertise(_actuators_id, &_actuators);
+				}
 
-			if (_actuators_2_pub > 0) {
-				/* publish the actuator controls*/
-				orb_publish(ORB_ID(actuator_controls_2), _actuators_2_pub, &_actuators_airframe);
+				if (_actuators_2_pub > 0) {
+					/* publish the actuator controls*/
+					orb_publish(ORB_ID(actuator_controls_2), _actuators_2_pub, &_actuators_airframe);
 
-			} else {
-				/* advertise and publish */
-				_actuators_2_pub = orb_advertise(ORB_ID(actuator_controls_2), &_actuators_airframe);
+				} else {
+					/* advertise and publish */
+					_actuators_2_pub = orb_advertise(ORB_ID(actuator_controls_2), &_actuators_airframe);
+				}
 			}
 		}
 
@@ -1106,7 +1120,7 @@ FixedwingAttitudeControl::start()
 	_control_task = task_spawn_cmd("fw_att_control",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
-				       2048,
+				       1600,
 				       (main_t)&FixedwingAttitudeControl::task_main_trampoline,
 				       nullptr);
 
@@ -1120,8 +1134,9 @@ FixedwingAttitudeControl::start()
 
 int fw_att_control_main(int argc, char *argv[])
 {
-	if (argc < 1)
+	if (argc < 2) {
 		errx(1, "usage: fw_att_control {start|stop|status}");
+	}
 
 	if (!strcmp(argv[1], "start")) {
 

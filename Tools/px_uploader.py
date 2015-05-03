@@ -160,6 +160,8 @@ class uploader(object):
         GET_CRC         = b'\x29'     # rev3+
         GET_OTP         = b'\x2a'     # rev4+  , get a word from OTP area
         GET_SN          = b'\x2b'     # rev4+  , get a word from SN area
+        GET_CHIP        = b'\x2c'     # rev5+  , get chip version
+        SET_BOOT_DELAY  = b'\x2d'     # rev5+  , set boot delay
         REBOOT          = b'\x30'
         
         INFO_BL_REV     = b'\x01'        # bootloader protocol revision
@@ -169,8 +171,8 @@ class uploader(object):
         INFO_BOARD_REV  = b'\x03'        # board revision
         INFO_FLASH_SIZE = b'\x04'        # max firmware size in bytes
 
-        PROG_MULTI_MAX  = 60            # protocol max is 255, must be multiple of 4
-        READ_MULTI_MAX  = 60            # protocol max is 255, something overflows with >= 64
+        PROG_MULTI_MAX  = 252            # protocol max is 255, must be multiple of 4
+        READ_MULTI_MAX  = 252            # protocol max is 255
         
         NSH_INIT        = bytearray(b'\x0d\x0d\x0d')
         NSH_REBOOT_BL   = b"reboot -b\n"
@@ -258,11 +260,18 @@ class uploader(object):
                 self.__getSync()
                 return value
 
-        # send the GET_OTP command and wait for an info parameter
+        # send the GET_SN command and wait for an info parameter
         def __getSN(self, param):
                 t = struct.pack("I", param) # int param as 32bit ( 4 byte ) char array.
                 self.__send(uploader.GET_SN + t + uploader.EOC)
                 value = self.__recv(4)
+                self.__getSync()
+                return value
+
+        # send the GET_CHIP command
+        def __getCHIP(self):
+                self.__send(uploader.GET_CHIP + uploader.EOC)
+                value = self.__recv_int()
                 self.__getSync()
                 return value
 
@@ -397,6 +406,12 @@ class uploader(object):
                         raise RuntimeError("Program CRC failed")
                 self.__drawProgressBar(label, 100, 100)
 
+        def __set_boot_delay(self, boot_delay):
+                self.__send(uploader.SET_BOOT_DELAY
+                            + struct.pack("b", boot_delay)
+                            + uploader.EOC)
+                self.__getSync()
+
         # get basic data about the board
         def identify(self):
                 # make sure we are in sync before starting
@@ -416,7 +431,12 @@ class uploader(object):
         def upload(self, fw):
                 # Make sure we are doing the right thing
                 if self.board_type != fw.property('board_id'):
-                        raise RuntimeError("Firmware not suitable for this board")
+                        msg = "Firmware not suitable for this board (board_type=%u board_id=%u)" % (
+                                self.board_type, fw.property('board_id'))
+                        if args.force:
+                                print("WARNING: %s" % msg)
+                        else:
+                                raise IOError(msg)
                 if self.fw_maxsize < fw.property('image_size'):
                         raise RuntimeError("Firmware image is too large for this board")
 
@@ -446,6 +466,7 @@ class uploader(object):
                                     self.sn  = self.sn + x
                                     print(binascii.hexlify(x).decode('Latin-1'), end='') # show user
                             print('')
+                            print("chip: %08x" % self.__getCHIP())
                     except Exception:
                             # ignore bad character encodings
                             pass
@@ -457,6 +478,9 @@ class uploader(object):
                         self.__verify_v2("Verify ", fw)
                 else:
                         self.__verify_v3("Verify ", fw)
+
+                if args.boot_delay is not None:
+                        self.__set_boot_delay(args.boot_delay)
 
                 print("\nRebooting.\n")
                 self.__reboot()
@@ -486,6 +510,8 @@ else:
 parser = argparse.ArgumentParser(description="Firmware uploader for the PX autopilot system.")
 parser.add_argument('--port', action="store", required=True, help="Serial port(s) to which the FMU may be attached")
 parser.add_argument('--baud', action="store", type=int, default=115200, help="Baud rate of the serial port (default is 115200), only required for true serial ports.")
+parser.add_argument('--force', action='store_true', default=False, help='Override board type check and continue loading')
+parser.add_argument('--boot-delay', type=int, default=None, help='minimum boot delay to store in flash')
 parser.add_argument('firmware', action="store", help="Firmware file to be uploaded")
 args = parser.parse_args()
 
@@ -501,75 +527,87 @@ print("Loaded firmware for %x,%x, size: %d bytes, waiting for the bootloader..."
 print("If the board does not respond within 1-2 seconds, unplug and re-plug the USB connector.")
 
 # Spin waiting for a device to show up
-while True:
-        portlist = []
-        patterns = args.port.split(",")
-        # on unix-like platforms use glob to support wildcard ports. This allows
-        # the use of /dev/serial/by-id/usb-3D_Robotics on Linux, which prevents the upload from
-        # causing modem hangups etc
-        if "linux" in _platform or "darwin" in _platform:
-                import glob
-                for pattern in patterns:
-                        portlist += glob.glob(pattern)
-        else:
-                portlist = patterns
+try:
+    while True:
+            portlist = []
+            patterns = args.port.split(",")
+            # on unix-like platforms use glob to support wildcard ports. This allows
+            # the use of /dev/serial/by-id/usb-3D_Robotics on Linux, which prevents the upload from
+            # causing modem hangups etc
+            if "linux" in _platform or "darwin" in _platform:
+                    import glob
+                    for pattern in patterns:
+                            portlist += glob.glob(pattern)
+            else:
+                    portlist = patterns
 
-        for port in portlist:
+            for port in portlist:
 
-                #print("Trying %s" % port)
+                    #print("Trying %s" % port)
 
-                # create an uploader attached to the port
-                try:
-                        if "linux" in _platform:
-                        # Linux, don't open Mac OS and Win ports
-                                if not "COM" in port and not "tty.usb" in port:
-                                        up = uploader(port, args.baud)
-                        elif "darwin" in _platform:
-                                # OS X, don't open Windows and Linux ports
-                                if not "COM" in port and not "ACM" in port:
-                                        up = uploader(port, args.baud)
-                        elif "win" in _platform:
-                                # Windows, don't open POSIX ports
-                                if not "/" in port:
-                                        up = uploader(port, args.baud)
-                except Exception:
-                        # open failed, rate-limit our attempts
-                        time.sleep(0.05)
+                    # create an uploader attached to the port
+                    try:
+                            if "linux" in _platform:
+                            # Linux, don't open Mac OS and Win ports
+                                    if not "COM" in port and not "tty.usb" in port:
+                                            up = uploader(port, args.baud)
+                            elif "darwin" in _platform:
+                                    # OS X, don't open Windows and Linux ports
+                                    if not "COM" in port and not "ACM" in port:
+                                            up = uploader(port, args.baud)
+                            elif "win" in _platform:
+                                    # Windows, don't open POSIX ports
+                                    if not "/" in port:
+                                            up = uploader(port, args.baud)
+                    except Exception:
+                            # open failed, rate-limit our attempts
+                            time.sleep(0.05)
 
-                        # and loop to the next port
-                        continue
+                            # and loop to the next port
+                            continue
 
-                # port is open, try talking to it
-                try:
-                        # identify the bootloader
-                        up.identify()
-                        print("Found board %x,%x bootloader rev %x on %s" % (up.board_type, up.board_rev, up.bl_rev, port))
+                    # port is open, try talking to it
+                    try:
+                            # identify the bootloader
+                            up.identify()
+                            print("Found board %x,%x bootloader rev %x on %s" % (up.board_type, up.board_rev, up.bl_rev, port))
 
-                except Exception:
-                        # most probably a timeout talking to the port, no bootloader, try to reboot the board
-                        print("attempting reboot on %s..." % port)
-                        print("if the board does not respond, unplug and re-plug the USB connector.")
-                        up.send_reboot()
+                    except Exception:
+                            # most probably a timeout talking to the port, no bootloader, try to reboot the board
+                            print("attempting reboot on %s..." % port)
+                            print("if the board does not respond, unplug and re-plug the USB connector.")
+                            up.send_reboot()
 
-                        # wait for the reboot, without we might run into Serial I/O Error 5 
-                        time.sleep(0.5)
+                            # wait for the reboot, without we might run into Serial I/O Error 5
+                            time.sleep(0.5)
 
-                        # always close the port
-                        up.close()
-                        continue
+                            # always close the port
+                            up.close()
+                            continue
 
-                try:
-                        # ok, we have a bootloader, try flashing it
-                        up.upload(fw)
+                    try:
+                            # ok, we have a bootloader, try flashing it
+                            up.upload(fw)
 
-                except RuntimeError as ex:
+                    except RuntimeError as ex:
+                            # print the error
+                            print("\nERROR: %s" % ex.args)
 
-                        # print the error
-                        print("\nERROR: %s" % ex.args)
+                    except IOError as e:
+                            up.close();
+                            continue
 
-                finally:
-                        # always close the port
-                        up.close()
+                    finally:
+                            # always close the port
+                            up.close()
 
-                # we could loop here if we wanted to wait for more boards...
-                sys.exit(0)
+                    # we could loop here if we wanted to wait for more boards...
+                    sys.exit(0)
+
+            # Delay retries to < 20 Hz to prevent spin-lock from hogging the CPU
+            time.sleep(0.05)
+
+# CTRL+C aborts the upload/spin-lock by interrupt mechanics
+except KeyboardInterrupt:
+    print("\n Upload aborted by user.")
+    sys.exit(0)

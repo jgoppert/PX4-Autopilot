@@ -55,6 +55,7 @@
 #include <nuttx/arch.h>
 
 #include <drivers/device/device.h>
+#include <drivers/device/i2c.h>
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_gpio.h>
 #include <drivers/drv_hrt.h>
@@ -110,6 +111,8 @@ public:
 
 	int		set_pwm_alt_rate(unsigned rate);
 	int		set_pwm_alt_channels(uint32_t channels);
+
+	int		set_i2c_bus_clock(unsigned bus, unsigned clock_hz);
 
 private:
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
@@ -179,6 +182,7 @@ private:
 
 	void		gpio_reset(void);
 	void		sensor_reset(int ms);
+	void		peripheral_reset(int ms);
 	void		gpio_set_function(uint32_t gpios, int function);
 	void		gpio_write(uint32_t gpios, int function);
 	uint32_t	gpio_read(void);
@@ -329,6 +333,8 @@ PX4FMU::init()
 
 	if (_class_instance == CLASS_DEVICE_PRIMARY) {
 		log("default PWM output device");
+	} else if (_class_instance < 0) {
+		log("FAILED registering class device");
 	}
 
 	/* reset GPIOs */
@@ -505,6 +511,12 @@ PX4FMU::set_pwm_alt_channels(uint32_t channels)
 	return set_pwm_rate(channels, _pwm_default_rate, _pwm_alt_rate);
 }
 
+int
+PX4FMU::set_i2c_bus_clock(unsigned bus, unsigned clock_hz)
+{
+	return device::I2C::set_bus_clock(bus, clock_hz);
+}
+
 void
 PX4FMU::subscribe()
 {
@@ -652,7 +664,7 @@ PX4FMU::task_main()
 				}
 
 				/* do mixing */
-				outputs.noutputs = _mixers->mix(&outputs.output[0], num_outputs);
+				outputs.noutputs = _mixers->mix(&outputs.output[0], num_outputs, NULL);
 				outputs.timestamp = hrt_absolute_time();
 
 				/* iterate actuators */
@@ -1365,6 +1377,29 @@ PX4FMU::sensor_reset(int ms)
 #endif
 }
 
+void
+PX4FMU::peripheral_reset(int ms)
+{
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+
+	if (ms < 1) {
+		ms = 10;
+	}
+
+	/* set the peripheral rails off */
+	stm32_configgpio(GPIO_VDD_5V_PERIPH_EN);
+	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 1);
+
+	/* wait for the peripheral rail to reach GND */
+	usleep(ms * 1000);
+	warnx("reset done, %d ms", ms);
+
+	/* re-enable power */
+
+	/* switch the peripheral rail back on */
+	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 0);
+#endif
+}
 
 void
 PX4FMU::gpio_reset(void)
@@ -1477,6 +1512,10 @@ PX4FMU::gpio_ioctl(struct file *filp, int cmd, unsigned long arg)
 		sensor_reset(arg);
 		break;
 
+	case GPIO_PERIPHERAL_RAIL_RESET:
+		peripheral_reset(arg);
+		break;
+
 	case GPIO_SET_OUTPUT:
 	case GPIO_SET_INPUT:
 	case GPIO_SET_ALT_1:
@@ -1518,6 +1557,7 @@ enum PortMode {
 	PORT_GPIO_AND_SERIAL,
 	PORT_PWM_AND_SERIAL,
 	PORT_PWM_AND_GPIO,
+	PORT_PWM4,
 };
 
 PortMode g_port_mode;
@@ -1552,6 +1592,13 @@ fmu_new_mode(PortMode new_mode)
 		servo_mode = PX4FMU::MODE_8PWM;
 #endif
 		break;
+
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+	case PORT_PWM4:
+		/* select 4-pin PWM mode */
+		servo_mode = PX4FMU::MODE_4PWM;
+		break;
+#endif
 
 		/* mixed modes supported on v1 board only */
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
@@ -1591,6 +1638,11 @@ fmu_new_mode(PortMode new_mode)
 	g_fmu->set_mode(servo_mode);
 
 	return OK;
+}
+
+int fmu_new_i2c_speed(unsigned bus, unsigned clock_hz)
+{
+	return g_fmu->set_i2c_bus_clock(bus, clock_hz);
 }
 
 int
@@ -1645,6 +1697,24 @@ sensor_reset(int ms)
 
 	if (ioctl(fd, GPIO_SENSOR_RAIL_RESET, ms) < 0) {
 		warnx("sensor rail reset failed");
+	}
+
+	close(fd);
+}
+
+void
+peripheral_reset(int ms)
+{
+	int	 fd;
+
+	fd = open(PX4FMU_DEVICE_PATH, O_RDWR);
+
+	if (fd < 0) {
+		errx(1, "open fail");
+	}
+
+	if (ioctl(fd, GPIO_PERIPHERAL_RAIL_RESET, ms) < 0) {
+		warnx("peripheral rail reset failed");
 	}
 
 	close(fd);
@@ -1820,6 +1890,10 @@ fmu_main(int argc, char *argv[])
 	} else if (!strcmp(verb, "mode_pwm")) {
 		new_mode = PORT_FULL_PWM;
 
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+	} else if (!strcmp(verb, "mode_pwm4")) {
+		new_mode = PORT_PWM4;
+#endif
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
 
 	} else if (!strcmp(verb, "mode_serial")) {
@@ -1867,12 +1941,40 @@ fmu_main(int argc, char *argv[])
 		exit(0);
 	}
 
+	if (!strcmp(verb, "peripheral_reset")) {
+		if (argc > 2) {
+			int reset_time = strtol(argv[2], 0, 0);
+			peripheral_reset(reset_time);
+
+		} else {
+			peripheral_reset(0);
+			warnx("resettet default time");
+		}
+
+		exit(0);
+	}
+
+	if (!strcmp(verb, "i2c")) {
+		if (argc > 3) {
+			int bus = strtol(argv[2], 0, 0);
+			int clock_hz = strtol(argv[3], 0, 0);
+			int ret = fmu_new_i2c_speed(bus, clock_hz);
+
+			if (ret) {
+				errx(ret, "setting I2C clock failed");
+			}
+
+			exit(0);
+		} else {
+			warnx("i2c cmd args: <bus id> <clock Hz>");
+		}
+	}
 
 	fprintf(stderr, "FMU: unrecognised command %s, try:\n", verb);
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
-	fprintf(stderr, "  mode_gpio, mode_serial, mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio, test\n");
+	fprintf(stderr, "  mode_gpio, mode_serial, mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio, test, fake, sensor_reset, id\n");
 #elif defined(CONFIG_ARCH_BOARD_PX4FMU_V2) || defined(CONFIG_ARCH_BOARD_AEROCORE)
-	fprintf(stderr, "  mode_gpio, mode_pwm, test, sensor_reset [milliseconds]\n");
+	fprintf(stderr, "  mode_gpio, mode_pwm, test, sensor_reset [milliseconds], i2c <bus> <hz>\n");
 #endif
 	exit(1);
 }
