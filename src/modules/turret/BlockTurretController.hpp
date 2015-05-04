@@ -40,9 +40,9 @@ private:
 	// subscriptions
 	uORB::Subscription<vehicle_attitude_s> _att;
 	//uORB::Subscription<vehicle_global_position_s> _pos;
-	//uORB::Subscription<position_setpoint_triplet_s> _posCmd;
+	uORB::Subscription<position_setpoint_triplet_s> _posCmd;
 	//uORB::Subscription<vehicle_local_position_s> _lpos;
-	uORB::Subscription<vehicle_local_position_setpoint_s> _lposCmd;
+	//uORB::Subscription<vehicle_local_position_setpoint_s> _lposCmd;
 	uORB::Subscription<manual_control_setpoint_s> _manual;
 	uORB::Subscription<vehicle_status_s> _status;
 	uORB::Subscription<parameter_update_s> _param_update;

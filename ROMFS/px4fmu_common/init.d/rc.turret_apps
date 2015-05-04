@@ -1,3 +1,5 @@
+attitude_estimator_ekf start
+local_position_estimator start
 turret start
 
 # start mavlink streams

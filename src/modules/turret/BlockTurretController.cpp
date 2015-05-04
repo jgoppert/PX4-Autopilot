@@ -11,9 +11,9 @@ BlockTurretController::BlockTurretController() :
 	// subscriptions
 	_att(ORB_ID(vehicle_attitude), 0, &getSubscriptions()),
 	//_pos(ORB_ID(vehicle_global_position), 0, &getSubscriptions()),
-	//_posCmd(ORB_ID(position_setpoint_triplet), 0, &getSubscriptions()),
+	_posCmd(ORB_ID(position_setpoint_triplet), 0, &getSubscriptions()),
 	//_lpos(ORB_ID(vehicle_local_position), 0, &getSubscriptions()),
-	_lposCmd(ORB_ID(vehicle_local_position_setpoint), 0, &getSubscriptions()),
+	//_lposCmd(ORB_ID(vehicle_local_position_setpoint), 0, &getSubscriptions()),
 	_manual(ORB_ID(manual_control_setpoint), 0, &getSubscriptions()),
 	_status(ORB_ID(vehicle_status), 0, &getSubscriptions()),
 	_param_update(ORB_ID(parameter_update), 0, &getSubscriptions()),
@@ -68,7 +68,6 @@ void BlockTurretController::update()
 
 	// get new information from subscriptions
 	updateSubscriptions();
-	_lposCmd.update();
 
 	// duty cycles
 	float azmD = 0;
@@ -97,9 +96,9 @@ void BlockTurretController::update()
 		float elvR = 0;
 
 		if (_status.main_state == vehicle_status_s::MAIN_STATE_OFFBOARD) {
-			float x = _lposCmd.x;
-			float y = _lposCmd.y;
-			float z = _lposCmd.z;
+			float x = _posCmd.current.x;
+			float y = _posCmd.current.y;
+			float z = _posCmd.current.z;
 			float r = sqrtf(x*x + y*y + z*z);
 			// reference
 			azmR = atan2f(y, x);
