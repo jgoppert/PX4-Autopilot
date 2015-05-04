@@ -50,6 +50,7 @@
 #include "topics/encoders.h"
 #include "topics/tecs_status.h"
 #include "topics/rc_channels.h"
+#include "topics/filtered_bottom_flow.h"
 
 namespace uORB {
 
@@ -69,6 +70,14 @@ void * Publication<T>::getDataVoidPtr() {
 	return (void *)(T *)(this);
 }
 
+
+PublicationNode::PublicationNode(const struct orb_metadata *meta,
+	List<PublicationNode *> * list) :
+		PublicationBase(meta) {
+		if (list != nullptr) list->add(this);
+}
+	
+
 template class __EXPORT Publication<vehicle_attitude_s>;
 template class __EXPORT Publication<vehicle_local_position_s>;
 template class __EXPORT Publication<vehicle_global_position_s>;
@@ -82,5 +91,6 @@ template class __EXPORT Publication<actuator_direct_s>;
 template class __EXPORT Publication<encoders_s>;
 template class __EXPORT Publication<tecs_status_s>;
 template class __EXPORT Publication<rc_channels_s>;
+template class __EXPORT Publication<filtered_bottom_flow_s>;
 
 }
