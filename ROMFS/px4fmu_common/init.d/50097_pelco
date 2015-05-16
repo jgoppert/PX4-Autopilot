@@ -1,0 +1,8 @@
+#!nsh
+#
+# Pelco based antenna tracking turret
+#
+
+set MIXER AERT
+set VEHICLE_TYPE turret
+set OUTPUT_MODE io
