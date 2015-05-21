@@ -296,6 +296,15 @@ then
 	sh /etc/init.d/50001_axialracing_ax10
 fi
 
+#
+# Turrets
+#
+
+if param compare SYS_AUTOSTART 50097
+then
+	sh /etc/init.d/50097_pelco
+fi
+
 if param compare SYS_AUTOSTART 50098
 then
 	sh /etc/init.d/50098_turret

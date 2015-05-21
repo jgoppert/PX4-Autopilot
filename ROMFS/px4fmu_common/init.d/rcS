@@ -669,10 +669,8 @@ then
 	if [ $VEHICLE_TYPE == turret ]
 	then
 		param set MAV_TYPE 5
-		if [ $LOAD_DAPPS == yes ]
-		then
-			sh /etc/init.d/rc.turret_apps
-		fi
+		sh /etc/init.d/rc.interface
+		sh /etc/init.d/rc.turret_apps
 	fi
 
 	unset MIXER

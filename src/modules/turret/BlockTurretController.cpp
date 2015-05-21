@@ -143,13 +143,17 @@ void BlockTurretController::update()
 	if (_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 		warnx("armed");
 		// group 0 (servo pwm output)
-		_actuators0.control[0] = trigger;
+		_actuators0.control[0] = azmD;
+		_actuators0.control[1] = elvD;
+		_actuators0.control[2] = trigger;
 		// group 1 (roboclaw)
 		_actuators1.control[0] = azmD;
 		_actuators1.control[1] = elvD;
 	} else {
 		warnx("disarmed");
 		_actuators0.control[0] = 0;
+		_actuators0.control[1] = 0;
+		_actuators0.control[2] = 0;
 		_actuators1.control[0] = 0;
 		_actuators1.control[1] = 0;
 	}
