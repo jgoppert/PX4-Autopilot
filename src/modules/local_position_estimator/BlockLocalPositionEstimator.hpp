@@ -20,6 +20,7 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vision_position_estimate.h>
+#include <uORB/topics/vision_speed_estimate.h>
 #include <uORB/topics/vehicle_vicon_position.h>
 
 // uORB Publications
@@ -132,7 +133,8 @@ private:
 	void initLidar();
 	void initSonar();
 	void initFlow();
-	void initVision();
+	void initVisionPos();
+	void initVisionVel();
 	void initVicon();
 
 	// publications
@@ -156,7 +158,8 @@ private:
 	uORB::Subscription<manual_control_setpoint_s> _sub_manual;
 	uORB::Subscription<home_position_s> _sub_home;
 	uORB::Subscription<vehicle_gps_position_s> _sub_gps;
-	uORB::Subscription<vision_position_estimate_s> _sub_vision;
+	uORB::Subscription<vision_position_estimate_s> _sub_vision_pos;
+	uORB::Subscription<vision_speed_estimate_s> _sub_vision_vel;
 	uORB::Subscription<vehicle_vicon_position_s> _sub_vicon;
 
 	// publications
@@ -204,7 +207,8 @@ private:
 	uint64_t _time_last_gps;
 	uint64_t _time_last_lidar;
 	uint64_t _time_last_sonar;
-	uint64_t _time_last_vision;
+	uint64_t _time_last_vision_p;
+	uint64_t _time_last_vision_v;
 	uint64_t _time_last_vicon;
 	float 	 _altHome;
 	int 	 _mavlink_fd;
@@ -215,7 +219,8 @@ private:
 	bool _lidarInitialized;
 	bool _sonarInitialized;
 	bool _flowInitialized;
-	bool _visionInitialized;
+	bool _visionPosInitialized;
+	bool _visionVelInitialized;
 	bool _viconInitialized;
 
 	// init counts
@@ -224,7 +229,8 @@ private:
 	int _lidarInitCount;
 	int _sonarInitCount;
 	int _flowInitCount;
-	int _visionInitCount;
+	int _visionPosInitCount;
+	int _visionVelInitCount;
 	int _viconInitCount;
 
 	// reference altitudes
@@ -234,6 +240,7 @@ private:
 	float _sonarAltHome;
 	float _flowAltHome;
 	math::Vector<3> _visionHome;
+	math::Vector<3> _visionBaseVel;
 	math::Vector<3> _viconHome;
 
 	// flow integration
@@ -254,7 +261,8 @@ private:
 	int _visionFault;
 	int _viconFault;
 	
-	bool _visionTimeout;
+	bool _visionPosTimeout;
+	bool _visionVelTimeout;
 	bool _viconTimeout;
 
 	perf_counter_t _loop_perf;

@@ -7,7 +7,8 @@
 static const int 		MIN_FLOW_QUALITY = 100;
 static const int 		REQ_INIT_COUNT = 100;
 
-static const uint32_t 		VISION_TIMEOUT = 500000;
+static const uint32_t 		VISION_POSITION_TIMEOUT = 500000;
+static const uint32_t 		VISION_VELOCITY_TIMEOUT = 500000;
 static const uint32_t 		VICON_TIMEOUT = 200000;	 
 
 static const uint32_t 		XY_SRC_TIMEOUT = 2000000;
@@ -33,7 +34,8 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_sub_manual(ORB_ID(manual_control_setpoint), 0, 0, &getSubscriptions()),
 	_sub_home(ORB_ID(home_position), 0, 0, &getSubscriptions()),
 	_sub_gps(ORB_ID(vehicle_gps_position), 0, 0, &getSubscriptions()),
-	_sub_vision(ORB_ID(vision_position_estimate), 0, 0, &getSubscriptions()),
+	_sub_vision_pos(ORB_ID(vision_position_estimate), 0, 0, &getSubscriptions()),
+	_sub_vision_vel(ORB_ID(vision_speed_estimate), 0, 0, &getSubscriptions()),
 	_sub_vicon(ORB_ID(vehicle_vicon_position), 0, 0, &getSubscriptions()),
 
 	// publications
@@ -71,7 +73,8 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_time_last_gps(0),
 	_time_last_lidar(0),
 	_time_last_sonar(0),
-	_time_last_vision(0),	
+	_time_last_vision_p(0),
+	_time_last_vision_v(0),	
 	_time_last_vicon(0),
 	_altHome(0),
 
@@ -84,7 +87,8 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_lidarInitialized(false),
 	_sonarInitialized(false),
 	_flowInitialized(false),
-	_visionInitialized(false),
+	_visionPosInitialized(false),
+	_visionVelInitialized(false),
 	_viconInitialized(false),
 
 	// init counts
@@ -93,7 +97,8 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_lidarInitCount(0),
 	_sonarInitCount(0),
 	_flowInitCount(0),
-	_visionInitCount(0),
+	_visionPosInitCount(0),
+	_visionVelInitCount(0),
 	_viconInitCount(0),
 
 	// reference altitudes
@@ -102,6 +107,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_lidarAltHome(0),
 	_sonarAltHome(0),
 	_visionHome(),
+	_visionBaseVel(),
 	_viconHome(),
 
 	// flow integration
@@ -123,7 +129,8 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_viconFault(0),
 
 	//timeouts
-	_visionTimeout(true),
+	_visionPosTimeout(true),
+	_visionVelTimeout(true),
 	_viconTimeout(true),
 
 	// loop performance
@@ -202,7 +209,8 @@ void BlockLocalPositionEstimator::update() {
 	}
 	bool gpsUpdated = _sub_gps.updated();
 	bool homeUpdated = _sub_home.updated();
-	bool visionUpdated = _sub_vision.updated();
+	bool visionPosUpdated = _sub_vision_pos.updated();
+	bool visionVelUpdated = _sub_vision_vel.updated();
 	bool viconUpdated = _sub_vicon.updated();
 
 	// get new data
@@ -215,16 +223,28 @@ void BlockLocalPositionEstimator::update() {
 	if (homeUpdated) updateHome();
 
 	// check for timeouts on external sources
-	if((hrt_absolute_time() - _time_last_vision > VISION_TIMEOUT) && _visionInitialized)
+	if((hrt_absolute_time() - _time_last_vision_p > VISION_POSITION_TIMEOUT) && _visionPosInitialized)
 	{
-		if(!_visionTimeout)
+		if(!_visionPosTimeout)
 		{
-			_visionTimeout = true;
-			mavlink_log_info(_mavlink_fd, "[lpe] vision timeout ");
-			warnx("[lpe] vision timeout ");
+			_visionPosTimeout = true;
+			mavlink_log_info(_mavlink_fd, "[lpe] vision position timeout ");
+			warnx("[lpe] vision position timeout ");
 		}
 	} else {
-		_visionTimeout = false;
+		_visionPosTimeout = false;
+	}
+
+	if((hrt_absolute_time() - _time_last_vision_v > VISION_VELOCITY_TIMEOUT) && _visionVelInitialized)
+	{
+		if(!_visionVelTimeout)
+		{
+			_visionVelTimeout = true;
+			mavlink_log_info(_mavlink_fd, "[lpe] vision velocity timeout ");
+			warnx("[lpe] vision velocity timeout ");
+		}
+	} else {
+		_visionVelTimeout = false;
 	}
 
 	if((hrt_absolute_time() -_time_last_vicon > VICON_TIMEOUT) && _viconInitialized)
@@ -245,7 +265,7 @@ void BlockLocalPositionEstimator::update() {
 	bool canEstimateXY = 
 		(_gpsInitialized && !_gpsFault) ||
  		(_flowInitialized && !_flowFault) ||
- 		(_visionInitialized && !_visionTimeout && !_visionFault) ||
+ 		(_visionPosInitialized && !_visionPosTimeout && !_visionFault) ||
  		(_viconInitialized && !_viconTimeout && !_viconFault);
 
 	if(canEstimateXY) {
@@ -302,10 +322,14 @@ void BlockLocalPositionEstimator::update() {
 			perf_end(_loop_perf);
 		}
 	}
-	if (visionUpdated) {
-		if (!_visionInitialized) {
-			initVision();
-		} else {
+	if (visionPosUpdated) {
+		if (!_visionPosInitialized) {
+			initVisionPos();
+		}
+		else if (visionVelUpdated && !_visionVelInitialized) {
+			initVisionVel();
+		}
+		else {
 			correctVision();
 		}
 	}
@@ -467,22 +491,42 @@ void BlockLocalPositionEstimator::initFlow() {
 	}
 }
 
-void BlockLocalPositionEstimator::initVision() {
-	// collect vision data
-	if (!_visionInitialized) {
+void BlockLocalPositionEstimator::initVisionPos() {
+	// collect vision position data
+	if (!_visionPosInitialized) {
 		// increament sums for mean
 		math::Vector<3> pos;
-		pos(0) = _sub_vision.get().x;
-		pos(1) = _sub_vision.get().y;
-		pos(2) = _sub_vision.get().z;
+		pos(0) = _sub_vision_pos.get().x;
+		pos(1) = _sub_vision_pos.get().y;
+		pos(2) = _sub_vision_pos.get().z;
 		_visionHome += pos;
-		if (_visionInitCount++ > REQ_INIT_COUNT) {
-			_visionHome /= _visionInitCount;
-			mavlink_log_info(_mavlink_fd, "[lpe] vision init: "
+		if (_visionPosInitCount++ > REQ_INIT_COUNT) {
+			_visionHome /= _visionPosInitCount;
+			mavlink_log_info(_mavlink_fd, "[lpe] vision position init: "
 					"%f, %f, %f m", double(pos(0)), double(pos(1)), double(pos(2)));
-			warnx("[lpe] vision init: "
+			warnx("[lpe] vision position init: "
 					"%f, %f, %f m", double(pos(0)), double(pos(1)), double(pos(2)));
-			_visionInitialized = true;
+			_visionPosInitialized = true;
+		}
+	}
+}
+
+void BlockLocalPositionEstimator::initVisionVel() {
+	// collect vision position data
+	if (!_visionVelInitialized) {
+		// increament sums for mean
+		math::Vector<3> vel;
+		vel(0) = _sub_vision_vel.get().x;
+		vel(1) = _sub_vision_vel.get().y;
+		vel(2) = _sub_vision_vel.get().z;
+		_visionBaseVel += vel;
+		if (_visionVelInitCount++ > REQ_INIT_COUNT) {
+			_visionBaseVel /= _visionVelInitCount;
+			mavlink_log_info(_mavlink_fd, "[lpe] vision velocity init: "
+					"%f, %f, %f m/s", double(vel(0)), double(vel(1)), double(vel(2)));
+			warnx("[lpe] vision velocity init: "
+					"%f, %f, %f m/s", double(vel(0)), double(vel(1)), double(vel(2)));
+			_visionVelInitialized = true;
 		}
 	}
 }
@@ -997,12 +1041,19 @@ void BlockLocalPositionEstimator::correctGps() {	// TODO : use another other met
 void BlockLocalPositionEstimator::correctVision() {
 
 	math::Vector<6> y;
-	y(0) = _sub_vision.get().x - _visionHome(0);
-	y(1) = _sub_vision.get().y - _visionHome(1);
-	y(2) = _sub_vision.get().z - _visionHome(2);
-	y(3) = _sub_vision.get().vx;
-	y(4) = _sub_vision.get().vy;
-	y(5) = _sub_vision.get().vz;
+	y(0) = _sub_vision_pos.get().x - _visionHome(0);
+	y(1) = _sub_vision_pos.get().y - _visionHome(1);
+	y(2) = _sub_vision_pos.get().z - _visionHome(2);
+	if(_visionVelInitialized) {
+		y(3) = _sub_vision_vel.get().x - _visionBaseVel(0);
+		y(4) = _sub_vision_vel.get().y - _visionBaseVel(1);
+		y(5) = _sub_vision_vel.get().z - _visionBaseVel(2);
+	}
+	else {
+		y(3) = 0.0f;
+		y(4) = 0.0f;
+		y(5) = 0.0f;
+	}
 
 	// vision measurement matrix, measures position and velocity
 	math::Matrix<n_y_vision, n_x> C;
@@ -1049,7 +1100,8 @@ void BlockLocalPositionEstimator::correctVision() {
 		_P -= K*C*_P;
 	}
 
-	_time_last_vision = _sub_vision.get().timestamp_boot;
+	_time_last_vision_p = _sub_vision_pos.get().timestamp_boot;
+	_time_last_vision_v = _sub_vision_vel.get().timestamp_boot;
 }
 
 void BlockLocalPositionEstimator::correctVicon() {

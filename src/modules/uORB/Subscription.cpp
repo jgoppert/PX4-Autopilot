@@ -61,6 +61,7 @@
 #include "topics/actuator_armed.h"
 #include "topics/vehicle_vicon_position.h"
 #include "topics/vision_position_estimate.h"
+#include "topics/vision_speed_estimate.h"
 
 /* Oddly, ERROR is not defined for C++ */
 #ifdef ERROR
@@ -157,5 +158,6 @@ template class __EXPORT Subscription<optical_flow_s>;
 template class __EXPORT Subscription<distance_sensor_s>;
 template class __EXPORT Subscription<vehicle_vicon_position_s>;
 template class __EXPORT Subscription<vision_position_estimate_s>;
+template class __EXPORT Subscription<vision_speed_estimate_s>;
 
 } // namespace uORB

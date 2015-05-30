@@ -35,6 +35,7 @@
  * @file local_position_estimator.cpp
  * @author James Goppert
  * @author Mohammed Kabir
+ * @author Nuno Marques
  *
  * Local position estimator
  */
