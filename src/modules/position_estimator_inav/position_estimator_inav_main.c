@@ -88,7 +88,7 @@ static int position_estimator_inav_task; /**< Handle of deamon task / thread */
 static bool verbose_mode = false;
 
 static const hrt_abstime vision_p_topic_timeout = 500000;	// Vision position topic timeout = 0.5s
-static const hrt_abstime vision_s_topic_timeout = 500000;	// Vision speed topic timeout = 0.5s
+static const hrt_abstime vision_v_topic_timeout = 500000;	// Vision velocity topic timeout = 0.5s
 static const hrt_abstime gps_topic_timeout = 500000;		// GPS topic timeout = 0.5s
 static const hrt_abstime flow_topic_timeout = 1000000;	// optical flow topic timeout = 1s
 static const hrt_abstime sonar_timeout = 150000;	// sonar timeout = 150ms
@@ -309,7 +309,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	bool flow_valid = false;		// flow is valid
 	bool flow_accurate = false;		// flow should be accurate (this flag not updated if flow_valid == false)
 	bool vision_p_valid = false;	// vision position is valid
-	bool vision_s_valid = false;	// vision speed is valid
+	bool vision_v_valid = false;	// vision velocity is valid
 
 	/* declare and safely initialize all structs */
 	struct actuator_controls_s actuator;
@@ -330,8 +330,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	memset(&flow, 0, sizeof(flow));
 	struct vision_position_estimate_s vision_p;
 	memset(&vision_p, 0, sizeof(vision_p));
-	struct vision_speed_estimate_s vision_s;
-	memset(&vision_s, 0, sizeof(vision_s));
+	struct vision_speed_estimate_s vision_v;
+	memset(&vision_v, 0, sizeof(vision_v));
 	struct vehicle_global_position_s global_pos;
 	memset(&global_pos, 0, sizeof(global_pos));
 
@@ -642,32 +642,32 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			/* check no vision circuit breaker is set */
 			if (params.no_vision != CBRK_NO_VISION_KEY) {
-				/* vehicle vision speed */
+				/* vehicle vision velocity */
 				orb_check(vision_speed_estimate_sub, &updated);
 
 				if (updated) {
-					orb_copy(ORB_ID(vision_speed_estimate), vision_speed_estimate_sub, &vision_s);
+					orb_copy(ORB_ID(vision_speed_estimate), vision_speed_estimate_sub, &vision_v);
 
 					/* reset speed estimate on first vision speed update */
-					if (!vision_s_valid) {
-						x_est[1] = vision_s.x;
-						y_est[1] = vision_s.y;
+					if (!vision_v_valid) {
+						x_est[1] = vision_v.x;
+						y_est[1] = vision_v.y;
 						/* only reset the z estimate if the z weight parameter is not zero */
 						if (params.w_z_vision_v > MIN_VALID_W)
 						{
-							z_est[1] = vision_s.z;
+							z_est[1] = vision_v.z;
 						}
 
-						vision_s_valid = true;
+						vision_v_valid = true;
 
 						warnx("VISION speed estimate valid");
 						mavlink_log_info(mavlink_fd, "[inav] VISION speed estimate valid");
 					}
 
 					/* calculate correction for velocity */
-					corr_vision[0][1] = vision_s.x - x_est[1];
-					corr_vision[1][1] = vision_s.y - y_est[1];
-					corr_vision[2][1] = vision_s.z - z_est[1];
+					corr_vision[0][1] = vision_v.x - x_est[1];
+					corr_vision[1][1] = vision_v.y - y_est[1];
+					corr_vision[2][1] = vision_v.z - z_est[1];
 				}
 
 				/* vehicle vision position */
@@ -705,7 +705,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					corr_vision[1][0] = vision_p.y - y_est[0];
 					corr_vision[2][0] = vision_p.z - z_est[0];
 
-					if (!vision_s_valid) { // velocity correction if speed topic is not valid / published
+					if (!vision_v_valid) { // velocity correction if velocity topic is not valid / published
 						static hrt_abstime last_vision_time = 0;
 						static float vx = 0.0f;
 						static float vy = 0.0f;
@@ -862,18 +862,18 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			mavlink_log_info(mavlink_fd, "[inav] GPS timeout");
 		}
 
-		/* check for timeout on vision_position topic */
+		/* check for timeout on vision position topic */
 		if (vision_p_valid && (t > (vision_p.timestamp_boot + vision_p_topic_timeout))) {
 			vision_p_valid = false;
 			warnx("VISION position timeout");
 			mavlink_log_info(mavlink_fd, "[inav] VISION position timeout");
 		}
 
-		/* check for timeout on vision_speed topic */
-		if (vision_s_valid && (t > (vision_s.timestamp_boot + vision_s_topic_timeout))) {
-			vision_s_valid = false;
-			warnx("VISION speed timeout");
-			mavlink_log_info(mavlink_fd, "[inav] VISION speed timeout");
+		/* check for timeout on vision velocity topic */
+		if (vision_v_valid && (t > (vision_v.timestamp_boot + vision_v_topic_timeout))) {
+			vision_v_valid = false;
+			warnx("VISION velocity timeout");
+			mavlink_log_info(mavlink_fd, "[inav] VISION velocity timeout");
 		}
 
 		/* check for sonar measurement timeout */
