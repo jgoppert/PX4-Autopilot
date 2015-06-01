@@ -512,7 +512,7 @@ void BlockLocalPositionEstimator::initVisionPos() {
 }
 
 void BlockLocalPositionEstimator::initVisionVel() {
-	// collect vision position data
+	// collect vision velocity data
 	if (!_visionVelInitialized) {
 		// increament sums for mean
 		math::Vector<3> vel;
@@ -1041,18 +1041,42 @@ void BlockLocalPositionEstimator::correctGps() {	// TODO : use another other met
 void BlockLocalPositionEstimator::correctVision() {
 
 	math::Vector<6> y;
+
+	static float last_vision_x = 0.0f;
+	static float last_vision_y = 0.0f;
+	static float last_vision_z = 0.0f;
+
 	y(0) = _sub_vision_pos.get().x - _visionHome(0);
 	y(1) = _sub_vision_pos.get().y - _visionHome(1);
 	y(2) = _sub_vision_pos.get().z - _visionHome(2);
-	if(_visionVelInitialized) {
+
+	if(_visionVelInitialized) {	// If subscribed to valid vision_speed_estimate topic, use its data
 		y(3) = _sub_vision_vel.get().x - _visionBaseVel(0);
 		y(4) = _sub_vision_vel.get().y - _visionBaseVel(1);
 		y(5) = _sub_vision_vel.get().z - _visionBaseVel(2);
 	}
-	else {
-		y(3) = 0.0f;
-		y(4) = 0.0f;
-		y(5) = 0.0f;
+	else {	// Else, derivate velocity from position
+		static hrt_abstime last_vision_time = 0;
+		static float vx = 0.0f;
+		static float vy = 0.0f;
+		static float vz = 0.0f;
+
+		float vision_dt = (_sub_vision_pos.get().timestamp_boot - last_vision_time) / 1e6f;
+		last_vision_time = _sub_vision_pos.get().timestamp_boot;
+
+		if (vision_dt > 0.000001f && vision_dt < 0.2f) {
+			vx = (y(0) - last_vision_x) / vision_dt;
+			vy = (y(1) - last_vision_y) / vision_dt;
+			vz = (y(2) - last_vision_z) / vision_dt;
+
+			last_vision_x = y(0);
+			last_vision_y = y(1);
+			last_vision_z = y(2);
+
+			y(3) = vx - y(0);
+			y(4) = vy - y(1);
+			y(5) = vz - y(2);
+		}	
 	}
 
 	// vision measurement matrix, measures position and velocity
