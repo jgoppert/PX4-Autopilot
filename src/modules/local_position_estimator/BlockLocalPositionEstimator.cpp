@@ -60,6 +60,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_gps_vz_stddev(this, "GPS_VZ"),
 	_vision_p_stddev(this, "VIS_P"),
 	_vision_v_stddev(this, "VIS_V"),
+	_no_vision(this, "NO_VIS"),
 	_vicon_p_stddev(this, "VIC_P"),
 	_pn_p_stddev(this, "PN_P"),
 	_pn_v_stddev(this, "PN_V"),
@@ -322,15 +323,17 @@ void BlockLocalPositionEstimator::update() {
 			perf_end(_loop_perf);
 		}
 	}
-	if (visionPosUpdated) {
-		if (!_visionPosInitialized) {
-			initVisionPos();
-		}
-		else if (visionVelUpdated && !_visionVelInitialized) {
-			initVisionVel();
-		}
-		else {
-			correctVision();
+	if (_no_vision.get() != CBRK_NO_VISION_KEY) { // check if no vision circuit breaker is set
+		if (visionPosUpdated) {
+			if (!_visionPosInitialized) {
+				initVisionPos();
+			}
+			else if (visionVelUpdated && !_visionVelInitialized) {
+				initVisionVel();
+			}
+			else {
+				correctVision();
+			}
 		}
 	}
 	if (viconUpdated) {

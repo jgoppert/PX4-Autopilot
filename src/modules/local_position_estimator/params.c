@@ -132,6 +132,17 @@ PARAM_DEFINE_FLOAT(LPE_VIS_P, 1.0f); // vision pos std dev
 PARAM_DEFINE_FLOAT(LPE_VIS_V, 1.0f);
 
 /**
+ * Disable vision input
+ *
+ * Set to the appropriate key (328754) to disable vision input.
+ *
+ * @group Local Position Estimator
+ * @min 0
+ * @max 1
+ */
+PARAM_DEFINE_INT32(LPE_NO_VISION, 0);
+
+/**
  * Vicon position standard deviation
  *
  * @group Local Position Estimator

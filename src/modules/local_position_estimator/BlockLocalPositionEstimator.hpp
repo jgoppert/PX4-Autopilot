@@ -29,6 +29,8 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/filtered_bottom_flow.h>
 
+#define CBRK_NO_VISION_KEY	328754
+
 using namespace control;
 
 class BlockLocalPositionEstimator : public control::SuperBlock {
@@ -191,6 +193,7 @@ private:
 
 	BlockParamFloat  _vision_p_stddev;
 	BlockParamFloat  _vision_v_stddev;
+	BlockParamInt	 _no_vision;
 
 	BlockParamFloat  _vicon_p_stddev;
 
