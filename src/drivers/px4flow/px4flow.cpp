@@ -87,7 +87,7 @@
 #define PX4FLOW_I2C_MAX_BUS_SPEED	400000	///< 400 KHz maximum speed
 
 #define PX4FLOW_MAX_DISTANCE 5.0f
-#define PX4FLOW_MIN_DISTANCE 0.3f
+#define PX4FLOW_MIN_DISTANCE 0.31f
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR

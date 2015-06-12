@@ -120,6 +120,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_pos_sp_triplet_pub(nullptr),
 	_vicon_position_pub(nullptr),
 	_vision_position_pub(nullptr),
+	_vision_speed_pub(nullptr),
 	_telemetry_status_pub(nullptr),
 	_rc_pub(nullptr),
 	_manual_pub(nullptr),
@@ -187,6 +188,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE:
 		handle_message_vision_position_estimate(msg);
+		break;
+
+	case MAVLINK_MSG_ID_VISION_SPEED_ESTIMATE:
+		handle_message_vision_speed_estimate(msg);
 		break;
 
 	case MAVLINK_MSG_ID_RADIO_STATUS:
@@ -793,11 +798,6 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	vision_position.y = pos.y;
 	vision_position.z = pos.z;
 
-	// XXX fix this
-	vision_position.vx = 0.0f;
-	vision_position.vy = 0.0f;
-	vision_position.vz = 0.0f;
-
 	math::Quaternion q;
 	q.from_euler(pos.roll, pos.pitch, pos.yaw);
 
@@ -811,6 +811,32 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 
 	} else {
 		orb_publish(ORB_ID(vision_position_estimate), _vision_position_pub, &vision_position);
+	}
+}
+
+void
+MavlinkReceiver::handle_message_vision_speed_estimate(mavlink_message_t *msg)
+{
+	mavlink_vision_speed_estimate_t speed;
+	mavlink_msg_vision_speed_estimate_decode(msg, &speed);
+
+	struct vision_speed_estimate_s vision_speed;
+	memset(&vision_speed, 0, sizeof(vision_speed));
+
+	// Use the component ID to identify the vision sensor
+	vision_speed.id = msg->compid;
+
+	vision_speed.timestamp_boot = hrt_absolute_time(); // Monotonic time
+	vision_speed.timestamp_computer = sync_stamp(speed.usec); // Synced time
+	vision_speed.x = speed.x;
+	vision_speed.y = speed.y;
+	vision_speed.z = speed.z;
+
+	if (_vision_speed_pub == nullptr) {
+		_vision_speed_pub = orb_advertise(ORB_ID(vision_speed_estimate), &vision_speed);
+
+	} else {
+		orb_publish(ORB_ID(vision_speed_estimate), _vision_speed_pub, &vision_speed);
 	}
 }
 
