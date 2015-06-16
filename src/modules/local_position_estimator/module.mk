@@ -39,6 +39,10 @@ MODULE_COMMAND	= local_position_estimator
 
 SRCS		= local_position_estimator_main.cpp \
 		  BlockLocalPositionEstimator.cpp \
+		  BlockLocalPositionEstimatorMulti.cpp \
+		  ros/subscriber.cpp \
+		  ros/publisher.cpp \
+		  ros/node_handle.cpp \
 		  params.c
 
 EXTRACXXFLAGS	= -Wframe-larger-than=6500
