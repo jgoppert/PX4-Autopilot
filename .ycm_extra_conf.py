@@ -64,7 +64,6 @@ flags = [
 '-I', 'Build/px4io-v1_default.build/nuttx-export/include/',
 '-I', 'Build/px4io-v2_default.build/nuttx-export/include/',
 '-I', './NuttX/nuttx/arch/arm/include',
-'-include', './src/include/visibility.h',
 '-I', './src',
 '-I', './src/modules',
 '-I', './src/include',
