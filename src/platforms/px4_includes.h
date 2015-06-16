@@ -65,9 +65,19 @@
 #include <px4_vehicle_local_position_setpoint.h>
 #include <px4_vehicle_global_velocity_setpoint.h>
 #include <px4_vehicle_local_position.h>
+#include <px4_vehicle_global_position.h>
 #include <px4_position_setpoint_triplet.h>
 #include <px4_offboard_control_mode.h>
 #include <px4_vehicle_force_setpoint.h>
+#include <px4_optical_flow.h>
+#include <px4_sensor_combined.h>
+#include <px4_distance_sensor.h>
+#include <px4_home_position.h>
+#include <px4_vehicle_gps_position.h>
+#include <px4_vision_position_estimate.h>
+#include <px4_vision_speed_estimate.h>
+#include <px4_vehicle_vicon_position.h>
+#include <px4_filtered_bottom_flow.h>
 #endif
 
 #elif defined(__PX4_NUTTX)
@@ -94,9 +104,19 @@
 #include <platforms/nuttx/px4_messages/px4_vehicle_local_position_setpoint.h>
 #include <platforms/nuttx/px4_messages/px4_vehicle_global_velocity_setpoint.h>
 #include <platforms/nuttx/px4_messages/px4_vehicle_local_position.h>
+#include <platforms/nuttx/px4_messages/px4_vehicle_global_position.h>
 #include <platforms/nuttx/px4_messages/px4_position_setpoint_triplet.h>
 #include <platforms/nuttx/px4_messages/px4_offboard_control_mode.h>
 #include <platforms/nuttx/px4_messages/px4_vehicle_force_setpoint.h>
+#include <platforms/nuttx/px4_messages/px4_optical_flow.h>
+#include <platforms/nuttx/px4_messages/px4_sensor_combined.h>
+#include <platforms/nuttx/px4_messages/px4_distance_sensor.h>
+#include <platforms/nuttx/px4_messages/px4_home_position.h>
+#include <platforms/nuttx/px4_messages/px4_vehicle_gps_position.h>
+#include <platforms/nuttx/px4_messages/px4_vision_position_estimate.h>
+#include <platforms/nuttx/px4_messages/px4_vision_speed_estimate.h>
+#include <platforms/nuttx/px4_messages/px4_vehicle_vicon_position.h>
+#include <platforms/nuttx/px4_messages/px4_filtered_bottom_flow.h>
 #endif
 #include <systemlib/err.h>
 #include <systemlib/param/param.h>
@@ -127,7 +147,17 @@
 #include <platforms/posix/px4_messages/px4_vehicle_local_position_setpoint.h>
 #include <platforms/posix/px4_messages/px4_vehicle_global_velocity_setpoint.h>
 #include <platforms/posix/px4_messages/px4_vehicle_local_position.h>
+#include <platforms/posix/px4_messages/px4_vehicle_global_position.h>
 #include <platforms/posix/px4_messages/px4_position_setpoint_triplet.h>
+#include <platforms/posix/px4_messages/px4_optical_flow.h>
+#include <platforms/posix/px4_messages/px4_sensor_combined.h>
+#include <platforms/nuttx/px4_messages/px4_distance_sensor.h>
+#include <platforms/nuttx/px4_messages/px4_home_position.h>
+#include <platforms/nuttx/px4_messages/px4_vehicle_gps_position.h>
+#include <platforms/nuttx/px4_messages/px4_vision_position_estimate.h>
+#include <platforms/nuttx/px4_messages/px4_vision_speed_estimate.h>
+#include <platforms/nuttx/px4_messages/px4_vehicle_vicon_position.h>
+#include <platforms/nuttx/px4_messages/px4_filtered_bottom_flow.h>
 #endif
 #include <systemlib/err.h>
 #include <systemlib/param/param.h>
@@ -157,7 +187,17 @@
 #include <platforms/qurt/px4_messages/px4_vehicle_local_position_setpoint.h>
 #include <platforms/qurt/px4_messages/px4_vehicle_global_velocity_setpoint.h>
 #include <platforms/qurt/px4_messages/px4_vehicle_local_position.h>
+#include <platforms/qurt/px4_messages/px4_vehicle_global_position.h>
 #include <platforms/qurt/px4_messages/px4_position_setpoint_triplet.h>
+#include <platforms/qurt/px4_messages/px4_optical_flow.h>
+#include <platforms/qurt/px4_messages/px4_sensor_combined.h>
+#include <platforms/qurt/px4_messages/px4_distance_sensor.h>
+#include <platforms/qurt/px4_messages/px4_home_position.h>
+#include <platforms/qurt/px4_messages/px4_vehicle_gps_position.h>
+#include <platforms/qurt/px4_messages/px4_vision_position_estimate.h>
+#include <platforms/qurt/px4_messages/px4_vision_speed_estimate.h>
+#include <platforms/qurt/px4_messages/px4_vehicle_vicon_position.h>
+#include <platforms/qurt/px4_messages/px4_filtered_bottom_flow.h>
 #endif
 #include <systemlib/err.h>
 #include <systemlib/param/param.h>

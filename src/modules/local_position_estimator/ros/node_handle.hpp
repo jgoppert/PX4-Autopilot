@@ -1,6 +1,7 @@
 #pragma once
 
 #include "publisher.hpp"
+#include "subscriber.hpp"
 #include <stdint.h>
 
 namespace ros
@@ -89,6 +90,17 @@ public:
 	Publisher advertise(const char * topic, uint32_t queue_size, bool latch = false) {
 		return Publisher();
 	}
+
+	template <class M>
+	Subscriber subscribe(const char * topic, uint32_t queue_size, void (*callback)(const M* msg)) {
+		return Subscriber();
+	}
+
+	template <class M, class T>
+	Subscriber subscribe(const char * topic, uint32_t queue_size, void (T::*fp)(M), T * obj) {
+		return Subscriber();
+	}
+
 };
 
 }

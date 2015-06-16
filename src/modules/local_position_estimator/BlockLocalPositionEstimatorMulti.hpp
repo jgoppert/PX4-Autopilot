@@ -34,7 +34,10 @@
 
 #include "ros/node_handle.hpp"
 
+#include <px4.h>
+
 using namespace control;
+
 
 class BlockLocalPositionEstimatorMulti : public control::SuperBlock {
 //
@@ -117,6 +120,68 @@ private:
 	enum {Y_vicon_x=0, Y_vicon_y, Y_vicon_z};
 	enum {POLL_FLOW, POLL_SENSORS, POLL_PARAM};
 
+
+	void handleStatus(px4::px4_vehicle_status * msg) {
+	}
+
+	void handleArmed(px4::px4_actuator_armed * msg) {
+	}
+
+	void handleControlMode(px4::px4_vehicle_control_mode * msg) {
+	}
+
+	void handleAttitude(px4::px4_vehicle_attitude * msg) {
+	}
+
+	void handleAttitudeSetPoint(
+			px4::px4_vehicle_attitude_setpoint * msg) {
+	}
+
+	void handleOptcalFlow(px4::px4_optical_flow * msg) {
+	}
+
+	void handleSensorCombined(px4::px4_sensor_combined * msg) {
+	}
+
+	void handleDistanceSensor(px4::px4_distance_sensor * msg) {
+	}
+
+	void handleParamUpdate(px4::px4_parameter_update * msg) {
+	}
+
+	void handleManual(px4::px4_manual_control_setpoint * msg) {
+	}
+
+	void handleHome(px4::px4_home_position & msg) {
+		double lat = msg.data().lat;
+		double lon = msg.data().lon;
+		float alt = msg.data().alt;
+		//mavlink_log_info(_mavlink_fd, "[lpe] home: lat %5.0f, lon %5.0f, alt %5.0f", lat, lon, double(alt));
+		//warnx("[lpe] home: lat %5.0f, lon %5.0f, alt %5.0f", lat, lon, double(alt));
+		map_projection_init(&_map_ref, lat, lon);
+		float delta_alt = alt - _altHome;
+		_altHome = alt;
+		_gpsAltHome += delta_alt;
+		_baroAltHome +=  delta_alt;
+		_lidarAltHome +=  delta_alt;
+		_sonarAltHome +=  delta_alt;
+	}
+
+	void handleGPS(px4::px4_vehicle_gps_position * msg) {
+	}
+
+	void handleVisionPosition(
+			px4::px4_vision_position_estimate * msg) {
+	}
+
+	void handleVisionVelocity(
+			px4::px4_vision_speed_estimate * msg) {
+	}
+
+	void handleVicon(
+			px4::px4_vehicle_vicon_position * msg) {
+	}
+
 	// methods
 	// ----------------------------
 
@@ -134,7 +199,6 @@ private:
 	void correctVicon();
 
 	// sensor initialization
-	void updateHome();
 	void initBaro();
 	void initGps();
 	void initLidar();
@@ -154,29 +218,27 @@ private:
 	
 	// test
 	ros::NodeHandle _nh;
-	ros::Publisher _vehicle_attitude;
 
-	// subscriptions
-	uORB::Subscription<vehicle_status_s> _sub_status;
-	uORB::Subscription<actuator_armed_s> _sub_armed;
-	uORB::Subscription<vehicle_control_mode_s> _sub_control_mode;
-	uORB::Subscription<vehicle_attitude_s> _sub_att;
-	uORB::Subscription<vehicle_attitude_setpoint_s> _sub_att_sp;
-	uORB::Subscription<optical_flow_s> _sub_flow;
-	uORB::Subscription<sensor_combined_s> _sub_sensor;
-	uORB::Subscription<distance_sensor_s> _sub_distance;
-	uORB::Subscription<parameter_update_s> _sub_param_update;
-	uORB::Subscription<manual_control_setpoint_s> _sub_manual;
-	uORB::Subscription<home_position_s> _sub_home;
-	uORB::Subscription<vehicle_gps_position_s> _sub_gps;
-	uORB::Subscription<vision_position_estimate_s> _sub_vision_pos;
-	uORB::Subscription<vision_speed_estimate_s> _sub_vision_vel;
-	uORB::Subscription<vehicle_vicon_position_s> _sub_vicon;
+	ros::Subscriber _sub_status;
+	ros::Subscriber _sub_armed;
+	ros::Subscriber _sub_control_mode;
+	ros::Subscriber _sub_att;
+	ros::Subscriber _sub_att_sp;
+	ros::Subscriber _sub_flow;
+	ros::Subscriber _sub_sensor;
+	ros::Subscriber _sub_distance;
+	ros::Subscriber _sub_param_update;
+	ros::Subscriber _sub_manual;
+	ros::Subscriber _sub_home;
+	ros::Subscriber _sub_gps;
+	ros::Subscriber _sub_vision_pos;
+	ros::Subscriber _sub_vision_vel;
+	ros::Subscriber _sub_vicon;
 
 	// publications
-	uORB::Publication<vehicle_local_position_s> _pub_lpos;
-	uORB::Publication<vehicle_global_position_s> _pub_gpos;
-	uORB::Publication<filtered_bottom_flow_s> _pub_filtered_flow;
+	ros::Publisher _pub_lpos;
+	ros::Publisher _pub_gpos;
+	ros::Publisher _pub_filtered_flow;
 
 	// map projection
 	struct map_projection_reference_s _map_ref;
