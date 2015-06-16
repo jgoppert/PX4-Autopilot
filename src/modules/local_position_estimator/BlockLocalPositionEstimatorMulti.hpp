@@ -32,6 +32,8 @@
 
 #define CBRK_NO_VISION_KEY	328754
 
+#include "ros/node_handle.hpp"
+
 using namespace control;
 
 class BlockLocalPositionEstimatorMulti : public control::SuperBlock {
@@ -149,6 +151,10 @@ private:
 	
 	// attributes
 	// ----------------------------
+	
+	// test
+	ros::NodeHandle _nh;
+	ros::Publisher _vehicle_attitude;
 
 	// subscriptions
 	uORB::Subscription<vehicle_status_s> _sub_status;

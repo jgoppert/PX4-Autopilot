@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <nuttx/math.h>
 #include <systemlib/err.h>
+#include <px4.h>
 
 static const int 		MIN_FLOW_QUALITY = 100;
 static const int 		REQ_INIT_COUNT = 100;
@@ -16,6 +17,10 @@ static const uint32_t 		XY_SRC_TIMEOUT = 2000000;
 BlockLocalPositionEstimatorMulti::BlockLocalPositionEstimatorMulti() :
 	// this block has no parent, and has name LPE
 	SuperBlock(NULL,"LPE"),
+
+	// test
+	_nh(),
+	_vehicle_attitude(_nh.advertise<px4::px4_vehicle_attitude>("attitude", 1)),
 
 	// subscriptions, set rate, add to list
 	// TODO topic speed limiting?

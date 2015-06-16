@@ -7,4 +7,10 @@ Publisher::Publisher()
 {
 }
 
+Publisher::~Publisher()
+{
+}
+
+
+
 }

@@ -53,7 +53,8 @@
 #include <fcntl.h>
 #include <nuttx/sched.h>
 
-#include "BlockLocalPositionEstimator.hpp"
+//#include "BlockLocalPositionEstimator.hpp"
+#include "BlockLocalPositionEstimatorMulti.hpp"
 
 static bool thread_should_exit = false;     /**< Deamon exit flag */
 static bool thread_running = false;     /**< Deamon status flag */
@@ -144,7 +145,8 @@ int local_position_estimator_thread_main(int argc, char *argv[])
 
 	using namespace control;
 
-	BlockLocalPositionEstimator est;
+	//BlockLocalPositionEstimator est;
+	BlockLocalPositionEstimatorMulti est;
 
 	thread_running = true;
 
