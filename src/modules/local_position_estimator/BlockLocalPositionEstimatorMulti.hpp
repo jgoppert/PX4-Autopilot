@@ -120,67 +120,18 @@ private:
 	enum {Y_vicon_x=0, Y_vicon_y, Y_vicon_z};
 	enum {POLL_FLOW, POLL_SENSORS, POLL_PARAM};
 
-
-	void handleStatus(px4::px4_vehicle_status * msg) {
-	}
-
-	void handleArmed(px4::px4_actuator_armed * msg) {
-	}
-
-	void handleControlMode(px4::px4_vehicle_control_mode * msg) {
-	}
-
-	void handleAttitude(px4::px4_vehicle_attitude * msg) {
-	}
-
-	void handleAttitudeSetPoint(
-			px4::px4_vehicle_attitude_setpoint * msg) {
-	}
-
-	void handleOptcalFlow(px4::px4_optical_flow * msg) {
-	}
-
-	void handleSensorCombined(px4::px4_sensor_combined * msg) {
-	}
-
-	void handleDistanceSensor(px4::px4_distance_sensor * msg) {
-	}
-
-	void handleParamUpdate(px4::px4_parameter_update * msg) {
-	}
-
-	void handleManual(px4::px4_manual_control_setpoint * msg) {
-	}
-
-	void handleHome(px4::px4_home_position & msg) {
-		double lat = msg.data().lat;
-		double lon = msg.data().lon;
-		float alt = msg.data().alt;
-		//mavlink_log_info(_mavlink_fd, "[lpe] home: lat %5.0f, lon %5.0f, alt %5.0f", lat, lon, double(alt));
-		//warnx("[lpe] home: lat %5.0f, lon %5.0f, alt %5.0f", lat, lon, double(alt));
-		map_projection_init(&_map_ref, lat, lon);
-		float delta_alt = alt - _altHome;
-		_altHome = alt;
-		_gpsAltHome += delta_alt;
-		_baroAltHome +=  delta_alt;
-		_lidarAltHome +=  delta_alt;
-		_sonarAltHome +=  delta_alt;
-	}
-
-	void handleGPS(px4::px4_vehicle_gps_position * msg) {
-	}
-
-	void handleVisionPosition(
-			px4::px4_vision_position_estimate * msg) {
-	}
-
-	void handleVisionVelocity(
-			px4::px4_vision_speed_estimate * msg) {
-	}
-
-	void handleVicon(
-			px4::px4_vehicle_vicon_position * msg) {
-	}
+	// callback functions
+	// ----------------------------
+	void handleAttitude(const vehicle_attitude_s & msg);
+	void handleOpticalFlow(const optical_flow_s & msg);
+	void handleSensorCombined(const sensor_combined_s & msg);
+	void handleDistanceSensor(const distance_sensor_s & msg);
+	void handleParamUpdate(const parameter_update_s & msg);
+	void handleHome(const home_position_s & msg);
+	void handleGPS(const vehicle_gps_position_s & msg);
+	void handleVisionPosition(const vision_position_estimate_s & msg);
+	void handleVisionVelocity(const vision_speed_estimate_s & msg);
+	void handleVicon(const vehicle_vicon_position_s & msg);
 
 	// methods
 	// ----------------------------
@@ -189,24 +140,24 @@ private:
 	void predict(bool canEstimateXY, bool canEstimateZ);
 
 	// correct the state prediction wtih a measurement
-	void correctBaro();
-	void correctGps();
-	void correctLidar();
-	void correctFlow();
-	void correctSonar();
-	void correctVisionPos();
-	void correctVisionVel();
-	void correctVicon();
+	void correctBaro(const sensor_combined_s & msg);
+	void correctGps(const vehicle_gps_position_s & msg);
+	void correctLidar(const distance_sensor_s & msg);
+	void correctFlow(const optical_flow_s & msg);
+	void correctSonar(const distance_sensor_s & msg);
+	void correctVisionPos(const vision_position_estimate_s & msg);
+	void correctVisionVel(const vision_speed_estimate_s & msg);
+	void correctVicon(const vehicle_vicon_position_s & msg);
 
 	// sensor initialization
-	void initBaro();
-	void initGps();
-	void initLidar();
-	void initSonar();
-	void initFlow();
-	void initVisionPos();
-	void initVisionVel();
-	void initVicon();
+	void initBaro(const sensor_combined_s & msg);
+	void initGps(const vehicle_gps_position_s & msg);
+	void initLidar(const distance_sensor_s & msg);
+	void initSonar(const distance_sensor_s & msg);
+	void initFlow(const optical_flow_s & msg);
+	void initVisionPos(const vision_position_estimate_s & msg);
+	void initVisionVel(const vision_speed_estimate_s & msg);
+	void initVicon(const vehicle_vicon_position_s & msg);
 
 	// publications
 	void publishLocalPos(bool z_valid, bool xy_valid);
@@ -219,16 +170,11 @@ private:
 	// test
 	ros::NodeHandle _nh;
 
-	ros::Subscriber _sub_status;
-	ros::Subscriber _sub_armed;
-	ros::Subscriber _sub_control_mode;
 	ros::Subscriber _sub_att;
-	ros::Subscriber _sub_att_sp;
 	ros::Subscriber _sub_flow;
 	ros::Subscriber _sub_sensor;
 	ros::Subscriber _sub_distance;
 	ros::Subscriber _sub_param_update;
-	ros::Subscriber _sub_manual;
 	ros::Subscriber _sub_home;
 	ros::Subscriber _sub_gps;
 	ros::Subscriber _sub_vision_pos;
@@ -239,6 +185,12 @@ private:
 	ros::Publisher _pub_lpos;
 	ros::Publisher _pub_gpos;
 	ros::Publisher _pub_filtered_flow;
+
+	// local message copies
+	vehicle_attitude_s _att;
+	home_position_s _home;
+	vehicle_gps_position_s _gps;
+	sensor_combined_s _sensor_combined;
 
 	// map projection
 	struct map_projection_reference_s _map_ref;
