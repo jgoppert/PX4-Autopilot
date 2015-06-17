@@ -213,12 +213,6 @@ void BlockLocalPositionEstimatorMulti::update() {
 	// set dt for all child blocks
 	setDt(dt);
 
-	// see which updates are available
-	//bool paramsUpdated = _sub_param_update.updated();
-
-	// get new data
-	//updateSubscriptions();
-
 	// check for timeouts on external sources
 	if((hrt_absolute_time() - _time_last_vision_p > VISION_POSITION_TIMEOUT) && _visionPosInitialized)
 	{
@@ -228,8 +222,9 @@ void BlockLocalPositionEstimatorMulti::update() {
 			mavlink_log_info(_mavlink_fd, "[lpe] vision position timeout ");
 			warnx("[lpe] vision position timeout ");
 		}
-	} else
+	} else {
 		_visionPosTimeout = false;
+	}
 
 	if((hrt_absolute_time() - _time_last_vision_v > VISION_VELOCITY_TIMEOUT) && _visionVelInitialized)
 	{
@@ -239,8 +234,9 @@ void BlockLocalPositionEstimatorMulti::update() {
 			mavlink_log_info(_mavlink_fd, "[lpe] vision velocity timeout ");
 			warnx("[lpe] vision velocity timeout ");
 		}
-	} else
+	} else {
 		_visionVelTimeout = false;
+	}
 
 	if((hrt_absolute_time() -_time_last_vicon > VICON_TIMEOUT) && _viconInitialized)
 	{
@@ -324,7 +320,6 @@ void BlockLocalPositionEstimatorMulti::update() {
 }
 
 void BlockLocalPositionEstimatorMulti::initBaro(const sensor_combined_s & msg) {
-	// collect baro data
 	if (!_baroInitialized &&
 		(msg.baro_timestamp != _time_last_baro)) {
 		_time_last_baro = msg.baro_timestamp;
@@ -340,7 +335,6 @@ void BlockLocalPositionEstimatorMulti::initBaro(const sensor_combined_s & msg) {
 }
 
 void BlockLocalPositionEstimatorMulti::initGps(const vehicle_gps_position_s & msg) {
-	// collect gps data
 	if (!_gpsInitialized && msg.fix_type > 2) {
 		double lat = msg.lat*1e-7;
 		double lon = msg.lon*1e-7;
@@ -369,7 +363,6 @@ void BlockLocalPositionEstimatorMulti::initLidar(const distance_sensor_s & msg) 
 	
 	if (msg.type != distance_sensor_s::MAV_DISTANCE_SENSOR_LASER) return;
 	
-	// collect lidar data
 	bool valid = false;
 	float d = msg.current_distance;
 	if (d < msg.max_distance &&
@@ -395,7 +388,6 @@ void BlockLocalPositionEstimatorMulti::initSonar(const distance_sensor_s & msg) 
 
 	if(msg.type != distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND) return;
 
-	// collect sonar data
 	bool valid = false;
 	float d = msg.current_distance;
 	if (d < msg.max_distance &&
@@ -419,7 +411,6 @@ void BlockLocalPositionEstimatorMulti::initSonar(const distance_sensor_s & msg) 
 
 void BlockLocalPositionEstimatorMulti::initFlow(const optical_flow_s & msg) {
 	
-	// collect pixel flow data 
 	if (!_flowInitialized) {
 		// increament sums for mean
 		_flowMeanQual += msg.quality;
@@ -446,7 +437,6 @@ void BlockLocalPositionEstimatorMulti::initFlow(const optical_flow_s & msg) {
 }
 
 void BlockLocalPositionEstimatorMulti::initVisionPos(const vision_position_estimate_s & msg) {
-	// collect vision position data
 	if (!_visionPosInitialized) {
 		// increament sums for mean
 		math::Vector<3> pos;
@@ -466,7 +456,6 @@ void BlockLocalPositionEstimatorMulti::initVisionPos(const vision_position_estim
 }
 
 void BlockLocalPositionEstimatorMulti::initVisionVel(const vision_speed_estimate_s & msg) {
-	// collect vision velocity data
 	if (!_visionVelInitialized) {
 		// increament sums for mean
 		math::Vector<3> vel;
@@ -486,7 +475,6 @@ void BlockLocalPositionEstimatorMulti::initVisionVel(const vision_speed_estimate
 }
 
 void BlockLocalPositionEstimatorMulti::initVicon(const vehicle_vicon_position_s & msg) {
-	// collect vicon data
 	if (!_viconInitialized) {
 		// increament sums for mean
 		math::Vector<3> pos;
@@ -506,7 +494,6 @@ void BlockLocalPositionEstimatorMulti::initVicon(const vehicle_vicon_position_s 
 }
 
 void BlockLocalPositionEstimatorMulti::publishLocalPos(bool z_valid, bool xy_valid) {
-	// publish local position
 	if (isfinite(_x(X_x)) && isfinite(_x(X_y)) && isfinite(_x(X_z)) &&
 		isfinite(_x(X_vx)) && isfinite(_x(X_vy))
 		&& isfinite(_x(X_vz))) {
@@ -541,7 +528,6 @@ void BlockLocalPositionEstimatorMulti::publishLocalPos(bool z_valid, bool xy_val
 }
 
 void BlockLocalPositionEstimatorMulti::publishGlobalPos(bool dead_reckoning) {
-	// publish global position
 	double lat = 0;
 	double lon = 0;
 	map_projection_reproject(&_map_ref, _x(X_x), _x(X_y), &lat, &lon);
