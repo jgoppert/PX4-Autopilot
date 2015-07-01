@@ -1,2 +1,0 @@
-/home/jgoppert/git/px4/Firmware/src/modules/commander2/fsm_main_state/build-mc/CMakeFiles/fsm.dir
-/home/jgoppert/git/px4/Firmware/src/modules/commander2/fsm_main_state/build-mc/CMakeFiles/test_fsm_main_state.dir

@@ -1,1 +1,0 @@
-/usr/local/bin/goto-cc       CMakeFiles/test_fsm_main_state.dir/test_fsm_main_state.cpp.obj  -o test_fsm_main_state  libfsm.a 

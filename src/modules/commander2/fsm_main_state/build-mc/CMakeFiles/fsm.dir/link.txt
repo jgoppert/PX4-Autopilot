@@ -1,2 +1,0 @@
-/usr/bin/ar cr libfsm.a  CMakeFiles/fsm.dir/FsmMainState.cpp.obj CMakeFiles/fsm.dir/MainState.cpp.obj CMakeFiles/fsm.dir/MainStateManual.cpp.obj
-/usr/bin/ranlib libfsm.a
