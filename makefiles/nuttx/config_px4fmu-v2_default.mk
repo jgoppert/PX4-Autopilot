@@ -68,6 +68,7 @@ MODULES		+= systemcmds/ver
 # General system control
 #
 MODULES		+= modules/commander
+MODULES		+= modules/commander2
 MODULES		+= modules/navigator
 MODULES		+= modules/mavlink
 MODULES		+= modules/gpio_led
