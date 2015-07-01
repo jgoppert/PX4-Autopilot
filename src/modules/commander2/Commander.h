@@ -34,14 +34,14 @@
 #pragma once
 
 /**
- * @file Commander2.h
+ * @file Commander.h
  * @author James Goppert <james.goppert@gmail.com>
  *
  */
 
 #include "fsm_main_state/FsmMainState.h"
 
-class Commander2 {
+class Commander {
 private:
 	FsmMainState fsmMainState;
 };

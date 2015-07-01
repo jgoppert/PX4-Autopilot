@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file Commander2.cpp
+ * @file Commander.cpp
  * @author James Goppert <james.goppert@gmail.com>
  *
  */
 
-#include "Commander2.h"
+#include "Commander.h"

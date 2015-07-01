@@ -50,7 +50,7 @@
 #include <drivers/drv_hrt.h>
 #include <math.h>
 
-#include "Commander2.h"
+#include "Commander.h"
 
 static bool thread_should_exit = false;     /**< Deamon exit flag */
 static bool thread_running = false;     /**< Deamon status flag */
@@ -150,7 +150,7 @@ int commander2_thread_main(int argc, char *argv[])
 
 	warnx("starting");
 
-	Commander2 commander;
+	Commander commander;
 
 	thread_running = true;
 

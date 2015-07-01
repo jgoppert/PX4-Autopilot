@@ -43,5 +43,5 @@
 
 class FsmMainState {
 public:
-	MainState * state;	
+	MainState state;	
 };
