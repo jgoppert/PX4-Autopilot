@@ -25,9 +25,9 @@ add_library(fsm
 
 link_libraries(fsm)
 
-add_executable(test_c
-	src/test_c.c
+add_executable(test_fsm
+	src/test_fsm.c
 	)
-add_test(test_c
-	${CBMC} ${CBMC_FLAGS} test_c)
+add_test(test_fsm
+	${CBMC} ${CBMC_FLAGS} test_fsm)
 

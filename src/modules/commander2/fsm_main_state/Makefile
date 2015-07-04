@@ -20,5 +20,7 @@ test-mc: build-mc
 clean:
 	rm -rf build build-mc
 
+graph: build-mc
+	cd build-mc && goto-instrument test_fsm --dot > graph.dot && sed -i '1d' graph.dot && dot -Tsvg -q graph.dot > graph.svg && eog graph.svg
 
-.PHONY: test clean build build-mc test-mc
+.PHONY: test clean build build-mc test-mc graph
