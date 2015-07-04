@@ -5,6 +5,7 @@ find_program(GOTO_CC goto-cc)
 find_program(GOTO_INST goto-instrument)
 
 set(CBMC_FLAGS
+	--beautify
 	--bounds-check
 	--div-by-zero-check
 	--pointer-check

@@ -1,10 +1,12 @@
 all: test test-mc
 
+CTEST_ARGS?="-V"
+
 build:
 	mkdir -p build && cd build && cmake .. && make
 
 test: build
-	cd build && ctest -V
+	cd build && ctest $(CTEST_ARGS)
 
 build-mc:
 	mkdir -p build-mc && \
@@ -13,7 +15,7 @@ build-mc:
 		make
 
 test-mc: build-mc
-	cd build-mc && ctest -V
+	cd build-mc && ctest $(CTEST_ARGS)
 
 clean:
 	rm -rf build build-mc
