@@ -20,6 +20,7 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vision_position_estimate.h>
+#include <uORB/topics/vision_speed_estimate.h>
 #include <uORB/topics/att_pos_mocap.h>
 
 // uORB Publications
@@ -100,6 +101,7 @@ private:
 	static const uint8_t n_y_lidar = 1;
 	static const uint8_t n_y_gps = 6;
 	static const uint8_t n_y_vision_pos = 3;
+	static const uint8_t n_y_vision_vel = 3;
 	static const uint8_t n_y_mocap = 3;
 	enum {X_x=0, X_y, X_z, X_vx, X_vy, X_vz}; //, X_bx, X_by, X_bz};
 	enum {U_ax=0, U_ay, U_az};
@@ -125,6 +127,7 @@ private:
 	void correctFlow();
 	void correctSonar();
 	void correctVisionPos();
+	void correctVisionVel();
 	void correctmocap();
 
 	// sensor initialization
@@ -135,6 +138,7 @@ private:
 	void initSonar();
 	void initFlow();
 	void initVisionPos();
+	void initVisionVel();
 	void initmocap();
 
 	// publications
@@ -159,6 +163,7 @@ private:
 	uORB::Subscription<home_position_s> _sub_home;
 	uORB::Subscription<vehicle_gps_position_s> _sub_gps;
 	uORB::Subscription<vision_position_estimate_s> _sub_vision_pos;
+	uORB::Subscription<vision_speed_estimate_s> _sub_vision_vel;
 	uORB::Subscription<att_pos_mocap_s> _sub_mocap;
 
 	// publications
@@ -190,6 +195,8 @@ private:
 
 	BlockParamFloat  _vision_xy_stddev;
 	BlockParamFloat  _vision_z_stddev;
+	BlockParamFloat  _vision_vxy_stddev;
+	BlockParamFloat  _vision_vz_stddev;
 	BlockParamInt    _no_vision;
 	BlockParamFloat  _beta_max;
 
@@ -209,6 +216,7 @@ private:
 	uint64_t _time_last_lidar;
 	uint64_t _time_last_sonar;
 	uint64_t _time_last_vision_p;
+	uint64_t _time_last_vision_v;
 	uint64_t _time_last_mocap;
 	float 	 _altHome;
 	int 	 _mavlink_fd;
@@ -220,6 +228,7 @@ private:
 	bool _sonarInitialized;
 	bool _flowInitialized;
 	bool _visionPosInitialized;
+	bool _visionVelInitialized;
 	bool _mocapInitialized;
 
 	// init counts
@@ -229,6 +238,7 @@ private:
 	int _sonarInitCount;
 	int _flowInitCount;
 	int _visionPosInitCount;
+	int _visionVelInitCount;
 	int _mocapInitCount;
 
 	// reference altitudes
@@ -238,6 +248,7 @@ private:
 	float _sonarAltHome;
 	float _flowAltHome;
 	math::Vector<3> _visionHome;
+	math::Vector<3> _visionBaseVel;
 	math::Vector<3> _mocapHome;
 
 	// flow integration
@@ -256,9 +267,11 @@ private:
 	int _flowFault;
 	int _sonarFault;
 	int _visionPosFault;
+	int _visionVelFault;
 	int _mocapFault;
 	
 	bool _visionPosTimeout;
+	bool _visionVelTimeout;
 	bool _mocapTimeout;
 
 	perf_counter_t _loop_perf;

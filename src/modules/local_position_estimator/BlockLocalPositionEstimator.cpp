@@ -8,6 +8,7 @@ static const int 		MIN_FLOW_QUALITY = 100;
 static const int 		REQ_INIT_COUNT = 100;
 
 static const uint32_t 		VISION_POSITION_TIMEOUT = 500000;
+static const uint32_t 		VISION_VELOCITY_TIMEOUT = 500000;
 static const uint32_t 		MOCAP_TIMEOUT = 200000;	 
 
 static const uint32_t 		XY_SRC_TIMEOUT = 2000000;
@@ -34,6 +35,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_sub_home(ORB_ID(home_position), 0, 0, &getSubscriptions()),
 	_sub_gps(ORB_ID(vehicle_gps_position), 0, 0, &getSubscriptions()),
 	_sub_vision_pos(ORB_ID(vision_position_estimate), 0, 0, &getSubscriptions()),
+	_sub_vision_vel(ORB_ID(vision_speed_estimate), 0, 0, &getSubscriptions()),
 	_sub_mocap(ORB_ID(att_pos_mocap), 0, 0, &getSubscriptions()),
 
 	// publications
@@ -58,6 +60,8 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_gps_vz_stddev(this, "GPS_VZ"),
 	_vision_xy_stddev(this, "VIS_XY"),
 	_vision_z_stddev(this, "VIS_Z"),
+	_vision_vxy_stddev(this, "VIS_VXY"),
+	_vision_vz_stddev(this, "VIS_VZ"),
 	_no_vision(this, "NO_VIS"),
 	_beta_max(this, "BETA_MAX"),
 	_mocap_p_stddev(this, "VIC_P"),
@@ -74,6 +78,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_time_last_lidar(0),
 	_time_last_sonar(0),
 	_time_last_vision_p(0),
+	_time_last_vision_v(0),
 	_time_last_mocap(0),
 	_altHome(0),
 
@@ -87,6 +92,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_sonarInitialized(false),
 	_flowInitialized(false),
 	_visionPosInitialized(false),
+	_visionVelInitialized(false),
 	_mocapInitialized(false),
 
 	// init counts
@@ -96,6 +102,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_sonarInitCount(0),
 	_flowInitCount(0),
 	_visionPosInitCount(0),
+	_visionVelInitCount(0),
 	_mocapInitCount(0),
 
 	// reference altitudes
@@ -104,6 +111,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_lidarAltHome(0),
 	_sonarAltHome(0),
 	_visionHome(),
+	_visionBaseVel(),
 	_mocapHome(),
 
 	// flow integration
@@ -122,10 +130,12 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_flowFault(0),
 	_sonarFault(0),
 	_visionPosFault(0),
+	_visionVelFault(0),
 	_mocapFault(0),
 
 	//timeouts
 	_visionPosTimeout(true),
+	_visionVelTimeout(true),
 	_mocapTimeout(true),
 
 	// loop performance
@@ -208,6 +218,7 @@ void BlockLocalPositionEstimator::update() {
 	bool gpsUpdated = _sub_gps.updated();
 	bool homeUpdated = _sub_home.updated();
 	bool visionPosUpdated = _sub_vision_pos.updated();
+	bool visionVelUpdated = _sub_vision_vel.updated();
 	bool mocapUpdated = _sub_mocap.updated();
 
 	// get new data
@@ -233,6 +244,17 @@ void BlockLocalPositionEstimator::update() {
 	} else
 		_visionPosTimeout = false;
 
+	if((hrt_absolute_time() - _time_last_vision_v > VISION_VELOCITY_TIMEOUT) && _visionVelInitialized)
+	{
+		if(!_visionVelTimeout)
+		{
+			_visionVelTimeout = true;
+			mavlink_log_info(_mavlink_fd, "[lpe] vision velocity timeout ");
+			warnx("[lpe] vision velocity timeout ");
+		}
+	} else
+		_visionVelTimeout = false;
+
 	if((hrt_absolute_time() -_time_last_mocap > MOCAP_TIMEOUT) && _mocapInitialized)
 	{
 		if(!_mocapTimeout)
@@ -251,6 +273,7 @@ void BlockLocalPositionEstimator::update() {
 		(_gpsInitialized && !_gpsFault) ||
  		(_flowInitialized && !_flowFault) ||
  		(_visionPosInitialized && !_visionPosTimeout && !_visionPosFault) ||
+ 		(_visionVelInitialized && !_visionVelTimeout && !_visionVelFault) ||
  		(_mocapInitialized && !_mocapTimeout && !_mocapFault);
 
 	if(canEstimateXY)
@@ -341,6 +364,12 @@ void BlockLocalPositionEstimator::update() {
 				initVisionPos();
 			else
 				correctVisionPos();
+		}
+		if (visionVelUpdated) {
+			if (!_visionVelInitialized)
+				initVisionVel();
+			else
+				correctVisionVel();
 		}
 	}
 	if (mocapUpdated) {
@@ -516,6 +545,26 @@ void BlockLocalPositionEstimator::initVisionPos() {
 			warnx("[lpe] vision position init: "
 					"%f, %f, %f m", double(pos(0)), double(pos(1)), double(pos(2)));
 			_visionPosInitialized = true;
+		}
+	}
+}
+
+void BlockLocalPositionEstimator::initVisionVel() {
+	// collect vision velocity data
+	if (!_visionVelInitialized) {
+		// increament sums for mean
+		math::Vector<3> vel;
+		vel(0) = _sub_vision_vel.get().x;
+		vel(1) = _sub_vision_vel.get().y;
+		vel(2) = _sub_vision_vel.get().z;
+		_visionBaseVel += vel;
+		if (_visionVelInitCount++ > REQ_INIT_COUNT) {
+			_visionBaseVel /= _visionVelInitCount;
+			mavlink_log_info(_mavlink_fd, "[lpe] vision velocity init: "
+					"%f, %f, %f m/s", double(vel(0)), double(vel(1)), double(vel(2)));
+			warnx("[lpe] vision velocity init: "
+					"%f, %f, %f m/s", double(vel(0)), double(vel(1)), double(vel(2)));
+			_visionVelInitialized = true;
 		}
 	}
 }
@@ -1110,6 +1159,56 @@ void BlockLocalPositionEstimator::correctVisionPos() {
 
 	_time_last_vision_p = _sub_vision_pos.get().timestamp_boot;
 }
+
+void BlockLocalPositionEstimator::correctVisionVel() {
+
+	math::Vector<3> y;
+	y(3) = _sub_vision_vel.get().x - _visionBaseVel(0);
+	y(4) = _sub_vision_vel.get().y - _visionBaseVel(1);
+	y(5) = _sub_vision_vel.get().z - _visionBaseVel(2);
+
+	// vision measurement matrix, measures velocity
+	math::Matrix<n_y_vision_pos, n_x> C;
+	C(Y_vision_vx, X_vx) = 1;
+	C(Y_vision_vy, X_vy) = 1;
+	C(Y_vision_vz, X_vz) = 1;
+
+	// noise matrix
+	math::Matrix<n_y_vision_vel, n_y_vision_vel> R;
+	R(Y_vision_vx, Y_vision_vx) = _vision_vxy_stddev.get()*_vision_vxy_stddev.get();
+	R(Y_vision_vy, Y_vision_vy) = _vision_vxy_stddev.get()*_vision_vxy_stddev.get();
+	R(Y_vision_vz, Y_vision_vz) = _vision_vz_stddev.get()*_vision_vz_stddev.get();
+
+	// residual
+	math::Matrix<3,3> S_I = ((C*_P*C.transposed()) + R).inversed();
+	math::Vector<3> r = y - C*_x;
+
+	// fault detection
+	float beta = sqrtf(r*(S_I*r));
+	if (beta > _beta_max.get()) {
+		if (!_visionVelFault) {
+			mavlink_log_info(_mavlink_fd, "[lpe] vision velocity fault, beta %5.2f", double(beta));
+			warnx("[lpe] vision position fault, beta %5.2f", double(beta));
+		}
+		_visionVelFault = 1;
+		// trust less
+		S_I = ((C*_P*C.transposed()) + R*10).inversed();
+	} else if (_visionVelFault) {
+		_visionVelFault = 0;
+		mavlink_log_info(_mavlink_fd, "[lpe] vision velocity OK");
+		warnx("[lpe] vision velocity OK");
+	}
+
+	// kalman filter correction if no fault
+	if (_visionVelFault < 2) {
+		math::Matrix<n_x, n_y_vision_vel> K = _P*C.transposed()*S_I;
+		_x += K*r;
+		_P -= K*C*_P;
+	}
+
+	_time_last_vision_v = _sub_vision_vel.get().timestamp_boot;
+}
+
 
 void BlockLocalPositionEstimator::correctmocap() {
 

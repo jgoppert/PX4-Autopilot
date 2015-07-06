@@ -138,6 +138,26 @@ PARAM_DEFINE_FLOAT(LPE_VIS_XY, 0.5f);
 PARAM_DEFINE_FLOAT(LPE_VIS_Z, 0.5f);
 
 /**
+ * Vision xy velocity standard deviation.
+ *
+ * @group Local Position Estimator
+ * @unit m/s
+ * @min 0.01
+ * @max 2
+ */
+PARAM_DEFINE_FLOAT(LPE_VIS_VXY, 1.0f);
+
+/**
+ * Vision z velocity standard deviation.
+ *
+ * @group Local Position Estimator
+ * @unit m/s
+ * @min 0.01
+ * @max 2
+ */
+PARAM_DEFINE_FLOAT(LPE_VIS_VZ, 1.0f);
+
+/**
  * Circuit breaker to disable vision input.
  *
  * Set to the appropriate key (328754) to disable vision input.
