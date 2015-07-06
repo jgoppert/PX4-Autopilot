@@ -189,7 +189,7 @@ int LidarLitePWM::measure()
 	_range.covariance = 0.0f;
 	_range.orientation = 8;
 	/* TODO: set proper ID */
-	_range.id = 0;
+	_range.id = 1;
 
 	/* Due to a bug in older versions of the LidarLite firmware, we have to reset sensor on (distance == 0) */
 	if (_range.current_distance <= 0.0f) {

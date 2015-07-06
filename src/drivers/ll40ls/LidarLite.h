@@ -44,8 +44,9 @@
 #include <drivers/drv_range_finder.h>
 
 /* Device limits */
-#define LL40LS_MIN_DISTANCE (0.00f)
-#define LL40LS_MAX_DISTANCE (60.00f)
+#define LL40LS_MIN_DISTANCE (0.1f)
+#define LL40LS_MAX_DISTANCE (30.00f)	// This is a sensible limit, since tests show
+					// the lidar doesn't really work above 30m
 
 // normal conversion wait time
 #define LL40LS_CONVERSION_INTERVAL 50*1000UL /* 50ms */
