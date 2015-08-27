@@ -226,17 +226,17 @@ int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flight
 	 * is running) */
 	limitOverride.applyOverride(*outputLimiterThrottle, *outputLimiterPitch);
 
-	/* Write part of the status message */
-	_status.get().flightPathAngleSp = flightPathAngleSp;
-	_status.get().flightPathAngle = flightPathAngle;
-	_status.get().flightPathAngleFiltered = flightPathAngleFiltered;
-	_status.get().airspeedDerivativeSp = airspeedDerivativeSp;
-	_status.get().airspeedDerivative = airspeedDerivative;
-	_status.get().totalEnergyRateSp = totalEnergyRateSp;
-	_status.get().totalEnergyRate = totalEnergyRate;
-	_status.get().energyDistributionRateSp = energyDistributionRateSp;
-	_status.get().energyDistributionRate = energyDistributionRate;
-	_status.get().mode = mode;
+	// /* Write part of the status message */
+	// _status.flightPathAngleSp = flightPathAngleSp;
+	// _status.flightPathAngle = flightPathAngle;
+	// _status.flightPathAngleFiltered = flightPathAngleFiltered;
+	// _status.airspeedDerivativeSp = airspeedDerivativeSp;
+	// _status.airspeedDerivative = airspeedDerivative;
+	// _status.totalEnergyRateSp = totalEnergyRateSp;
+	// _status.totalEnergyRate = totalEnergyRate;
+	// _status.energyDistributionRateSp = energyDistributionRateSp;
+	// _status.energyDistributionRate = energyDistributionRate;
+	// _status.mode = mode;
 
 	/** update control blocks **/
 	/* update total energy rate control block */

@@ -1,7 +1,8 @@
 #pragma once
 
+#include <cmath>
 #include <controllib/uorb/blocks.hpp>
-#include <mathlib/mathlib.h>
+#include <px4_eigen.h>
 #include <systemlib/perf_counter.h>
 #include <lib/geo/geo.h>
 
@@ -31,6 +32,7 @@
 #define CBRK_NO_VISION_KEY	328754
 
 using namespace control;
+using namespace Eigen;
 
 enum fault_t {
 	FAULT_NONE = 0,
@@ -247,8 +249,8 @@ private:
 	float _lidarAltHome;
 	float _sonarAltHome;
 	float _flowAltHome;
-	math::Vector<3> _visionHome;
-	math::Vector<3> _mocapHome;
+	Vector3f _visionHome;
+	Vector3f _mocapHome;
 
 	// flow integration
 	float _flowX;
@@ -281,7 +283,8 @@ private:
 	perf_counter_t _err_perf;
 
 	// state space
-	math::Vector<n_x>  _x; // state vector
-	math::Vector<n_u>  _u; // input vector
-	math::Matrix<n_x, n_x>  _P; // state covariance matrix
+	Matrix<float, n_x, 1>  _x; // state vector
+	Matrix<float, n_u, 1>  _u; // input vector
+	#undef _P;
+	Matrix<float, n_x, n_x>  _P; // state covariance matrix
 };
