@@ -41,4 +41,9 @@ SRCS		= local_position_estimator_main.cpp \
 		  BlockLocalPositionEstimator.cpp \
 		  params.c
 
-EXTRACXXFLAGS	= -Wframe-larger-than=6500
+EXTRACXXFLAGS	= -Wframe-larger-than=6500 -Wno-float-equal
+
+ifneq ($(USE_GCC), 0)
+EXTRACXXFLAGS += -Wno-double-promotion -Wno-error=logical-op -w
+else EXTRACXXFLAGS += -Wno-unknown-warning-option
+endif
