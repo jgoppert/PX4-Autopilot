@@ -185,7 +185,7 @@ add_custom_command(OUTPUT ${MSG_MULTI_FILES_OUT}
 		-e msg/templates/px4/uorb
 		-t ${CMAKE_BINARY_DIR}/multi_topics_temporary/${TARGET_OS}
 		-p "px4_"
-	DEPENDS ${MSG_FILES_IN}
+	DEPENDS git_genmsg git_gencpp ${MSG_FILES_IN}
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 	COMMENT "Generating uORB topic multi headers for ${TARGET_OS}"
 	VERBATIM
