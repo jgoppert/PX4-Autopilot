@@ -1,7 +1,6 @@
 #include "BlockLocalPositionEstimator.hpp"
 #include <mavlink/mavlink_log.h>
 #include <fcntl.h>
-#include <nuttx/math.h>
 #include <systemlib/err.h>
 
 static const int 		MIN_FLOW_QUALITY = 100;
@@ -141,7 +140,9 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_err_perf(),
 
 	// kf matrices
-	_x(), _u(), _P()
+	_x(Matrix<float, n_x, 1>::Zero()),
+	_u(Matrix<float, n_u, 1>::Zero()),
+	_P(Matrix<float, n_x, n_x>::Identity())
 {
 	// setup event triggering based on new flow messages to integrate
 	_polls[POLL_FLOW].fd = _sub_flow.getHandle();
@@ -154,7 +155,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_polls[POLL_SENSORS].events = POLLIN;
 
 	// initialize P to identity*0.1
-	_P.identity();
+	_P.Identity();
 	_P *= 0.1;
 
 	// perf counters
@@ -287,17 +288,15 @@ void BlockLocalPositionEstimator::update()
 		// should we do a reinit
 		// of sensors here?
 		// don't want it to take too long
-		if (!isfinite(_x(i))) {
+		mavlink_log_info(_mavlink_fd,"_x: %3.3f",_x(i));
+		if (!PX4_ISFINITE(_x(0, i))) {
 			reinit_x = true;
 			break;
 		}
 	}
 
 	if (reinit_x) {
-		for (int i = 0; i < n_x; i++) {
-			_x(i) = 0;
-		}
-
+		_x.setZero();
 		mavlink_log_info(_mavlink_fd, "[lpe] reinit x");
 		warnx("[lpe] reinit x");
 	}
@@ -307,7 +306,7 @@ void BlockLocalPositionEstimator::update()
 
 	for (int i = 0; i < n_x; i++) {
 		for (int j = 0; j < n_x; j++) {
-			if (!isfinite(_P(i, j))) {
+			if (!PX4_ISFINITE(_P(i, j))) {
 				reinit_P = true;
 				break;
 			}
@@ -319,7 +318,7 @@ void BlockLocalPositionEstimator::update()
 	if (reinit_P) {
 		mavlink_log_info(_mavlink_fd, "[lpe] reinit P");
 		warnx("[lpe] reinit P");
-		_P.identity();
+		_P.Identity();
 		_P *= 0.1;
 	}
 
@@ -578,10 +577,7 @@ void BlockLocalPositionEstimator::initVisionPos()
 	// collect vision position data
 	if (!_visionPosInitialized) {
 		// increament sums for mean
-		math::Vector<3> pos;
-		pos(0) = _sub_vision_pos.get().x;
-		pos(1) = _sub_vision_pos.get().y;
-		pos(2) = _sub_vision_pos.get().z;
+		Vector3f pos{_sub_vision_pos.get().x, _sub_vision_pos.get().y, _sub_vision_pos.get().z};
 		_visionHome += pos;
 
 		if (_visionPosInitCount++ > REQ_INIT_COUNT) {
@@ -600,10 +596,7 @@ void BlockLocalPositionEstimator::initmocap()
 	// collect mocap data
 	if (!_mocapInitialized) {
 		// increament sums for mean
-		math::Vector<3> pos;
-		pos(0) = _sub_mocap.get().x;
-		pos(1) = _sub_mocap.get().y;
-		pos(2) = _sub_mocap.get().z;
+		Vector3f pos{_sub_vision_pos.get().x, _sub_vision_pos.get().y, _sub_vision_pos.get().z};
 		_mocapHome += pos;
 
 		if (_mocapInitCount++ > REQ_INIT_COUNT) {
@@ -620,9 +613,9 @@ void BlockLocalPositionEstimator::initmocap()
 void BlockLocalPositionEstimator::publishLocalPos()
 {
 	// publish local position
-	if (isfinite(_x(X_x)) && isfinite(_x(X_y)) && isfinite(_x(X_z)) &&
-	    isfinite(_x(X_vx)) && isfinite(_x(X_vy))
-	    && isfinite(_x(X_vz))) {
+	if (PX4_ISFINITE(_x(X_x)) && PX4_ISFINITE(_x(X_y)) && PX4_ISFINITE(_x(X_z)) &&
+	    PX4_ISFINITE(_x(X_vx)) && PX4_ISFINITE(_x(X_vy))
+	    && PX4_ISFINITE(_x(X_vz))) {
 		_pub_lpos.get().timestamp = _timeStamp;
 		_pub_lpos.get().xy_valid = _canEstimateXY;
 		_pub_lpos.get().z_valid = _canEstimateZ;
@@ -660,9 +653,9 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 	map_projection_reproject(&_map_ref, _x(X_x), _x(X_y), &lat, &lon);
 	float alt = -_x(X_z) + _altHome;
 
-	if (isfinite(lat) && isfinite(lon) && isfinite(alt) &&
-	    isfinite(_x(X_vx)) && isfinite(_x(X_vy)) &&
-	    isfinite(_x(X_vz))) {
+	if (PX4_ISFINITE(lat) && PX4_ISFINITE(lon) && PX4_ISFINITE(alt) &&
+	    PX4_ISFINITE(_x(X_vx)) && PX4_ISFINITE(_x(X_vy)) &&
+	    PX4_ISFINITE(_x(X_vz))) {
 		_pub_gpos.get().timestamp = _timeStamp;
 		_pub_gpos.get().time_utc_usec = _sub_gps.get().time_utc_usec;
 		_pub_gpos.get().lat = lat;
@@ -684,10 +677,10 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 void BlockLocalPositionEstimator::publishFilteredFlow()
 {
 	// publish filtered flow
-	if (isfinite(_pub_filtered_flow.get().sumx) &&
-	    isfinite(_pub_filtered_flow.get().sumy) &&
-	    isfinite(_pub_filtered_flow.get().vx) &&
-	    isfinite(_pub_filtered_flow.get().vy)) {
+	if (PX4_ISFINITE(_pub_filtered_flow.get().sumx) &&
+	    PX4_ISFINITE(_pub_filtered_flow.get().sumy) &&
+	    PX4_ISFINITE(_pub_filtered_flow.get().vx) &&
+	    PX4_ISFINITE(_pub_filtered_flow.get().vy)) {
 		_pub_filtered_flow.update();
 	}
 }
@@ -699,16 +692,17 @@ void BlockLocalPositionEstimator::predict()
 	if (!_canEstimateXY && !_canEstimateZ) { return; }
 
 	if (_integrate.get() && _sub_att.get().R_valid) {
-		math::Matrix<3, 3> R_att(_sub_att.get().R);
-		math::Vector<3> a(_sub_sensor.get().accelerometer_m_s2);
+		Matrix3f R_att(_sub_att.get().R);
+		Vector3f a(_sub_sensor.get().accelerometer_m_s2);
 		_u = R_att * a;
 		_u(2) += 9.81f; // add g
 
 	} else
-		_u = math::Vector<3>({0, 0, 0});
+		_u = Vector3f{0, 0, 0};
 
 	// dynamics matrix
-	math::Matrix<n_x, n_x>  A; // state dynamics matrix
+	Matrix<float, n_x, n_x>  A; // state dynamics matrix
+	A.setZero();
 	// derivative of position is velocity
 	A(X_x, X_vx) = 1;
 	A(X_y, X_vy) = 1;
@@ -720,19 +714,22 @@ void BlockLocalPositionEstimator::predict()
 	//_A(X_vz, X_bz) = 1;
 
 	// input matrix
-	math::Matrix<n_x, n_u>  B; // input matrix
+	Matrix<float, n_x, n_u>  B; // input matrix
+	B.setZero();
 	B(X_vx, U_ax) = 1;
 	B(X_vy, U_ay) = 1;
 	B(X_vz, U_az) = 1;
 
 	// input noise covariance matrix
-	math::Matrix<n_u, n_u> R;
+	Matrix<float, n_u, n_u> R;
+	R.setZero();
 	R(U_ax, U_ax) = _accel_xy_noise_power.get();
 	R(U_ay, U_ay) = _accel_xy_noise_power.get();
 	R(U_az, U_az) = _accel_z_noise_power.get();
 
 	// process noise covariance matrix
-	math::Matrix<n_x, n_x>  Q;
+	Matrix<float, n_x, n_x>  Q;
+	Q.setZero();
 	Q(X_x, X_x) = _pn_p_noise_power.get();
 	Q(X_y, X_y) = _pn_p_noise_power.get();
 	Q(X_z, X_z) = _pn_p_noise_power.get();
@@ -741,7 +738,7 @@ void BlockLocalPositionEstimator::predict()
 	Q(X_vz, X_vz) = _pn_v_noise_power.get();
 
 	// continuous time kalman filter prediction
-	math::Vector<n_x>  dx = (A * _x + B * _u) * getDt();
+	Matrix<float, n_x, 1>  dx = (A * _x + B * _u) * getDt();
 
 	// only predict for components we have
 	// valid measurements for
@@ -759,8 +756,8 @@ void BlockLocalPositionEstimator::predict()
 
 	// propagate
 	_x += dx;
-	_P += (A * _P + _P * A.transposed() +
-	       B * R * B.transposed() + Q) * getDt();
+	_P += (A * _P + _P * A.transpose() +
+	       B * R * B.transpose() + Q) * getDt();
 
 }
 
@@ -768,18 +765,20 @@ void BlockLocalPositionEstimator::correctFlow()
 {
 
 	// flow measurement matrix and noise matrix
-	math::Matrix<n_y_flow, n_x> C;
+	Matrix<float, n_y_flow, n_x> C;
+	C.setZero();
 	C(Y_flow_x, X_x) = 1;
 	C(Y_flow_y, X_y) = 1;
 
-	math::Matrix<n_y_flow, n_y_flow> R;
+	Matrix<float, n_y_flow, n_y_flow> R;
+	R.setZero();
 	R(Y_flow_x, Y_flow_x) =
 		_flow_xy_stddev.get() * _flow_xy_stddev.get();
 	R(Y_flow_y, Y_flow_y) =
 		_flow_xy_stddev.get() * _flow_xy_stddev.get();
 
-	float flow_speed[3] = {0.0f, 0.0f, 0.0f};
-	float global_speed[3] = {0.0f, 0.0f, 0.0f};
+	Vector3f flow_speed{0.0f, 0.0f, 0.0f};
+	Vector3f global_speed{0.0f, 0.0f, 0.0f};
 
 	/* calc dt between flow timestamps */
 	/* ignore first flow msg */
@@ -793,27 +792,27 @@ void BlockLocalPositionEstimator::correctFlow()
 
 	// calculate velocity over ground
 	if (_sub_flow.get().integration_timespan > 0) {
-		flow_speed[0] = (_sub_flow.get().pixel_flow_x_integral /
+		flow_speed(0) = (_sub_flow.get().pixel_flow_x_integral /
 				 (_sub_flow.get().integration_timespan / 1e6f) -
 				 _sub_att.get().pitchspeed) *		// Body rotation correction TODO check this
 				_x(X_z);
-		flow_speed[1] = (_sub_flow.get().pixel_flow_y_integral /
+		flow_speed(1) = (_sub_flow.get().pixel_flow_y_integral /
 				 (_sub_flow.get().integration_timespan / 1e6f) -
 				 _sub_att.get().rollspeed) *		// Body rotation correction
 				_x(X_z);
 
 	} else {
-		flow_speed[0] = 0;
-		flow_speed[1] = 0;
+		flow_speed(0) = 0;
+		flow_speed(1) = 0;
 	}
 
-	flow_speed[2] = 0.0f;
+	flow_speed(2) = 0.0f;
 
 	/* update filtered flow */
-	_pub_filtered_flow.get().sumx += flow_speed[0] * dt;
-	_pub_filtered_flow.get().sumy += flow_speed[1] * dt;
-	_pub_filtered_flow.get().vx = flow_speed[0];
-	_pub_filtered_flow.get().vy = flow_speed[1];
+	_pub_filtered_flow.get().sumx += flow_speed(0) * dt;
+	_pub_filtered_flow.get().sumy += flow_speed(1) * dt;
+	_pub_filtered_flow.get().vx = flow_speed(1);
+	_pub_filtered_flow.get().vy = flow_speed(1);
 
 	// TODO add yaw rotation correction (with distance to vehicle zero)
 
@@ -822,30 +821,30 @@ void BlockLocalPositionEstimator::correctFlow()
 		float sum = 0.0f;
 
 		for (uint8_t j = 0; j < 3; j++) {
-			sum += flow_speed[j] * PX4_R(_sub_att.get().R, i, j);
+			sum += flow_speed(j) * PX4_R(_sub_att.get().R, i, j);
 		}
 
-		global_speed[i] = sum;
+		global_speed(i) = sum;
 	}
 
 	// flow integral
-	_flowX += global_speed[0] * dt;
-	_flowY += global_speed[1] * dt;
+	_flowX += global_speed(0) * dt;
+	_flowY += global_speed(1) * dt;
 
 	// measurement
-	math::Vector<2> y;
+	Vector2f y;
 	y(0) = _flowX;
 	y(1) = _flowY;
 
 	// residual
-	math::Vector<2> r = y - C * _x;
+	Vector2f r = y - C * _x;
 
 	// residual covariance, (inversed)
-	math::Matrix<n_y_flow, n_y_flow> S_I =
-		(C * _P * C.transposed() + R).inversed();
+	Matrix<float, n_y_flow, n_y_flow> S_I =
+		(C * _P * C.transpose() + R).inverse();
 
 	// fault detection
-	float beta = sqrtf(r * (S_I * r));
+	float beta = std::sqrt((r.transpose()*(S_I*r))(0));
 
 	if (_sub_flow.get().quality < MIN_FLOW_QUALITY) {
 		if (!_flowFault) {
@@ -869,8 +868,8 @@ void BlockLocalPositionEstimator::correctFlow()
 
 	// kalman filter correction if no fault
 	if (_flowFault == FAULT_NONE) {
-		math::Matrix<n_x, n_y_flow> K =
-			_P * C.transposed() * S_I;
+		Matrix<float, n_x, n_y_flow> K =
+			_P * C.transpose() * S_I;
 		_x += K * r;
 		_P -= K * C * _P;
 		// reset flow integral to current estimate of position
@@ -893,11 +892,13 @@ void BlockLocalPositionEstimator::correctSonar()
 	float d = _sub_distance.get().current_distance;
 
 	// sonar measurement matrix and noise matrix
-	math::Matrix<n_y_sonar, n_x> C;
+	Matrix<float, n_y_sonar, n_x> C;
+	C.setZero();
 	C(Y_sonar_z, X_z) = -1;
 
 	// use parameter covariance unless sensor provides reasonable value
-	math::Matrix<n_y_sonar, n_y_sonar> R;
+	Matrix<float, n_y_sonar, n_y_sonar> R;
+	R.setZero();
 	float cov = _sub_distance.get().covariance;
 
 	if (cov < 1.0e-3f) {
@@ -908,20 +909,19 @@ void BlockLocalPositionEstimator::correctSonar()
 	}
 
 	// measurement
-	math::Vector<1> y;
-	y(0) = (d - _sonarAltHome) *
+	float y = (d - _sonarAltHome) *
 	       cosf(_sub_att.get().roll) *
 	       cosf(_sub_att.get().pitch);
 
 	// residual
-	math::Vector<1> r = y - C * _x;
+	float r = y - C * _x;
 
 	// residual covariance, (inversed)
-	math::Matrix<n_y_sonar, n_y_sonar> S_I =
-		(C * _P * C.transposed() + R).inversed();
+	Matrix<float, n_y_sonar, n_y_sonar> S_I =
+		(C * _P * C.transpose() + R).inverse();
 
 	// fault detection
-	float beta = sqrtf(r * (S_I * r));
+	float beta = std::sqrt((r*(S_I*r))(0));
 
 	if (d < _sub_distance.get().min_distance ||
 	    d > _sub_distance.get().max_distance) {
@@ -946,8 +946,8 @@ void BlockLocalPositionEstimator::correctSonar()
 
 	// kalman filter correction if no fault
 	if (_sonarFault == FAULT_NONE) {
-		math::Matrix<n_x, n_y_sonar> K =
-			_P * C.transposed() * S_I;
+		Matrix<float, n_x, n_y_sonar> K =
+			_P * C.transpose() * S_I;
 		_x += K * r;
 		_P -= K * C * _P;
 	}
@@ -959,23 +959,24 @@ void BlockLocalPositionEstimator::correctSonar()
 void BlockLocalPositionEstimator::correctBaro()
 {
 
-	math::Vector<1> y;
-	y(0) = _sub_sensor.get().baro_alt_meter - _baroAltHome;
+	float y = _sub_sensor.get().baro_alt_meter - _baroAltHome;
 
 	// baro measurement matrix
-	math::Matrix<n_y_baro, n_x> C;
+	Matrix<float, n_y_baro, n_x> C;
+	C.setZero();
 	C(Y_baro_z, X_z) = -1; // measured altitude, negative down dir.
 
-	math::Matrix<n_y_baro, n_y_baro> R;
+	Matrix<float, n_y_baro, n_y_baro> R;
+	R.setZero();
 	R(0, 0) = _baro_stddev.get() * _baro_stddev.get();
 
 	// residual
-	math::Matrix<1, 1> S_I =
-		((C * _P * C.transposed()) + R).inversed();
-	math::Vector<1> r = y - (C * _x);
+	Matrix<float, 1, 1> S_I =
+		((C * _P * C.transpose()) + R).inverse();
+	float r = y - (C * _x);
 
 	// fault detection
-	float beta = sqrtf(r * (S_I * r));
+	float beta = std::sqrt((r*(S_I*r))(0));
 
 	if (beta > _beta_max.get()) {
 		if (!_baroFault) {
@@ -985,7 +986,7 @@ void BlockLocalPositionEstimator::correctBaro()
 		}
 
 		// lower baro trust
-		S_I = ((C * _P * C.transposed()) + R * 10).inversed();
+		S_I = ((C * _P * C.transpose()) + R * 10).inverse();
 
 	} else if (_baroFault) {
 		_baroFault = FAULT_NONE;
@@ -995,7 +996,7 @@ void BlockLocalPositionEstimator::correctBaro()
 
 	// kalman filter correction if no fault
 	if (_baroFault == FAULT_NONE) {
-		math::Matrix<n_x, n_y_baro> K = _P * C.transposed() * S_I;
+		Matrix<float, n_x, n_y_baro> K = _P * C.transpose() * S_I;
 		_x = _x + K * r;
 		_P -= K * C * _P;
 	}
@@ -1012,12 +1013,14 @@ void BlockLocalPositionEstimator::correctLidar()
 
 	float d = _sub_distance.get().current_distance;
 
-	math::Matrix<n_y_lidar, n_x> C;
+	Matrix<float, n_y_lidar, n_x> C;
+	C.setZero();
 	C(Y_lidar_z, X_z) = -1; // measured altitude,
 	// negative down dir.
 
 	// use parameter covariance unless sensor provides reasonable value
-	math::Matrix<n_y_lidar, n_y_lidar> R;
+	Matrix<float, n_y_lidar, n_y_lidar> R;
+	R.setZero();
 	float cov = _sub_distance.get().covariance;
 
 	if (cov < 1.0e-3f) {
@@ -1027,17 +1030,16 @@ void BlockLocalPositionEstimator::correctLidar()
 		R(0, 0) = cov;
 	}
 
-	math::Vector<1> y;
-	y(0) = (d - _lidarAltHome) *
+	float y = (d - _lidarAltHome) *
 	       cosf(_sub_att.get().roll) *
 	       cosf(_sub_att.get().pitch);
 
 	// residual
-	math::Matrix<1, 1> S_I = ((C * _P * C.transposed()) + R).inversed();
-	math::Vector<1> r = y - C * _x;
+	Matrix<float, 1, 1> S_I = ((C * _P * C.transpose()) + R).inverse();
+	float r = y - C * _x;
 
 	// fault detection
-	float beta = sqrtf(r * (S_I * r));
+	float beta = std::sqrt((r*(S_I*r))(0));
 
 	// zero is an error code for the lidar
 	if (d < _sub_distance.get().min_distance ||
@@ -1063,7 +1065,7 @@ void BlockLocalPositionEstimator::correctLidar()
 
 	// kalman filter correction if no fault
 	if (_lidarFault == FAULT_NONE) {
-		math::Matrix<n_x, n_y_lidar> K = _P * C.transposed() * S_I;
+			Matrix<float, n_x, n_y_lidar> K = _P * C.transpose() * S_I;
 		_x += K * r;
 		_P -= K * C * _P;
 	}
@@ -1088,7 +1090,7 @@ void BlockLocalPositionEstimator::correctGps()  	// TODO : use another other met
 	//printf("home: lat %10g, lon, %10g alt %10g\n", _sub_home.lat, _sub_home.lon, double(_sub_home.alt));
 	//printf("local: x %10g y %10g z %10g\n", double(px), double(py), double(pz));
 
-	math::Vector<6> y;
+	Matrix<float, 6, 1> y;
 	y(0) = px;
 	y(1) = py;
 	y(2) = pz;
@@ -1097,7 +1099,8 @@ void BlockLocalPositionEstimator::correctGps()  	// TODO : use another other met
 	y(5) = _sub_gps.get().vel_d_m_s;
 
 	// gps measurement matrix, measures position and velocity
-	math::Matrix<n_y_gps, n_x> C;
+	Matrix<float, n_y_gps, n_x> C;
+	C.setZero();
 	C(Y_gps_x, X_x) = 1;
 	C(Y_gps_y, X_y) = 1;
 	C(Y_gps_z, X_z) = 1;
@@ -1106,7 +1109,8 @@ void BlockLocalPositionEstimator::correctGps()  	// TODO : use another other met
 	C(Y_gps_vz, X_vz) = 1;
 
 	// gps covariance matrix
-	math::Matrix<n_y_gps, n_y_gps> R;
+	Matrix<float, n_y_gps, n_y_gps> R;
+	R.setZero();
 
 	// default to parameter, use gps cov if provided
 	float var_xy = _gps_xy_stddev.get() * _gps_xy_stddev.get();
@@ -1132,11 +1136,11 @@ void BlockLocalPositionEstimator::correctGps()  	// TODO : use another other met
 	R(5, 5) = var_vz;
 
 	// residual
-	math::Matrix<6, 6> S_I = ((C * _P * C.transposed()) + R).inversed();
-	math::Vector<6> r = y - C * _x;
+	Matrix<float, 6, 6> S_I = ((C * _P * C.transpose()) + R).inverse();
+	Matrix<float, 6, 1> r = y - C * _x;
 
 	// fault detection
-	float beta = sqrtf(r * (S_I * r));
+	float beta = std::sqrt((r.transpose()*(S_I*r))(0));
 	uint8_t nSat = _sub_gps.get().satellites_used;
 	float eph = _sub_gps.get().eph;
 
@@ -1162,7 +1166,7 @@ void BlockLocalPositionEstimator::correctGps()  	// TODO : use another other met
 			_gpsFault = FAULT_MINOR;
 		}
 		// trust GPS less
-		S_I = ((C * _P * C.transposed()) + R * 10).inversed();
+		S_I = ((C * _P * C.transpose()) + R * 10).inverse();
 
 	} else if (_gpsFault) {
 		_gpsFault = FAULT_NONE;
@@ -1172,7 +1176,7 @@ void BlockLocalPositionEstimator::correctGps()  	// TODO : use another other met
 
 	// kalman filter correction if no hard fault
 	if (_gpsFault == FAULT_NONE) {
-		math::Matrix<n_x, n_y_gps> K = _P * C.transposed() * S_I;
+		Matrix<float, n_x, n_y_gps> K = _P * C.transpose() * S_I;
 		_x += K * r;
 		_P -= K * C * _P;
 	}
@@ -1183,29 +1187,31 @@ void BlockLocalPositionEstimator::correctGps()  	// TODO : use another other met
 void BlockLocalPositionEstimator::correctVisionPos()
 {
 
-	math::Vector<3> y;
+	Vector3f y;
 	y(0) = _sub_vision_pos.get().x - _visionHome(0);
 	y(1) = _sub_vision_pos.get().y - _visionHome(1);
 	y(2) = _sub_vision_pos.get().z - _visionHome(2);
 
 	// vision measurement matrix, measures position
-	math::Matrix<n_y_vision_pos, n_x> C;
+	Matrix<float, n_y_vision_pos, n_x> C;
+	C.setZero();
 	C(Y_vision_x, X_x) = 1;
 	C(Y_vision_y, X_y) = 1;
 	C(Y_vision_z, X_z) = 1;
 
 	// noise matrix
-	math::Matrix<n_y_vision_pos, n_y_vision_pos> R;
+	Matrix<float, n_y_vision_pos, n_y_vision_pos> R;
+	R.setZero();
 	R(Y_vision_x, Y_vision_x) = _vision_xy_stddev.get() * _vision_xy_stddev.get();
 	R(Y_vision_y, Y_vision_y) = _vision_xy_stddev.get() * _vision_xy_stddev.get();
 	R(Y_vision_z, Y_vision_z) = _vision_z_stddev.get() * _vision_z_stddev.get();
 
 	// residual
-	math::Matrix<3, 3> S_I = ((C * _P * C.transposed()) + R).inversed();
-	math::Vector<3> r = y - C * _x;
+	Matrix3f S_I = ((C * _P * C.transpose()) + R).inverse();
+	Vector3f r = y - C * _x;
 
 	// fault detection
-	float beta = sqrtf(r * (S_I * r));
+	float beta = std::sqrt((r.transpose()*(S_I*r))(0));
 
 	if (beta > _beta_max.get()) {
 		if (!_visionPosFault) {
@@ -1215,7 +1221,7 @@ void BlockLocalPositionEstimator::correctVisionPos()
 		}
 
 		// trust less
-		S_I = ((C * _P * C.transposed()) + R * 10).inversed();
+		S_I = ((C * _P * C.transpose()) + R * 10).inverse();
 
 	} else if (_visionPosFault) {
 		_visionPosFault = FAULT_NONE;
@@ -1225,7 +1231,7 @@ void BlockLocalPositionEstimator::correctVisionPos()
 
 	// kalman filter correction if no fault
 	if (_visionPosFault == FAULT_NONE) {
-		math::Matrix<n_x, n_y_vision_pos> K = _P * C.transposed() * S_I;
+		Matrix<float, n_x, n_y_vision_pos> K = _P * C.transpose() * S_I;
 		_x += K * r;
 		_P -= K * C * _P;
 	}
@@ -1236,19 +1242,21 @@ void BlockLocalPositionEstimator::correctVisionPos()
 void BlockLocalPositionEstimator::correctmocap()
 {
 
-	math::Vector<3> y;
+	Vector3f y;
 	y(0) = _sub_mocap.get().x - _mocapHome(0);
 	y(1) = _sub_mocap.get().y - _mocapHome(1);
 	y(2) = _sub_mocap.get().z - _mocapHome(2);
 
 	// mocap measurement matrix, measures position
-	math::Matrix<n_y_mocap, n_x> C;
+	Matrix<float, n_y_mocap, n_x> C;
+	C.setZero();
 	C(Y_mocap_x, X_x) = 1;
 	C(Y_mocap_y, X_y) = 1;
 	C(Y_mocap_z, X_z) = 1;
 
 	// noise matrix
-	math::Matrix<n_y_mocap, n_y_mocap> R;
+	Matrix<float, n_y_mocap, n_y_mocap> R;
+	R.setZero();
 	float mocap_p_var = _mocap_p_stddev.get()* \
 			    _mocap_p_stddev.get();
 	R(Y_mocap_x, Y_mocap_x) = mocap_p_var;
@@ -1256,11 +1264,11 @@ void BlockLocalPositionEstimator::correctmocap()
 	R(Y_mocap_z, Y_mocap_z) = mocap_p_var;
 
 	// residual
-	math::Matrix<3, 3> S_I = ((C * _P * C.transposed()) + R).inversed();
-	math::Vector<3> r = y - C * _x;
+	Matrix3f S_I = ((C * _P * C.transpose()) + R).inverse();
+	Vector3f r = y - C * _x;
 
 	// fault detection
-	float beta = sqrtf(r * (S_I * r));
+	float beta = std::sqrt((r.transpose()*(S_I*r))(0));
 
 	if (beta > _beta_max.get()) {
 		if (!_mocapFault) {
@@ -1270,7 +1278,7 @@ void BlockLocalPositionEstimator::correctmocap()
 		}
 
 		// trust less
-		S_I = ((C * _P * C.transposed()) + R * 10).inversed();
+		S_I = ((C * _P * C.transpose()) + R * 10).inverse();
 
 	} else if (_mocapFault) {
 		_mocapFault = FAULT_NONE;
@@ -1280,7 +1288,7 @@ void BlockLocalPositionEstimator::correctmocap()
 
 	// kalman filter correction if no fault
 	if (_mocapFault == FAULT_NONE) {
-		math::Matrix<n_x, n_y_mocap> K = _P * C.transposed() * S_I;
+		Matrix<float, n_x, n_y_mocap> K = _P * C.transpose() * S_I;
 		_x += K * r;
 		_P -= K * C * _P;
 	}
