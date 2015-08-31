@@ -223,6 +223,7 @@ include_directories(
 	src/drivers/boards/${TARGET_BOARD}
 	src/lib/eigen
 	${CMAKE_BINARY_DIR}
+	${CMAKE_BINARY_DIR}/${TARGET_BOARD}/NuttX/apps/nshlib
 	${CMAKE_BINARY_DIR}/src/modules/px4_messages
 	${CMAKE_BINARY_DIR}/src/modules
 	)
@@ -511,9 +512,9 @@ elseif ("${TARGET_OS}" STREQUAL "nuttx")
 		apps
 		nuttx
 		${module_list}
-		c
-		m
+		apps
 		nuttx
+		${module_list}
 		)
 
 	# startup library
