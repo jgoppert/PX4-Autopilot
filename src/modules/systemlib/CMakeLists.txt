@@ -26,8 +26,9 @@ if (${TARGET_OS} STREQUAL "nuttx")
 		printload.c
 		up_cxxinitialize.c
 		)
+endif()
 
-elseif (${TARGET_OS} STREQUAL "qurt")
+if (NOT ${TARGET_OS} STREQUAL "qurt")
 	list(APPEND SRCS
 		hx_stream.c
 		)

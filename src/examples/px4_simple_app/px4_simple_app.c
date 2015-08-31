@@ -39,6 +39,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_posix.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <poll.h>
@@ -64,7 +65,7 @@ int px4_simple_app_main(int argc, char *argv[])
 	orb_advert_t att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);
 
 	/* one could wait for multiple topics with this technique, just using one here */
-	struct pollfd fds[] = {
+	px4_pollfd_struct_t fds[] = {
 		{ .fd = sensor_sub_fd,   .events = POLLIN },
 		/* there could be more file descriptors here, in the form like:
 		 * { .fd = other_sub_fd,   .events = POLLIN },
@@ -75,7 +76,7 @@ int px4_simple_app_main(int argc, char *argv[])
 
 	for (int i = 0; i < 5; i++) {
 		/* wait for sensor update of 1 file descriptor for 1000 ms (1 second) */
-		int poll_ret = poll(fds, 1, 1000);
+		int poll_ret = px4_poll(fds, 1, 1000);
 
 		/* handle the poll result */
 		if (poll_ret == 0) {

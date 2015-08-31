@@ -4,9 +4,30 @@
 cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 project(px4 CXX C ASM)
 
+message(STATUS "Found ar: -${CMAKE_AR}-")
+
 if (NOT ${CMAKE_VERSION} VERSION_LESS 3.0.0)
 	cmake_policy(SET CMP0046 NEW) # no non-existent targets as dependencies
 endif()
+
+##############################################################################
+#	CMake Packages/ Modules
+#
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+enable_testing()
+include(CMakeParseArguments)
+include(px4_utils)
+
+if (NOT NESTED_CMAKE_CALL)
+  px4_add_target( qurt
+                  ${CMAKE_SOURCE_DIR}/cmake/qurt-clang-hexagon.cmake 
+                  "-DTARGET_OS=qurt;-DTARGET_BOARD=hil;-DTARGET_LABEL=simple"
+                )
+
+  add_custom_target( everything DEPENDS all qurt)
+  add_custom_target( clean-all DEPENDS clean qurt-clean )
+  return()
+endif(NOT NESTED_CMAKE_CALL)
 
 
 ##############################################################################
@@ -15,14 +36,6 @@ endif()
 #=============================================================================
 #		Build options
 #
-set(NUTTX_BUILD_THREADS "4" CACHE STRING
-	"number of threads to use when building NuttX")
-set(TARGET_OS "nuttx" CACHE STRING "desired operating system")
-set_property(CACHE TARGET_OS PROPERTY STRINGS nuttx posix qurt)
-
-set(TARGET_BOARD "px4fmu-v2" CACHE STRING "target board")
-set_property(CACHE TARGET_BOARD PROPERTY STRINGS px4fmu-v2 sitl)
-
 set(TARGET_LABEL "simple" CACHE STRING "module set label")
 set_property(CACHE TARGET_LABEL PROPERTY STRINGS simple default)
 
@@ -39,7 +52,6 @@ set(VERSION_MAJOR 0)
 set(VERSION_MINOR 1)
 set(VERSION_PATCH 2)
 set(PACKAGE_CONTACT "px4users@googlegroups.com")
-set(nuttx_configs px4fmu-v2)
 
 #=============================================================================
 #		Computed parameters
@@ -48,33 +60,22 @@ set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 set(POSIX_APPS_HEADER ${CMAKE_BINARY_DIR}/apps.h)
 set(MSG_OUT_PATH ${CMAKE_BINARY_DIR}/src/modules/uORB/topics)
 set(TARGET_NAME "${TARGET_OS}-${TARGET_BOARD}-${TARGET_LABEL}")
-set(NUTTX_EXPORT_DIR ${CMAKE_BINARY_DIR}/${TARGET_BOARD}/NuttX/nuttx-export)
 string(TOUPPER ${TARGET_BOARD} BOARD_UPPER)
 string(REPLACE "-" "_" BOARD_CONFIG ${BOARD_UPPER})
+
+if(NOT DEFAULT_VISIBILITY)
+	set(DEFAULT_VISIBILITY "hidden")
+else()
+	set(DEFAULT_VISIBILITY "default")
+endif()
 
 #=============================================================================
 #		Config validation
 #
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Arm")
-else()
-	if (${TARGET_BOARD} STREQUAL "px4fmu-v2")
-		message(FATAL_ERROR "Can only build ${TARGET_NAME} on arm")
-	endif()
-endif()
-
-if (${TARGET_NAME} STREQUAL "nuttx-px4fmu-v2-simple")
-elseif (${TARGET_NAME} STREQUAL "posix-sitl-simple")
+if (${TARGET_NAME} STREQUAL "qurt-hil-simple")
 else()
 	message(FATAL_ERROR "not implemented yet: ${TARGET_NAME}")
 endif()
-
-##############################################################################
-#	CMake Packages/ Modules
-#
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
-enable_testing()
-include(CMakeParseArguments)
-include(px4_utils)
 
 ##############################################################################
 #	GIT
@@ -89,49 +90,18 @@ add_custom_target(submodule_clean
 
 # add all git submodules and paths
 add_git_submodule(mavlink mavlink/include/mavlink/v1.0)
-add_git_submodule(nuttx NuttX)
 add_git_submodule(genmsg Tools/genmsg)
 add_git_submodule(gencpp Tools/gencpp)
 add_git_submodule(gtest unittests/gtest)
 add_git_submodule(eigen src/lib/eigen) 
+if(${TARGET_OS} STREQUAL "qurt")
+#add_git_submodule(dspal src/lib/dspal) 
+endif()
 
 ##############################################################################
 #	Programs
 #
-find_program(OPENOCD openocd HINT ../../sat/bin/)
 find_package(PythonInterp REQUIRED)
-
-##############################################################################
-#	NuttX
-#
-
-#=============================================================================
-#		Patching
-#
-add_custom_target(nuttx_patch)
-file(GLOB NUTTX_PATCHES RELATIVE ${CMAKE_SOURCE_DIR}
-    ${CMAKE_SOURCE_DIR}/nuttx-patches/*.patch)
-foreach(PATCH IN LISTS NUTTX_PATCHES)
-    string(REPLACE "/" "_" PATCH_NAME ${PATCH})
-    message(STATUS nuttx-patch: ${PATCH})
-    add_custom_command(OUTPUT nuttx_patch_${PATCH_NAME}.stamp
-        COMMAND patch -p0 -N  < ${CMAKE_SOURCE_DIR}/${PATCH}
-        COMMAND touch nuttx_patch_${PATCH_NAME}.stamp
-        )
-    add_custom_target(nuttx_patch_${PATCH_NAME}
-        DEPENDS nuttx_patch_${PATCH_NAME}.stamp git_nuttx)
-    add_dependencies(nuttx_patch nuttx_patch_${PATCH_NAME})
-endforeach()
-add_dependencies(nuttx_patch git_nuttx)
-
-#=============================================================================
-#		Manage exports
-#
-add_custom_target(link_exports)
-foreach(config ${nuttx_configs})
-    add_nuttx_export(${config})
-    add_dependencies(link_exports link_export_${config})
-endforeach()
 
 ##############################################################################
 #	Code Generation
@@ -227,106 +197,15 @@ include_directories(
 	${CMAKE_BINARY_DIR}/src/modules
 	)
 
-set(WARNINGS
-    -Wall
-    -Wextra
-    -Wdouble-promotion
-    -Wshadow
-    -Wfloat-equal
-    -Wframe-larger-than=1024
-    -Wpointer-arith
-    -Wlogical-op
-    -Wmissing-declarations
-    -Wpacked
-    -Wno-unused-parameter
-    -Werror=format-security
-    -Werror=array-bounds
-    -Wfatal-errors
-    -Wformat=1
-    -Werror=unused-but-set-variable
-    -Werror=unused-variable
-    -Werror=double-promotion
-    -Werror=reorder
-	-Werror=uninitialized
-	-Werror=init-self 
-    #-Wcast-qual  - generates spurious noreturn attribute warnings,
-    #               try again later
-    #-Wconversion - would be nice, but too many "risky-but-safe"
-    #               conversions in the code
-    #-Wcast-align - would help catch bad casts in some cases,
-    #               but generates too many false positives
-    )
-
-set(OPT_FLAGS
-	-Os -g3
-	)
-
-#=============================================================================
-#		c flags
-#
-set(C_WARNINGS
-	-Wbad-function-cast
-	-Wstrict-prototypes
-	-Wold-style-declaration
-	-Wmissing-parameter-type
-	-Wmissing-prototypes
-	-Wnested-externs
-	)
-set(C_FLAGS
-	-std=gnu99
-	-fno-common
-	)
-
-#=============================================================================
-#		cxx flags
-#
-set(CXX_WARNINGS
-	-Wno-missing-field-initializers
-	)
-set(CXX_FLAGS
-	-fno-exceptions
-	-fno-rtti
-	-std=gnu++0x
-	-fno-threadsafe-statics
-	-DCONFIG_WCHAR_BUILTIN
-	-D__CUSTOM_FILE_IO__
-	)
-
 add_definitions(
 	-DCONFIG_ARCH_BOARD_${BOARD_CONFIG}
 	)
 
 #=============================================================================
-#		ld flags
-#
-set(LD_FLAGS
-	-Wl,--warn-common
-	-Wl,--gc-sections
-	)
-
-#=============================================================================
-#		misc flags
-#
-set(VISIBILITY_FLAGS
-	-fvisibility=hidden
-	"-include ${CMAKE_SOURCE_DIR}/src/include/visibility.h"
-	)
-set(EXE_LINK_FLAGS)
-
-#=============================================================================
 #		os/board specific flags
 #
-if (${TARGET_OS} STREQUAL "nuttx")
-	include_directories(
-		${NUTTX_EXPORT_DIR}/include
-		${NUTTX_EXPORT_DIR}/include/cxx
-		${NUTTX_EXPORT_DIR}/arch/chip
-		${NUTTX_EXPORT_DIR}/arch/common
-		)
-	add_definitions(
-		-D__PX4_NUTTX
-		)
-elseif(${TARGET_OS} STREQUAL "posix")
+set(CMAKE_SYSTEM_VERSION 1)
+if(${TARGET_OS} STREQUAL "posix")
 	include_directories(
 		src/platforms/posix/include
 		)
@@ -336,48 +215,39 @@ elseif(${TARGET_OS} STREQUAL "posix")
 		"-Dnoreturn_function=__attribute__\(\(noreturn\)\)"
 		-DCLOCK_MONOTONIC=1
 		)
+	# Used to call CMAKE_SYSTEM_NAME-compiler-CMAKE_SYSTEM_PROCESSOR.cmake
+	set(CMAKE_SYSTEM_NAME posix)
+	set(CMAKE_SYSTEM_PROCESSOR native)
+elseif(${TARGET_OS} STREQUAL "qurt")
+	set(DSPAL_ROOT src/lib/dspal)
+	include_directories(
+		${DSPAL_ROOT}/include 
+		${DSPAL_ROOT}/sys 
+		${DSPAL_ROOT}/sys/sys 
+		${DSPAL_ROOT}/mpu_spi/inc
+		${DSPAL_ROOT}/uart_esc/inc
+    		src/platforms/qurt/include
+    		src/platforms/posix/include
+		)
+	add_definitions(
+		-D__PX4_QURT -D__PX4_POSIX
+    		-fvisibility=${DEFAULT_VISIBILITY} -include ${PX4_INCLUDE_DIR}visibility.h
+		)
+	# Used to call CMAKE_SYSTEM_NAME-compiler-CMAKE_SYSTEM_PROCESSOR.cmake
+	set(CMAKE_SYSTEM_NAME qurt)
+	set(CMAKE_SYSTEM_PROCESSOR hexagon)
+
+	set(CMAKE_C_FLAGS ${QURT_CMAKE_C_FLAGS})
+	set(CMAKE_CXX_FLAGS ${QURT_CMAKE_CXX_FLAGS})
+	set(CMAKE_SHARED_LINKER_FLAGS "")
+
+	message(STATUS "CMAKE_C_FLAGS: -${CMAKE_C_FLAGS}-")
+	message(STATUS "CMAKE_CXX_FLAGS: -${CMAKE_CXX_FLAGS}-")
+
+	# Clear -rdynamic flag which fails for hexagon
+	set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
+	set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
 endif()
-
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Arm")
-	if ("${TARGET_BOARD}" STREQUAL "px4fmu-v2")
-		set(ARM_BUILD_FLAGS
-			-mcpu=cortex-m4
-			-mthumb
-			-march=armv7e-m
-			-mfpu=fpv4-sp-d16
-			-mfloat-abi=hard
-			)
-		list(APPEND C_FLAGS ${ARM_BUILD_FLAGS})
-		list(APPEND CXX_FLAGS ${ARM_BUILD_FLAGS})
-	endif()
-endif()
-
-#=============================================================================
-#		set cmake flags
-#
-join(OUT CMAKE_C_FLAGS
-	LIST
-		${CMAKE_C_FLAGS}
-		${C_FLAGS}
-		${WARNINGS}
-		${C_WARNINGS}
-		${OPT_FLAGS}
-		${VISIBILITY_FLAGS}
-	GLUE " ")
-
-join(OUT CMAKE_CXX_FLAGS
-	LIST
-		${CMAKE_CXX_FLAGS}
-		${CXX_FLAGS}
-		${WARNINGS}
-		${CXX_WARNINGS}
-		${OPT_FLAGS}
-		${VISIBILITY_FLAGS}
-	GLUE " ")
-
-join(OUT CMAKE_EXE_LINKER_FLAGS
-	LIST ${CMAKE_EXE_LINKER_FLAGS} ${LD_FLAGS} ${EXE_LINK_FLAGS}
-	GLUE " ")
 
 ##############################################################################
 #	Modules
@@ -409,19 +279,7 @@ list(APPEND module_directories
 	./src/platforms/common
 	)
 
-if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Arm")
-	list(APPEND module_directories
-		./src/drivers/stm32
-	)
-endif()
-
-if (${TARGET_OS} STREQUAL "nuttx")
-	list(APPEND module_directories
-		./src/platforms/nuttx
-		./src/platforms/nuttx/px4_layer
-	)
-
-elseif (${TARGET_OS} STREQUAL "posix")
+if (${TARGET_OS} STREQUAL "posix")
 	list(APPEND module_directories
 		#./src/platforms/posix/tests/hrt_test
 		#./src/platforms/posix/tests/wqueue
@@ -437,6 +295,11 @@ elseif (${TARGET_OS} STREQUAL "posix")
 		#./src/platforms/posix/drivers/airspeedsim
 		#./src/platforms/posix/drivers/barosim
 		#./src/platforms/posix/drivers/gyrosim
+		)
+elseif (${TARGET_OS} STREQUAL "qurt")
+	list(APPEND module_directories
+		./src/platforms/qurt/px4_layer
+		./src/platforms/posix/work_queue
 		)
 endif()
 
@@ -494,7 +357,6 @@ endforeach()
 #=============================================================================
 #	Build
 
-link_directories(${NUTTX_EXPORT_DIR}/libs)
 set(installed_targets)
 
 if ("${TARGET_OS}" STREQUAL "posix")
@@ -502,53 +364,9 @@ if ("${TARGET_OS}" STREQUAL "posix")
 	target_link_libraries(main ${module_list} pthread)
 
 
-elseif ("${TARGET_OS}" STREQUAL "nuttx")
-	message(STATUS "modules: ${module_list}")
-	add_executable(main ./cmake/builtin_commands.c)
-
-	add_dependencies(main NuttX_${TARGET_BOARD})
-	target_link_libraries(main
-		apps
-		nuttx
-		${module_list}
-		c
-		m
-		nuttx
-		)
-
-	# startup library
-	file(GLOB STARTUP_OBJS ${NUTTX_EXPORT_DIR}/startup/*.o)
-	if(STARTUP_OBJS)
-		message(STATUS startup objects: ${STARTUP_OBJS})
-		add_library(startup EXCLUDE_FROM_ALL STATIC
-			${STARTUP_OBJS})
-		add_dependencies(startup NuttX_${TARGET_BOARD})
-		set_source_files_properties(${STARTUP_OBJS}
-			PROPERTIES
-			# Identifies this as an object file
-			EXTERNAL_OBJECT TRUE
-			# Avoids need for file to exist at configure-time
-			GENERATED TRUE
-			)
-		set_target_properties(startup PROPERTIES
-			LINKER_LANGUAGE C
-			)
-		target_link_libraries(main startup)
-	endif()
-
-	# generate the firmware
-	if ("${TARGET_BOARD}" STREQUAL "sitl")
-		target_link_libraries(main pthread z)
-	else()
-		set(MAIN_LINK_FLAGS
-			"-T${NUTTX_EXPORT_DIR}/build/ld.script"
-			"-Wl,-Map=${CMAKE_BINARY_DIR}/main.map"
-			)
-		join(OUT MAIN_LINK_FLAGS LIST ${MAIN_LINK_FLAGS} GLUE " ")
-		set_target_properties(main PROPERTIES LINK_FLAGS ${MAIN_LINK_FLAGS})
-		generate_firmware(${TARGET_NAME})
-	endif()
-
+elseif ("${TARGET_OS}" STREQUAL "qurt")
+	add_executable(main ./src/platforms/qurt/px4_layer/main.cpp)
+	target_link_libraries(main ${module_list} pthread)
 endif()
 
 list(APPEND installed_targets main)

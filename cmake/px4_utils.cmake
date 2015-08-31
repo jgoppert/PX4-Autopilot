@@ -5,6 +5,8 @@
 # scope, as well as variables explicity set with PARENT_SCOPE.
 #
 
+include(CMakeParseArguments)
+
 function(add_git_submodule NAME PATH)
 	string(REPLACE "/" "_" ${NAME} ${PATH})
 	add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/git_${NAME}.stamp
@@ -72,6 +74,14 @@ function(join)
 	set (${OUT} "${_TMP_STR}" PARENT_SCOPE)
 endfunction(join)
 
+macro (list2string out in)
+        set(list ${ARGV})
+        list(REMOVE_ITEM list ${out})
+        foreach(item ${list})
+		set(${out} "${${out}} ${item}")
+        endforeach()
+endmacro(list2string)
+
 function(generate_firmware NAME)
 	add_custom_target(firmware_${NAME} DEPENDS ${NAME}.px4)
 	add_custom_command(OUTPUT ${NAME}.px4
@@ -132,5 +142,94 @@ function(add_nuttx_export BOARD)
 	add_custom_target(link_export_${BOARD}
 		DEPENDS ${CMAKE_SOURCE_DIR}/Archives/${BOARD}.export)
 endfunction()
+
+
+macro(px4_add_target spec tcfile cmakeflags)  
+
+   unset( TOOLCHAIN_FILE )
+   if ( NOT ${tcfile} STREQUAL "" )
+      set( TOOLCHAIN_FILE -DCMAKE_TOOLCHAIN_FILE=${tcfile} )
+      SET( ALL "NO" )
+   else ( NOT ${tcfile} STREQUAL "" )
+      SET( ALL "YES" )
+   endif ( NOT ${tcfile} STREQUAL "" )
+   
+   execute_process( COMMAND ${CMAKE_COMMAND} -E make_directory ${spec} 
+                  )
+
+   execute_process( WORKING_DIRECTORY ${spec}
+                    COMMAND ${CMAKE_COMMAND} ${CMAKE_SOURCE_DIR}
+                            -DNESTED_CMAKE_CALL=TRUE 
+                            -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+                            -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+                            ${cmakeflags} 
+                            ${TOOLCHAIN_FILE}
+                  )
+
+   execute_process( WORKING_DIRECTORY ${spec}
+                   OUTPUT_VARIABLE ${spec}_MAKE_HELP_OUTPUT
+                   COMMAND make help
+                  )
+
+   STRING( REPLACE "\n" ";" ${spec}_MAKE_HELP_OUTPUT ${${spec}_MAKE_HELP_OUTPUT} )
+
+   foreach ( LINE ${${spec}_MAKE_HELP_OUTPUT} )
+      STRING( REGEX MATCH "\\.\\.\\. " TARGET_FOUND ${LINE} )
+      if ( TARGET_FOUND )
+          STRING( REGEX REPLACE "\\.\\.\\. " "" TARGET ${LINE} )
+          LIST( APPEND ${spec}_TARGETS "${TARGET}" )
+      endif ( TARGET_FOUND )
+   endforeach()
+
+   foreach ( TARGET ${${spec}_TARGETS} )
+      STRING( REGEX MATCH ".*/.*" SKIP ${TARGET} )
+      if ( NOT SKIP )
+	 STRING( REGEX MATCH "^all" ALL_TARGET ${TARGET} )
+	 if ( ALL_TARGET )
+	    SET( TARGET "all" )
+	 endif ( ALL_TARGET )
+	 if ( ${ALL} STREQUAL "YES" )
+	    if ( ${TARGET} STREQUAL "check" OR 
+		 ${TARGET} STREQUAL "install" )
+	       add_custom_target( ${spec}-${TARGET}
+				 COMMENT "Building ${spec}-${TARGET}..."
+				 COMMAND $(MAKE) ${TARGET}
+				 WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/${spec}
+				 VERBATIM
+			       )                    
+	       if ( ${TARGET} STREQUAL "install" )
+		  add_custom_target( install )
+	       endif ( ${TARGET} STREQUAL "install" )
+	       add_dependencies( ${TARGET} ${spec}-${TARGET} )
+	    else ( ${TARGET} STREQUAL "check" OR 
+		   ${TARGET} STREQUAL "install" )
+	       add_custom_target( ${TARGET}
+				 COMMENT "Building ${spec}-${TARGET}..."
+				 COMMAND $(MAKE) ${TARGET}
+				 WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/${spec}
+				 VERBATIM
+			       )
+	    endif ( ${TARGET} STREQUAL "check" OR 
+		    ${TARGET} STREQUAL "install" )
+	 else ( ${ALL} STREQUAL "YES" )
+	    if ( ${TARGET} STREQUAL "all" )
+	       add_custom_target( ${spec} 
+				 COMMENT "Building ${spec}-${TARGET}..."
+				 COMMAND $(MAKE) ${TARGET}
+				 WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/${spec}
+				 VERBATIM
+			       )
+	    else ( ${TARGET} "all" )
+	       add_custom_target( ${spec}-${TARGET} 
+				 COMMENT "Building ${spec}-${TARGET}..."
+				 COMMAND $(MAKE) ${TARGET}
+				 WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/${spec}
+				 VERBATIM
+			       )
+	    endif ( ${TARGET} STREQUAL "all" )
+	 endif ( ${ALL} STREQUAL "YES" )
+      endif ( NOT SKIP )
+   endforeach()
+endmacro(px4_add_target)
 
 # vim: set noet fenc=utf-8 ff=unix sts=0 sw=4 ts=4 :

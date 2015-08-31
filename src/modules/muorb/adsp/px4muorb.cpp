@@ -31,7 +31,6 @@
  *
  ****************************************************************************/
 #include "px4muorb.hpp"
-#include "qurt.h"
 #include "uORBFastRpcChannel.hpp"
 #include "uORBManager.hpp"
 
@@ -43,8 +42,7 @@
 #include "px4_log.h"
 #include "uORB/topics/sensor_combined.h"
 #include "uORB.h"
-
-#include "HAP_power.h"
+#include "dspal_platform.h"
 
 #define _ENABLE_MUORB 1
 
