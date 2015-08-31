@@ -260,7 +260,7 @@ set(WARNINGS
 	)
 
 
-set(MAX_OPTIMIZATION -Os -g3)
+set(MAX_OPTIMIZATION -Os)
 
 set(OPTIMIZATION_FLAGS
 	-fno-strict-aliasing
@@ -322,7 +322,10 @@ set(VISIBILITY_FLAGS
 	-fvisibility=hidden
 	"-include ${CMAKE_SOURCE_DIR}/src/include/visibility.h"
 	)
+
 set(EXE_LINK_FLAGS)
+
+set(EXE_LINK_LIBS)
 
 #=============================================================================
 #		os/board specific flags
@@ -337,6 +340,21 @@ if (${TARGET_OS} STREQUAL "nuttx")
 	add_definitions(
 		-D__PX4_NUTTX
 		)
+	list(APPEND C_FLAGS
+		-nodefaultlibs
+		-nostdlib
+		)
+	list(APPEND CXX_FLAGS
+		-nodefaultlibs
+		-nostdlib
+		)
+	list(APPEND EXE_LINK_LIBS
+		apps
+		nuttx
+		nosys
+		m
+		gcc
+		)
 elseif(${TARGET_OS} STREQUAL "posix")
 	include_directories(
 		src/platforms/posix/include
@@ -346,6 +364,9 @@ elseif(${TARGET_OS} STREQUAL "posix")
 		-D__PX4_LINUX
 		"-Dnoreturn_function=__attribute__\(\(noreturn\)\)"
 		-DCLOCK_MONOTONIC=1
+		)
+	list(APPEND EXE_LINK_LIBS
+		pthread
 		)
 endif()
 
@@ -512,21 +533,23 @@ set(installed_targets)
 
 if ("${TARGET_OS}" STREQUAL "posix")
 	add_executable(main ./src/platforms/posix/main.cpp)
-	target_link_libraries(main ${module_list} pthread)
-
+	target_link_libraries(main ${module_list} ${EXE_LINK_LIBS})
 
 elseif ("${TARGET_OS}" STREQUAL "nuttx")
 	message(STATUS "modules: ${module_list}")
 	add_executable(main ./cmake/builtin_commands.c)
 
 	add_dependencies(main NuttX_${TARGET_BOARD})
+
+	set(main_link_list
+		${EXE_LINK_LIBS}
+		${module_list}
+		${EXE_LINK_LIBS}
+		)
+
 	target_link_libraries(main
-		apps
-		nuttx
-		${module_list}
-		apps
-		nuttx
-		${module_list}
+		${main_link_list}
+		${main_link_list} # link twice to handle library dependencies
 		)
 
 	# startup library
@@ -578,13 +601,18 @@ install(TARGETS ${installed_targets}
 #	Testing
 #
 
-add_test(test_px4_simple_app ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/cmake/test_compare.py
-	--command ${CMAKE_BINARY_DIR}/main
-	--stdout ${CMAKE_BINARY_DIR}/test/px4_simple_app_output.txt
-	--stdin ${CMAKE_SOURCE_DIR}/cmake/test/px4_simple_app_input.txt
-	--check ${CMAKE_SOURCE_DIR}/cmake/test/px4_simple_app_correct.txt
-	--start 4 --stop -1
-	)
+
+if (NOT ${TARGET_OS} STREQUAL "nuttx")
+
+	add_test(test_px4_simple_app ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/cmake/test_compare.py
+		--command ${CMAKE_BINARY_DIR}/main
+		--stdout ${CMAKE_BINARY_DIR}/test/px4_simple_app_output.txt
+		--stdin ${CMAKE_SOURCE_DIR}/cmake/test/px4_simple_app_input.txt
+		--check ${CMAKE_SOURCE_DIR}/cmake/test/px4_simple_app_correct.txt
+		--start 4 --stop -1
+		)
+
+endif()
 
 ##############################################################################
 #	Packaging
