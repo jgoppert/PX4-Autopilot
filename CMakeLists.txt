@@ -583,4 +583,4 @@ set(CPACK_PACKAGE_VERSION ${VERSION})
 set(CPACK_PACKAGE_CONTACT ${PACKAGE_CONTACT})
 include(CPack)
 
-# vim: set noet fenc=utf-8 ff=unix sts=0 sw=4 ts=4 :
+# vim: set noet fenc=utf-8 ff=unix sts=4 sw=4 ts=4 :
