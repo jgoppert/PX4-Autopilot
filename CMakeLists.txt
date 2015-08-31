@@ -229,37 +229,47 @@ include_directories(
 	)
 
 set(WARNINGS
-    -Wall
-    -Wextra
-    -Wdouble-promotion
-    -Wshadow
-    -Wfloat-equal
-    -Wframe-larger-than=1024
-    -Wpointer-arith
-    -Wlogical-op
-    -Wmissing-declarations
-    -Wpacked
-    -Wno-unused-parameter
-    -Werror=format-security
-    -Werror=array-bounds
-    -Wfatal-errors
-    -Wformat=1
-    -Werror=unused-but-set-variable
-    -Werror=unused-variable
-    -Werror=double-promotion
-    -Werror=reorder
+	-Wall
+	-Wno-sign-compare
+	-Wextra
+	-Wdouble-promotion
+	-Wshadow
+	-Wfloat-equal
+	-Wframe-larger-than=1024
+	-Wpointer-arith
+	-Wlogical-op
+	-Wmissing-declarations
+	-Wpacked
+	-Wno-unused-parameter
+	-Werror=format-security
+	-Werror=array-bounds
+	-Wfatal-errors
+	-Wformat=1
+	-Werror=unused-but-set-variable
+	-Werror=unused-variable
+	-Werror=double-promotion
+	-Werror=reorder
 	-Werror=uninitialized
 	-Werror=init-self 
-    #-Wcast-qual  - generates spurious noreturn attribute warnings,
-    #               try again later
-    #-Wconversion - would be nice, but too many "risky-but-safe"
-    #               conversions in the code
-    #-Wcast-align - would help catch bad casts in some cases,
-    #               but generates too many false positives
-    )
+	#-Wcast-qual  - generates spurious noreturn attribute warnings,
+	#               try again later
+	#-Wconversion - would be nice, but too many "risky-but-safe"
+	#               conversions in the code
+	#-Wcast-align - would help catch bad casts in some cases,
+	#               but generates too many false positives
+	)
 
-set(OPT_FLAGS
-	-Os -g3
+
+set(MAX_OPTIMIZATION -Os -g3)
+
+set(OPTIMIZATION_FLAGS
+	-fno-strict-aliasing
+	-fno-strength-reduce
+	-fomit-frame-pointer
+	-funsafe-math-optimizations
+	-fno-builtin-printf
+	-ffunction-sections
+	-fdata-sections
 	)
 
 #=============================================================================
@@ -362,7 +372,8 @@ join(OUT CMAKE_C_FLAGS
 		${C_FLAGS}
 		${WARNINGS}
 		${C_WARNINGS}
-		${OPT_FLAGS}
+		${MAX_OPTIMIZATION}
+		${OPTIMIZATION_FLAGS}
 		${VISIBILITY_FLAGS}
 	GLUE " ")
 
@@ -372,7 +383,8 @@ join(OUT CMAKE_CXX_FLAGS
 		${CXX_FLAGS}
 		${WARNINGS}
 		${CXX_WARNINGS}
-		${OPT_FLAGS}
+		${MAX_OPTIMIZATION}
+		${OPTIMIZATION_FLAGS}
 		${VISIBILITY_FLAGS}
 	GLUE " ")
 
