@@ -20,7 +20,6 @@ set(SRCS
 	)
 
 add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-add_dependencies(${module} platform_common)
 set_target_properties(${module} PROPERTIES
 	COMPILE_FLAGS "-Os")
 

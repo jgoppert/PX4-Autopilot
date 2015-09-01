@@ -26,6 +26,5 @@ else()
 endif()
 
 add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-add_dependencies(${module} platform_common)
 
 # vim: set noet fenc=utf-8 ft=cmake ff=unix sts=4 sw=4 ts=4 :

@@ -327,6 +327,17 @@ set(EXE_LINK_FLAGS)
 
 set(EXE_LINK_LIBS)
 
+set(module_directories
+	./src/drivers/led
+	./src/drivers/device
+	./src/modules/systemlib
+	./src/modules/systemlib/mixer
+	./src/platforms/common
+	./src/examples/px4_simple_app
+	./src/modules/uORB
+	#./src/systemcmds/perf
+	)
+
 #=============================================================================
 #		os/board specific flags
 #
@@ -355,6 +366,10 @@ if (${TARGET_OS} STREQUAL "nuttx")
 		m
 		gcc
 		)
+	list(APPEND module_directories
+		./src/platforms/nuttx
+		./src/platforms/nuttx/px4_layer
+	)
 elseif(${TARGET_OS} STREQUAL "posix")
 	include_directories(
 		src/platforms/posix/include
@@ -368,6 +383,23 @@ elseif(${TARGET_OS} STREQUAL "posix")
 	list(APPEND EXE_LINK_LIBS
 		pthread
 		)
+	list(APPEND module_directories
+		#./src/platforms/posix/tests/hrt_test
+		#./src/platforms/posix/tests/wqueue
+		#./src/platforms/posix/tests/hello
+		#./src/platforms/posix/tests/muorb
+		#./src/platforms/posix/tests/vcdev_test
+		./src/platforms/posix/px4_layer
+		./src/platforms/posix/work_queue
+		#./src/platforms/posix/drivers/adcsim
+		#./src/platforms/posix/drivers/gpssim
+		#./src/platforms/posix/drivers/tonealrmsim
+		#./src/platforms/posix/drivers/accelsim
+		#./src/platforms/posix/drivers/airspeedsim
+		#./src/platforms/posix/drivers/barosim
+		#./src/platforms/posix/drivers/gyrosim
+		)
+
 endif()
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Arm")
@@ -381,6 +413,10 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Arm")
 			)
 		list(APPEND C_FLAGS ${ARM_BUILD_FLAGS})
 		list(APPEND CXX_FLAGS ${ARM_BUILD_FLAGS})
+		list(APPEND module_directories
+			./src/drivers/boards/px4fmu-v2
+			./src/drivers/stm32
+			)
 	endif()
 endif()
 
@@ -425,62 +461,6 @@ join(OUT CMAKE_EXE_LINKER_FLAGS
 #
 
 #=============================================================================
-#		module directories, order determines linking order
-#
-set(module_directories)
-
-if ("${TARGET_BOARD}" STREQUAL "px4fmu-v2")
-	list(APPEND module_directories
-		./src/drivers/boards/px4fmu-v2
-		)
-endif()
-
-list(APPEND module_directories
-	./src/drivers/led
-	./src/drivers/device
-	./src/modules/systemlib
-	./src/modules/systemlib/mixer
-	./src/platforms/common
-	)
-
-if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Arm")
-	list(APPEND module_directories
-		./src/drivers/stm32
-	)
-endif()
-
-if (${TARGET_OS} STREQUAL "nuttx")
-	list(APPEND module_directories
-		./src/platforms/nuttx
-		./src/platforms/nuttx/px4_layer
-	)
-
-elseif (${TARGET_OS} STREQUAL "posix")
-	list(APPEND module_directories
-		#./src/platforms/posix/tests/hrt_test
-		#./src/platforms/posix/tests/wqueue
-		#./src/platforms/posix/tests/hello
-		#./src/platforms/posix/tests/muorb
-		#./src/platforms/posix/tests/vcdev_test
-		./src/platforms/posix/px4_layer
-		./src/platforms/posix/work_queue
-		#./src/platforms/posix/drivers/adcsim
-		#./src/platforms/posix/drivers/gpssim
-		#./src/platforms/posix/drivers/tonealrmsim
-		#./src/platforms/posix/drivers/accelsim
-		#./src/platforms/posix/drivers/airspeedsim
-		#./src/platforms/posix/drivers/barosim
-		#./src/platforms/posix/drivers/gyrosim
-		)
-endif()
-
-list(APPEND module_directories
-	./src/examples/px4_simple_app
-	./src/modules/uORB
-	#./src/systemcmds/perf
-	)
-
-#=============================================================================
 #		add required modules to build
 #
 set(module_list)
@@ -515,6 +495,7 @@ foreach(module_directory ${module_directories})
 	if(NOT "${module_main}" STREQUAL "")
 		file(WRITE "${CMAKE_BINARY_DIR}/builtin_commands/COMMAND.${module}.${module_priority}.${module_stack}.${module_main}")
 	endif()
+	add_dependencies(${module} platform_common)
 endforeach()
 
 ##############################################################################
@@ -538,7 +519,6 @@ if ("${TARGET_OS}" STREQUAL "posix")
 elseif ("${TARGET_OS}" STREQUAL "nuttx")
 	message(STATUS "modules: ${module_list}")
 	add_executable(main ./cmake/builtin_commands.c)
-
 	add_dependencies(main NuttX_${TARGET_BOARD})
 
 	set(main_link_list
