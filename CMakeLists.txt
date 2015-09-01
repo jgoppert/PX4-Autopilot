@@ -582,7 +582,7 @@ install(TARGETS ${installed_targets}
 #
 
 
-if (NOT ${TARGET_OS} STREQUAL "nuttx")
+if (${TARGET_OS} STREQUAL "posix" AND ${TARGET_BOARD} STREQUAL "sitl")
 
 	add_test(test_px4_simple_app ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/cmake/test_compare.py
 		--command ${CMAKE_BINARY_DIR}/main
