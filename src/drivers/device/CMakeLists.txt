@@ -6,7 +6,7 @@ set(SRCS
 	ringbuffer.cpp
 	)
 
-if(${TARGET_OS} STREQUAL "nuttx")
+if(${OS} STREQUAL "nuttx")
 	list(APPEND SRCS
 		device_nuttx.cpp
 		cdev.cpp

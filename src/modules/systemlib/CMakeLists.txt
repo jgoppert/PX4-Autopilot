@@ -20,14 +20,14 @@ set(SRCS
 	circuit_breaker_params.c
 	)
 
-if (${TARGET_OS} STREQUAL "nuttx")
+if (${OS} STREQUAL "nuttx")
 	list(APPEND SRCS
 		err.c
 		printload.c
 		up_cxxinitialize.c
 		)
 
-elseif (${TARGET_OS} STREQUAL "qurt")
+elseif (${OS} STREQUAL "qurt")
 	list(APPEND SRCS
 		hx_stream.c
 		)

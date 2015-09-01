@@ -17,14 +17,14 @@ endif()
 #
 set(NUTTX_BUILD_THREADS "4" CACHE STRING
 	"number of threads to use when building NuttX")
-set(TARGET_OS "posix" CACHE STRING "desired operating system")
-set_property(CACHE TARGET_OS PROPERTY STRINGS nuttx posix qurt)
+set(OS "posix" CACHE STRING "desired operating system")
+set_property(CACHE OS PROPERTY STRINGS nuttx posix qurt)
 
-set(TARGET_BOARD "sitl" CACHE STRING "target board")
-set_property(CACHE TARGET_BOARD PROPERTY STRINGS px4fmu-v2 sitl)
+set(BOARD "sitl" CACHE STRING "target board")
+set_property(CACHE BOARD PROPERTY STRINGS px4fmu-v2 sitl)
 
-set(TARGET_LABEL "simple" CACHE STRING "module set label")
-set_property(CACHE TARGET_LABEL PROPERTY STRINGS simple default)
+set(LABEL "simple" CACHE STRING "module set label")
+set_property(CACHE LABEL PROPERTY STRINGS simple default)
 
 set(PYTHONPATH "${CMAKE_SOURCE_DIR}/Tools/genmsg/src:${CMAKE_SOURCE_DIR}/Tools/gencpp/src:$ENV{PYTHONPATH}" CACHE INTERNAL "PYTHONPATH" )
 
@@ -47,9 +47,9 @@ set(nuttx_configs px4fmu-v2)
 set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 set(POSIX_APPS_HEADER ${CMAKE_BINARY_DIR}/apps.h)
 set(MSG_OUT_PATH ${CMAKE_BINARY_DIR}/src/modules/uORB/topics)
-set(TARGET_NAME "${TARGET_OS}-${TARGET_BOARD}-${TARGET_LABEL}")
-set(NUTTX_EXPORT_DIR ${CMAKE_BINARY_DIR}/${TARGET_BOARD}/NuttX/nuttx-export)
-string(TOUPPER ${TARGET_BOARD} BOARD_UPPER)
+set(TARGET_NAME "${OS}-${BOARD}-${LABEL}")
+set(NUTTX_EXPORT_DIR ${CMAKE_BINARY_DIR}/${BOARD}/NuttX/nuttx-export)
+string(TOUPPER ${BOARD} BOARD_UPPER)
 string(REPLACE "-" "_" BOARD_CONFIG ${BOARD_UPPER})
 
 #=============================================================================
@@ -57,7 +57,7 @@ string(REPLACE "-" "_" BOARD_CONFIG ${BOARD_UPPER})
 #
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Arm")
 else()
-	if (${TARGET_BOARD} STREQUAL "px4fmu-v2")
+	if (${BOARD} STREQUAL "px4fmu-v2")
 		message(FATAL_ERROR "Can only build ${TARGET_NAME} on arm")
 	endif()
 endif()
@@ -171,7 +171,7 @@ add_custom_target(msg_files DEPENDS ${MSG_FILES_OUT})
 #		multi messages for target OS
 #
 set(MSG_MULTI_OUT_PATH
-	${CMAKE_BINARY_DIR}/src/platforms/${TARGET_OS}/px4_messages)
+	${CMAKE_BINARY_DIR}/src/platforms/${OS}/px4_messages)
 list_prepend(
 	OUT MSG_MULTI_FILES_OUT
 	LIST ${MSG_FILES}
@@ -183,11 +183,11 @@ add_custom_command(OUTPUT ${MSG_MULTI_FILES_OUT}
 		-d msg
 		-o ${MSG_MULTI_OUT_PATH} 
 		-e msg/templates/px4/uorb
-		-t ${CMAKE_BINARY_DIR}/multi_topics_temporary/${TARGET_OS}
+		-t ${CMAKE_BINARY_DIR}/multi_topics_temporary/${OS}
 		-p "px4_"
 	DEPENDS git_genmsg git_gencpp ${MSG_FILES_IN}
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-	COMMENT "Generating uORB topic multi headers for ${TARGET_OS}"
+	COMMENT "Generating uORB topic multi headers for ${OS}"
 	VERBATIM
 	)
 add_custom_target(msg_files_multi DEPENDS ${MSG_MULTI_FILES_OUT})
@@ -220,10 +220,10 @@ include_directories(
 	src/lib
 	src/platforms
 	# TODO Build/versioning was in Makefile, do we need this, how does it work with cmake
-	src/drivers/boards/${TARGET_BOARD}
+	src/drivers/boards/${BOARD}
 	src/lib/eigen
 	${CMAKE_BINARY_DIR}
-	${CMAKE_BINARY_DIR}/${TARGET_BOARD}/NuttX/apps/nshlib
+	${CMAKE_BINARY_DIR}/${BOARD}/NuttX/apps/nshlib
 	${CMAKE_BINARY_DIR}/src/modules/px4_messages
 	${CMAKE_BINARY_DIR}/src/modules
 	)
@@ -341,7 +341,7 @@ set(module_directories
 #=============================================================================
 #		os/board specific flags
 #
-if (${TARGET_OS} STREQUAL "nuttx")
+if (${OS} STREQUAL "nuttx")
 	include_directories(
 		${NUTTX_EXPORT_DIR}/include
 		${NUTTX_EXPORT_DIR}/include/cxx
@@ -370,7 +370,7 @@ if (${TARGET_OS} STREQUAL "nuttx")
 		./src/platforms/nuttx
 		./src/platforms/nuttx/px4_layer
 	)
-elseif(${TARGET_OS} STREQUAL "posix")
+elseif(${OS} STREQUAL "posix")
 	include_directories(
 		src/platforms/posix/include
 		)
@@ -403,7 +403,7 @@ elseif(${TARGET_OS} STREQUAL "posix")
 endif()
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Arm")
-	if ("${TARGET_BOARD}" STREQUAL "px4fmu-v2")
+	if ("${BOARD}" STREQUAL "px4fmu-v2")
 		set(ARM_BUILD_FLAGS
 			-mcpu=cortex-m4
 			-mthumb
@@ -512,14 +512,14 @@ endforeach()
 link_directories(${NUTTX_EXPORT_DIR}/libs)
 set(installed_targets)
 
-if ("${TARGET_OS}" STREQUAL "posix")
+if ("${OS}" STREQUAL "posix")
 	add_executable(main ./src/platforms/posix/main.cpp)
 	target_link_libraries(main ${module_list} ${EXE_LINK_LIBS})
 
-elseif ("${TARGET_OS}" STREQUAL "nuttx")
+elseif ("${OS}" STREQUAL "nuttx")
 	message(STATUS "modules: ${module_list}")
 	add_executable(main ./cmake/builtin_commands.c)
-	add_dependencies(main NuttX_${TARGET_BOARD})
+	add_dependencies(main NuttX_${BOARD})
 
 	set(main_link_list
 		${EXE_LINK_LIBS}
@@ -538,7 +538,7 @@ elseif ("${TARGET_OS}" STREQUAL "nuttx")
 		message(STATUS startup objects: ${STARTUP_OBJS})
 		add_library(startup EXCLUDE_FROM_ALL STATIC
 			${STARTUP_OBJS})
-		add_dependencies(startup NuttX_${TARGET_BOARD})
+		add_dependencies(startup NuttX_${BOARD})
 		set_source_files_properties(${STARTUP_OBJS}
 			PROPERTIES
 			# Identifies this as an object file
@@ -553,7 +553,7 @@ elseif ("${TARGET_OS}" STREQUAL "nuttx")
 	endif()
 
 	# generate the firmware
-	if ("${TARGET_BOARD}" STREQUAL "sitl")
+	if ("${BOARD}" STREQUAL "sitl")
 		target_link_libraries(main pthread z)
 	else()
 		set(MAIN_LINK_FLAGS
@@ -582,7 +582,7 @@ install(TARGETS ${installed_targets}
 #
 
 
-if (${TARGET_OS} STREQUAL "posix" AND ${TARGET_BOARD} STREQUAL "sitl")
+if (${OS} STREQUAL "posix" AND ${BOARD} STREQUAL "sitl")
 
 	add_test(test_px4_simple_app ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/cmake/test_compare.py
 		--command ${CMAKE_BINARY_DIR}/main

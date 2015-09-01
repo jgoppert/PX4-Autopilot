@@ -7,9 +7,9 @@ set(SRCS
 add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
 add_dependencies(${module} msg_files msg_files_multi)
 
-if (${TARGET_OS} STREQUAL "nuttx")
-	add_dependencies(${module} NuttX_${TARGET_BOARD})
-elseif (${TARGET_OS} STREQUAL "posix")
+if (${OS} STREQUAL "nuttx")
+	add_dependencies(${module} NuttX_${BOARD})
+elseif (${OS} STREQUAL "posix")
 	add_dependencies(${module} posix_apps)
 endif()
 

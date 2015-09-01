@@ -7,27 +7,27 @@ set(SRCS
 	uORBMain.cpp
 	)
 
-if (${TARGET_OS} STREQUAL "nuttx")
+if (${OS} STREQUAL "nuttx")
 	list(APPEND SRCS
 		uORBDevices_nuttx.cpp
 		uORBTest_UnitTest.cpp
 		uORBManager_nuttx.cpp
 		)
 
-elseif (${TARGET_OS} STREQUAL "posix")
+elseif (${OS} STREQUAL "posix")
 	list(APPEND SRCS
 		uORBTest_UnitTest.cpp
 		uORBDevices_posix.cpp
 		uORBManager_posix.cpp
 		)
 
-elseif (${TARGET_OS} STREQUAL "posix-arm")
+elseif (${OS} STREQUAL "posix-arm")
 	list(APPEND SRCS
 		uORBTest_UnitTest.cpp
 		uORBDevices_posix.cpp
 		uORBManager_posix.cpp
 		)
-elseif (${TARGET_OS} STREQUAL "qurt")
+elseif (${OS} STREQUAL "qurt")
 	list(APPEND SRCS
 		uORBDevices_posix.cpp
 		uORBManager_posix.cpp
