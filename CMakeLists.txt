@@ -17,10 +17,10 @@ endif()
 #
 set(NUTTX_BUILD_THREADS "4" CACHE STRING
 	"number of threads to use when building NuttX")
-set(TARGET_OS "nuttx" CACHE STRING "desired operating system")
+set(TARGET_OS "posix" CACHE STRING "desired operating system")
 set_property(CACHE TARGET_OS PROPERTY STRINGS nuttx posix qurt)
 
-set(TARGET_BOARD "px4fmu-v2" CACHE STRING "target board")
+set(TARGET_BOARD "sitl" CACHE STRING "target board")
 set_property(CACHE TARGET_BOARD PROPERTY STRINGS px4fmu-v2 sitl)
 
 set(TARGET_LABEL "simple" CACHE STRING "module set label")
