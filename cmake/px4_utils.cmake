@@ -207,8 +207,13 @@ macro(px4_add_target spec tcfile cmakeflags)
 	       add_dependencies( ${TARGET} ${spec}-${TARGET} )
 	    else ( ${TARGET} STREQUAL "check" OR 
 		   ${TARGET} STREQUAL "install" )
-	       add_custom_target( ${TARGET}
-				 COMMENT "Building ${spec}-${TARGET}..."
+               if ( ${TARGET} STREQUAL "all" )
+                  set(TARG ${spec})
+               else( ${TARGET} STREQUAL "all" )
+                  set(TARG ${spec}-${TARGET})
+               endif( ${TARGET} STREQUAL "all" )
+	       add_custom_target( ${TARG}
+				 COMMENT "Building ${TARG}..."
 				 COMMAND $(MAKE) ${TARGET}
 				 WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/${spec}
 				 VERBATIM
