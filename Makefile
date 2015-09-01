@@ -12,6 +12,12 @@ posix-sitl_simple:
 		-DOS=posix -DBOARD=sitl -DLABEL=simple && \
 		make && ctest -V && cpack -G ZIP
 
+qurt-hil_simple:
+	mkdir -p $d/build_$@ && cd $d/build_$@ && \
+		cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-hexagon.cmake \
+		-DOS=qurt -DBOARD=hil -DLABEL=simple && \
+		make && ctest -V && cpack -G ZIP
+
 clean:
 	rm -rf build_*/
 

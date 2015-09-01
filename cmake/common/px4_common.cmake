@@ -66,22 +66,17 @@ macro(px4_common_set_flags)
 		-Wall
 		-Wno-sign-compare
 		-Wextra
-		-Wdouble-promotion
 		-Wshadow
 		-Wfloat-equal
 		-Wframe-larger-than=1024
 		-Wpointer-arith
-		-Wlogical-op
 		-Wmissing-declarations
 		-Wpacked
 		-Wno-unused-parameter
 		-Werror=format-security
 		-Werror=array-bounds
 		-Wfatal-errors
-		-Wformat=1
-		-Werror=unused-but-set-variable
 		-Werror=unused-variable
-		-Werror=double-promotion
 		-Werror=reorder
 		-Werror=uninitialized
 		-Werror=init-self 
@@ -93,18 +88,32 @@ macro(px4_common_set_flags)
 		#               but generates too many false positives
 		)
 
+	if (NOT "${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
+		set(WARNINGS ${WARNINGS}
+			-Werror=unused-but-set-variable
+			-Wformat=1
+			-Wlogical-op
+			-Wdouble-promotion
+			-Werror=double-promotion
+		)
+	endif()
+	
 
 	set(MAX_OPTIMIZATION -Os)
 
 	set(OPTIMIZATION_FLAGS
 		-fno-strict-aliasing
-		-fno-strength-reduce
 		-fomit-frame-pointer
 		-funsafe-math-optimizations
-		-fno-builtin-printf
 		-ffunction-sections
 		-fdata-sections
 		)
+	if (NOT "${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
+		set(OPTIMIZATION_FLAGS ${OPTIMIZATION_FLAGS}
+			-fno-strength-reduce
+			-fno-builtin-printf
+		)
+	endif()
 
 	#=============================================================================
 	#		c flags
@@ -112,11 +121,17 @@ macro(px4_common_set_flags)
 	set(C_WARNINGS
 		-Wbad-function-cast
 		-Wstrict-prototypes
-		-Wold-style-declaration
-		-Wmissing-parameter-type
 		-Wmissing-prototypes
 		-Wnested-externs
 		)
+
+	if (NOT "${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
+		set(C_WARNINGS ${C_WARNINGS}
+			-Wold-style-declaration
+			-Wmissing-parameter-type
+		)
+	endif()
+
 	set(C_FLAGS
 		-std=gnu99
 		-fno-common
@@ -303,6 +318,5 @@ macro(px4_common_git_submodules)
 	add_git_submodule(genmsg Tools/genmsg)
 	add_git_submodule(gencpp Tools/gencpp)
 	add_git_submodule(gtest unittests/gtest)
-	add_git_submodule(eigen src/lib/eigen) 
 endmacro()
 

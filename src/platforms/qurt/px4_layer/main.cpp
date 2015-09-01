@@ -94,7 +94,6 @@ static void process_commands(map<string,px4_main_t> &apps, const char *cmds)
 	vector<string> appargs;
 	int i=0;
 	const char *b = cmds;
-	bool found_first_char = false;
 	char arg[256];
 
 	// This is added because it is a parameter used by commander, yet created by mavlink.  Since mavlink is not

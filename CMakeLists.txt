@@ -200,11 +200,7 @@ px4_common_modules()
 #=============================================================================
 #	Build
 
-set(installed_targets)
-
 px4_target_firmware()
-
-list(APPEND installed_targets main)
 
 #=============================================================================
 #	Install
