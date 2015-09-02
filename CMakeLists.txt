@@ -138,6 +138,7 @@ px4_common_generate_messages()
 #
 px4_common_set_flags()
 px4_common_set_modules()
+px4_target_set_modules()
 
 #=============================================================================
 #		os/board specific flags

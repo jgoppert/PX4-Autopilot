@@ -39,6 +39,7 @@
 #
 #	px4_target_set_flags
 #	px4_target_validate_config
+#	px4_target_set_modules
 #	px4_target_firmware
 #	px4_target_rules
 #	px4_target_testing
@@ -78,10 +79,6 @@ macro(px4_target_set_flags)
 		m
 		gcc
 		)
-	list(APPEND module_directories
-		./src/platforms/nuttx
-		./src/platforms/nuttx/px4_layer
-	)
 
 	if (${CMAKE_SYSTEM_NAME} STREQUAL "Arm")
 		if ("${BOARD}" STREQUAL "px4fmu-v2")
@@ -94,26 +91,25 @@ macro(px4_target_set_flags)
 				)
 			list(APPEND C_FLAGS ${ARM_BUILD_FLAGS})
 			list(APPEND CXX_FLAGS ${ARM_BUILD_FLAGS})
-			list(APPEND module_directories
-				./src/drivers/boards/px4fmu-v2
-				./src/drivers/stm32
-				)
 		endif()
 	endif()
 endmacro()
 
 macro(px4_target_validate_config)
-	if(${CMAKE_SYSTEM_NAME} STREQUAL "Arm")
-	else()
+	if(NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Arm")
 		if (${BOARD} STREQUAL "px4fmu-v2")
 			message(FATAL_ERROR "Can only build ${TARGET_NAME} on arm")
 		endif()
 	endif()
 
-	if (${TARGET_NAME} STREQUAL "nuttx-px4fmu-v2-simple")
-	else()
+	if(NOT EXISTS ${CMAKE_SOURCE_DIR}/cmake/${OS}/${TARGET_NAME})
 		message(FATAL_ERROR "not implemented yet: ${TARGET_NAME}")
 	endif()
+endmacro()
+
+macro(px4_target_set_modules)
+	# Include the target config file
+	include(${TARGET_NAME})
 endmacro()
 
 macro(px4_target_firmware)
