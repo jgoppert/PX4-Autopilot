@@ -1,7 +1,7 @@
-INFO  Shell id is 140527756294016
+INFO  Shell id is 47901308017856
 WARN  1          starting task wkr_high (file /home/jgoppert/git/px4/cmake-Firmware/src/platforms/posix/px4_layer/px4_posix_tasks.cpp line 146)
-WARN  105        starting task wkr_low (file /home/jgoppert/git/px4/cmake-Firmware/src/platforms/posix/px4_layer/px4_posix_tasks.cpp line 146)
-WARN  195        starting task wkr_hrt (file /home/jgoppert/git/px4/cmake-Firmware/src/platforms/posix/px4_layer/px4_posix_tasks.cpp line 146)
+WARN  150        starting task wkr_low (file /home/jgoppert/git/px4/cmake-Firmware/src/platforms/posix/px4_layer/px4_posix_tasks.cpp line 146)
+WARN  390        starting task wkr_hrt (file /home/jgoppert/git/px4/cmake-Firmware/src/platforms/posix/px4_layer/px4_posix_tasks.cpp line 146)
 App name: mainapp
 Enter a command and its args:
 ----------------------------------
@@ -15,11 +15,11 @@ Enter a command and its args:
 ----------------------------------
 Running: px4_simple_app
 Hello Sky!
-[px4_simple_app] Accelerometer:	  0.0000	  0.0000	  0.0000
-[px4_simple_app] Accelerometer:	  0.0000	  0.0000	  0.0000
-[px4_simple_app] Accelerometer:	  0.0000	  0.0000	  0.0000
-[px4_simple_app] Accelerometer:	  0.0000	  0.0000	  0.0000
-[px4_simple_app] Accelerometer:	  0.0000	  0.0000	  0.0000
+[px4_simple_app] Got no data within a second
+[px4_simple_app] Got no data within a second
+[px4_simple_app] Got no data within a second
+[px4_simple_app] Got no data within a second
+[px4_simple_app] Got no data within a second
 Returning: px4_simple_app
 Enter a command and its args:
 ----------------------------------
