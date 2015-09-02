@@ -62,30 +62,17 @@ macro(px4_target_set_flags)
 	list(APPEND EXE_LINK_LIBS
 		pthread
 		)
-	list(APPEND module_directories
-		#./src/platforms/posix/tests/hrt_test
-		#./src/platforms/posix/tests/wqueue
-		#./src/platforms/posix/tests/hello
-		#./src/platforms/posix/tests/muorb
-		#./src/platforms/posix/tests/vcdev_test
-		./src/platforms/posix/px4_layer
-		./src/platforms/posix/work_queue
-		#./src/platforms/posix/drivers/adcsim
-		#./src/platforms/posix/drivers/gpssim
-		#./src/platforms/posix/drivers/tonealrmsim
-		#./src/platforms/posix/drivers/accelsim
-		#./src/platforms/posix/drivers/airspeedsim
-		#./src/platforms/posix/drivers/barosim
-		#./src/platforms/posix/drivers/gyrosim
-		)
-
 endmacro()
 
 macro(px4_target_validate_config)
-	if (${TARGET_NAME} STREQUAL "posix-sitl-simple")
-	else()
+	if(NOT EXISTS ${CMAKE_SOURCE_DIR}/cmake/${OS}/${TARGET_NAME}.cmake)
 		message(FATAL_ERROR "not implemented yet: ${TARGET_NAME}")
 	endif()
+endmacro()
+
+macro(px4_target_set_modules)
+	# Include the target config file
+	include(${TARGET_NAME})
 endmacro()
 
 macro(px4_target_firmware)

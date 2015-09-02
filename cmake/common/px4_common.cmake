@@ -185,11 +185,11 @@ macro(px4_common_set_modules)
 	set(module_directories
 		./src/drivers/led
 		./src/drivers/device
+		./src/platforms/common
 		./src/modules/systemlib
 		./src/modules/systemlib/mixer
-		./src/platforms/common
-		./src/examples/px4_simple_app
 		./src/modules/uORB
+		./src/examples/px4_simple_app
 		#./src/systemcmds/perf
 		)
 endmacro()
