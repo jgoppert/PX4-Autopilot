@@ -45,44 +45,55 @@
 #
 # The macros are called from the top level CMakeLists.txt
 #
-set(POSIX_APPS_HEADER ${CMAKE_BINARY_DIR}/apps.h)
+set(QURT_APPS_HEADER ${CMAKE_BINARY_DIR}/apps.h)
 
-add_git_submodule(eigen src/lib/eigen)
+add_git_submodule(dspal src/lib/dspal)
+add_git_submodule(eigen src/lib/eigen-3.2)
 
 macro(px4_target_set_flags)
-	include_directories(
-		src/platforms/posix/include
-		)
-	add_definitions(
-		-D__PX4_POSIX
-		-D__PX4_LINUX
-		"-Dnoreturn_function=__attribute__\(\(noreturn\)\)"
-		-DCLOCK_MONOTONIC=1
-		)
 	list(APPEND EXE_LINK_LIBS
 		pthread
 		)
-	list(APPEND module_directories
-		#./src/platforms/posix/tests/hrt_test
-		#./src/platforms/posix/tests/wqueue
-		#./src/platforms/posix/tests/hello
-		#./src/platforms/posix/tests/muorb
-		#./src/platforms/posix/tests/vcdev_test
-		./src/platforms/posix/px4_layer
-		./src/platforms/posix/work_queue
-		#./src/platforms/posix/drivers/adcsim
-		#./src/platforms/posix/drivers/gpssim
-		#./src/platforms/posix/drivers/tonealrmsim
-		#./src/platforms/posix/drivers/accelsim
-		#./src/platforms/posix/drivers/airspeedsim
-		#./src/platforms/posix/drivers/barosim
-		#./src/platforms/posix/drivers/gyrosim
-		)
+        set(DSPAL_ROOT src/lib/dspal)
+        include_directories(
+                ${DSPAL_ROOT}/include 
+                ${DSPAL_ROOT}/sys 
+                ${DSPAL_ROOT}/sys/sys 
+                ${DSPAL_ROOT}/mpu_spi/inc
+                ${DSPAL_ROOT}/uart_esc/inc
+                src/platforms/qurt/include
+                src/platforms/posix/include
+		src/lib/eigen-3.2
+                )
+        add_definitions(
+                -D__PX4_QURT 
+		-D__PX4_POSIX
+		-include ${PX4_INCLUDE_DIR}visibility.h
+                )
+
+	# Add the toolchain specific flags
+        set(CMAKE_C_FLAGS ${QURT_CMAKE_C_FLAGS})
+        set(CMAKE_CXX_FLAGS ${QURT_CMAKE_CXX_FLAGS})
+        set(CMAKE_SHARED_LINKER_FLAGS "")
+
+        message(STATUS "CMAKE_C_FLAGS: -${CMAKE_C_FLAGS}-")
+        message(STATUS "CMAKE_CXX_FLAGS: -${CMAKE_CXX_FLAGS}-")
+
+	# Clear -rdynamic flag which fails for hexagon
+	set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
+	set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
 
 endmacro()
 
+macro(px4_target_set_modules)
+	list(APPEND module_directories
+		./src/platforms/qurt/px4_layer
+		./src/platforms/posix/work_queue
+	)
+endmacro()
+
 macro(px4_target_validate_config)
-	if (${TARGET_NAME} STREQUAL "posix-sitl-simple")
+	if (${TARGET_NAME} STREQUAL "qurt-hil-simple")
 	else()
 		message(FATAL_ERROR "not implemented yet: ${TARGET_NAME}")
 	endif()
@@ -90,35 +101,24 @@ endmacro()
 
 macro(px4_target_firmware)
 	set(installed_targets)
-	add_executable(main ./src/platforms/posix/main.cpp)
-	target_link_libraries(main ${module_list} ${EXE_LINK_LIBS})
-	list(APPEND installed_targets main)
+	add_library(dspal_main SHARED ./src/platforms/qurt/px4_layer/main.cpp)
+	target_link_libraries(dspal_main ${module_list})
+	list(APPEND installed_targets dspal_main)
 endmacro()
 
 macro(px4_target_rules)
 	#=============================================================================
 	#		apps
 	#
-	add_custom_command(OUTPUT ${POSIX_APPS_HEADER}
+	add_custom_command(OUTPUT ${QURT_APPS_HEADER}
 		COMMAND PYTHONPATH=${PYTHONPATH} ${PYTHON_EXECUTABLE} 
-			${CMAKE_SOURCE_DIR}/Tools/posix_apps.py > ${POSIX_APPS_HEADER}
-		COMMENT "Generating posix apps"
+			${CMAKE_SOURCE_DIR}/Tools/qurt_apps.py > ${QURT_APPS_HEADER}
+		COMMENT "Generating qurt apps"
 		VERBATIM
 		)
 
-	add_custom_target(posix_apps DEPENDS ${POSIX_APPS_HEADER})
+	add_custom_target(qurt_apps DEPENDS ${QURT_APPS_HEADER})
 endmacro()
 
 macro(px4_target_testing)
-	if (${BOARD} STREQUAL "sitl")
-
-		add_test(test_px4_simple_app ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/cmake/test_compare.py
-			--command ${CMAKE_BINARY_DIR}/main
-			--stdout ${CMAKE_BINARY_DIR}/test/px4_simple_app_output.txt
-			--stdin ${CMAKE_SOURCE_DIR}/cmake/test/px4_simple_app_input.txt
-			--check ${CMAKE_SOURCE_DIR}/cmake/test/px4_simple_app_correct.txt
-			--start 4 --stop -1
-			)
-
-	endif()
 endmacro()

@@ -51,6 +51,8 @@ set(nuttx_configs px4fmu-v2)
 
 set(NUTTX_EXPORT_DIR ${CMAKE_BINARY_DIR}/${BOARD}/NuttX/nuttx-export)
 
+add_git_submodule(eigen src/lib/eigen)
+
 macro(px4_target_set_flags)
 	include_directories(
 		${NUTTX_EXPORT_DIR}/include
@@ -115,6 +117,7 @@ macro(px4_target_validate_config)
 endmacro()
 
 macro(px4_target_firmware)
+	set(installed_targets)
 	message(STATUS "modules: ${module_list}")
 	link_directories(${NUTTX_EXPORT_DIR}/libs)
 
@@ -164,6 +167,7 @@ macro(px4_target_firmware)
 		set_target_properties(main PROPERTIES LINK_FLAGS ${MAIN_LINK_FLAGS})
 		generate_firmware(${TARGET_NAME})
 	endif()
+	list(APPEND installed_targets main)
 endmacro()
 
 macro(px4_target_rules)
