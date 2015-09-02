@@ -39,6 +39,7 @@
 #include <drivers/drv_pwm_output.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 
 extern "C" __EXPORT hrt_abstime hrt_reset(void);
 

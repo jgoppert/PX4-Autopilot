@@ -11,7 +11,7 @@
 #./src/platforms/posix/drivers/adcsim/module.mk
 #./src/platforms/posix/drivers/gpssim/module.mk
 #./src/platforms/posix/drivers/tonealrmsim/module.mk
-#./src/platforms/posix/drivers/accelsim/module.mk
+# DONE ./src/platforms/posix/drivers/accelsim/module.mk
 #./src/platforms/posix/drivers/airspeedsim/module.mk
 #./src/platforms/posix/drivers/barosim/module.mk
 #./src/platforms/posix/drivers/gyrosim/module.mk
@@ -24,12 +24,12 @@
 #./src/lib/external_lgpl/module.mk
 #./src/lib/geo/module.mk
 #./src/lib/launchdetection/module.mk
-#./src/lib/mathlib/math/filter/module.mk
+# DONE ./src/lib/mathlib/math/filter/module.mk
 #./src/lib/mathlib/module.mk
 #./src/lib/rc/module.mk
 #./src/lib/geo_lookup/module.mk
 #./src/lib/ecl/module.mk
-#./src/lib/conversion/module.mk
+# DONE ./src/lib/conversion/module.mk
 #./src/modules/navigator/module.mk
 #./src/modules/segway/module.mk
 #./src/modules/fw_pos_control_l1/module.mk
@@ -43,7 +43,7 @@
 #./src/modules/land_detector/module.mk
 #./src/modules/muorb/krait/module.mk
 #./src/modules/muorb/adsp/module.mk
-#./src/modules/simulator/module.mk
+# DONE ./src/modules/simulator/module.mk
 #./src/modules/ekf_att_pos_estimator/module.mk
 #./src/modules/mc_pos_control/module.mk
 #./src/modules/attitude_estimator_ekf/module.mk

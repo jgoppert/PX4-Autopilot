@@ -73,10 +73,11 @@ macro(px4_target_set_flags)
 		#./src/platforms/posix/drivers/adcsim
 		#./src/platforms/posix/drivers/gpssim
 		#./src/platforms/posix/drivers/tonealrmsim
-		#./src/platforms/posix/drivers/accelsim
+		./src/platforms/posix/drivers/accelsim
 		#./src/platforms/posix/drivers/airspeedsim
 		#./src/platforms/posix/drivers/barosim
 		#./src/platforms/posix/drivers/gyrosim
+		./src/modules/simulator
 		)
 
 endmacro()
@@ -91,7 +92,7 @@ endmacro()
 macro(px4_target_firmware)
 	set(installed_targets)
 	add_executable(main ./src/platforms/posix/main.cpp)
-	target_link_libraries(main ${module_list} ${EXE_LINK_LIBS})
+	target_link_libraries(main ${module_list} ${EXE_LINK_LIBS} ${module_list} ${EXE_LINK_LIBS})
 	list(APPEND installed_targets main)
 endmacro()
 

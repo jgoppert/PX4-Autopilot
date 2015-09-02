@@ -60,6 +60,7 @@ macro(px4_common_set_flags)
 		${CMAKE_BINARY_DIR}
 		${CMAKE_BINARY_DIR}/src/modules/px4_messages
 		${CMAKE_BINARY_DIR}/src/modules
+		mavlink/include/mavlink
 		)
 
 	set(WARNINGS
@@ -191,6 +192,8 @@ macro(px4_common_set_modules)
 		./src/examples/px4_simple_app
 		./src/modules/uORB
 		#./src/systemcmds/perf
+		./src/lib/mathlib/math/filter
+		./src/lib/conversion
 		)
 endmacro()
 
