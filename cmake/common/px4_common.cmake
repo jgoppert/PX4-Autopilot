@@ -67,7 +67,7 @@ macro(px4_common_set_flags)
 		-Wall
 		-Wno-sign-compare
 		-Wextra
-		-Wshadow
+		#-Wshadow # very verbose due to eigen
 		-Wfloat-equal
 		-Wframe-larger-than=1024
 		-Wpointer-arith
@@ -93,7 +93,7 @@ macro(px4_common_set_flags)
 		set(WARNINGS ${WARNINGS}
 			-Werror=unused-but-set-variable
 			-Wformat=1
-			-Wlogical-op
+			#-Wlogical-op # very verbose due to eigen
 			-Wdouble-promotion
 			-Werror=double-promotion
 		)

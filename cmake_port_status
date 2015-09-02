@@ -8,13 +8,13 @@
 #./src/platforms/posix/tests/vcdev_test/module.mk
 # DONE ./src/platforms/posix/work_queue/module.mk
 # DONE ./src/platforms/posix/px4_layer/module.mk
-#./src/platforms/posix/drivers/adcsim/module.mk
-#./src/platforms/posix/drivers/gpssim/module.mk
-#./src/platforms/posix/drivers/tonealrmsim/module.mk
+# DONE ./src/platforms/posix/drivers/adcsim/module.mk
+# DONE ./src/platforms/posix/drivers/gpssim/module.mk
+# DONE ./src/platforms/posix/drivers/tonealrmsim/module.mk
 # DONE ./src/platforms/posix/drivers/accelsim/module.mk
-#./src/platforms/posix/drivers/airspeedsim/module.mk
-#./src/platforms/posix/drivers/barosim/module.mk
-#./src/platforms/posix/drivers/gyrosim/module.mk
+# DONE ./src/platforms/posix/drivers/airspeedsim/module.mk
+# DONE ./src/platforms/posix/drivers/barosim/module.mk
+# DONE ./src/platforms/posix/drivers/gyrosim/module.mk
 #./src/platforms/qurt/tests/hello/module.mk
 #./src/platforms/qurt/tests/muorb/module.mk
 #./src/platforms/qurt/px4_layer/module.mk

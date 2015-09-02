@@ -70,13 +70,13 @@ macro(px4_target_set_flags)
 		#./src/platforms/posix/tests/vcdev_test
 		./src/platforms/posix/px4_layer
 		./src/platforms/posix/work_queue
-		#./src/platforms/posix/drivers/adcsim
-		#./src/platforms/posix/drivers/gpssim
-		#./src/platforms/posix/drivers/tonealrmsim
+		./src/platforms/posix/drivers/adcsim
+		./src/platforms/posix/drivers/gpssim
+		./src/platforms/posix/drivers/tonealrmsim
 		./src/platforms/posix/drivers/accelsim
-		#./src/platforms/posix/drivers/airspeedsim
-		#./src/platforms/posix/drivers/barosim
-		#./src/platforms/posix/drivers/gyrosim
+		./src/platforms/posix/drivers/airspeedsim
+		./src/platforms/posix/drivers/barosim
+		./src/platforms/posix/drivers/gyrosim
 		./src/modules/simulator
 		)
 
@@ -107,7 +107,7 @@ macro(px4_target_rules)
 		VERBATIM
 		)
 
-	add_custom_target(posix_apps DEPENDS ${POSIX_APPS_HEADER})
+	add_custom_target(posix_apps ALL DEPENDS ${POSIX_APPS_HEADER})
 endmacro()
 
 macro(px4_target_testing)
