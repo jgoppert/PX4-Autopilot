@@ -10,7 +10,7 @@ list(APPEND module_directories
 	./src/platforms/posix/drivers/gyrosim
 	./src/systemcmds/param
 	./src/systemcmds/mixer
-	#./src/systemcmds/topic_listener
+	./src/systemcmds/topic_listener
 	./src/systemcmds/ver
 	./src/systemcmds/esc_calib
 	./src/systemcmds/reboot
