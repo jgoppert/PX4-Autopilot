@@ -74,14 +74,14 @@ for module_file in module_files:
         if args.backup:
             if os.path.exists(cmake_file_backup):
                 print('error: file already exists:', cmake_file_backup)
-                sys.exit(1)
+                continue
             else:
                 shutil.copyfile(cmake_file, cmake_file_backup)
         if args.overwrite:
             print('overwriting', cmake_file)
         else:
             print('error: file already exists:', cmake_file)
-            sys.exit(1)
+            continue
 
     with open(cmake_file, 'w') as f:
         data_rendered = cmake_template.render(data=data)

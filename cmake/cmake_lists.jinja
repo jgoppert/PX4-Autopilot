@@ -30,37 +30,30 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-set(MODULE {{data.module}})
-set(MODULE_COMMAND {{data.command}})
-set(PRIORITY {{data.priority}})
-set(STACK_SIZE {{data.stacksize}})
-set(MAXOPTIMIZATION {{data.maxoptimization}})
-set(EXTRACXXFLAGS
+set(module {{data.module}})
+set(main {{data.command}})
+set(priority {{data.priority}})
+set(stack_size {{data.stacksize}})
+set(max_optimization {{data.maxoptimization}})
+set(extra_cxxflags
 {%- for flag in data.extracxxflags %}
 	{{flag}}
 {%- endfor %}
 	)
-set(EXTRACFLAGS
+set(extra_cflags
 {%- for flag in data.extracflags %}
 	{{flag}}
 {%- endfor %}
 	)
-set(SRCS
+set(srcs
 {%- for src in data.srcs %}
 	{{src}}
 {%- endfor %}
 	)
-include_directories(
+set(includes
 {%- for include in data.include_dirs %}
 	{{include}}
 {%- endfor %}
-	)
-add_library(${MODULE} STATIC EXCLUDE_FROM_ALL ${SRCS})
-add_dependencies(${MODULE}
-	)
-set_target_properties(${MODULE} PROPERTIES
-	COMPILE_FLAGS ${CMAKE_CXX_FLAGS} ${CMAKE_C_FLAGS} ${MAXOPTIMIZATION}
-	LINK_FLAGS
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 
 
