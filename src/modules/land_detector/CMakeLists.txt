@@ -31,18 +31,20 @@
 #
 ############################################################################
 
-set(module sensors)
+set(module land_detector)
 set(stack 1200)
-set(main sensors_main)
+set(main land_detector_main)
 
 set(SRCS
-	sensors.cpp
-	sensor_params.c
+	land_detector_main.cpp
+	land_detector_params.c
+	LandDetector.cpp
+	MulticopterLandDetector.cpp
+	FixedwingLandDetector.cpp
 	)
 
 add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-set_target_properties(${module} PROPERTIES COMPILE_FLAGS "-Os")
-set_target_properties(${module} PROPERTIES EXTRACXXFLAGS "-Wno-type-limits")
-set_target_properties(${module} PROPERTIES MODULE_PRIORITY "SCHED_PRIORITY_MAX-5")
+set_target_properties(${module} PROPERTIES
+        COMPILE_FLAGS "-Weffc++ -Os")
 
 # vim: set noet fenc=utf-8 ft=cmake ff=unix sts=4 sw=4 ts=4 :

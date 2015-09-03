@@ -31,18 +31,20 @@
 #
 ############################################################################
 
-set(module sensors)
-set(stack 1200)
-set(main sensors_main)
+#
+# Build the esc_calib tool.
+#
+
+set(module esc_calib)
+set(stack 4096)
+set(main esc_calib_main)
 
 set(SRCS
-	sensors.cpp
-	sensor_params.c
+	esc_calib.c
 	)
 
 add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-set_target_properties(${module} PROPERTIES COMPILE_FLAGS "-Os")
-set_target_properties(${module} PROPERTIES EXTRACXXFLAGS "-Wno-type-limits")
-set_target_properties(${module} PROPERTIES MODULE_PRIORITY "SCHED_PRIORITY_MAX-5")
+set_target_properties(${module} PROPERTIES
+        COMPILE_FLAGS "-Os")
 
 # vim: set noet fenc=utf-8 ft=cmake ff=unix sts=4 sw=4 ts=4 :

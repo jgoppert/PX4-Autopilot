@@ -36,8 +36,16 @@ set(stack 1800)
 set(main listener_main)
 
 # FIXME
-./topic_listener.cpp : $(PX4_BASE)/Tools/generate_listener.py
-	$(PX4_BASE)/Tools/generate_listener.py $(PX4_BASE) > $@
+add_custom_command(OUTPUT topic_listener.cpp
+	COMMAND PYTHONPATH=${PYTHONPATH} ${PYTHON_EXECUTABLE} 
+		Tools/px_generate_listener.py
+		${CMAKE_SOURCE_DIR}
+		> topic_listener.cpp
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+	COMMENT "Generating topic_listener.cpp"
+	VERBATIM
+	)
+add_custom_target(${module} DEPENDS topic_listener.cpp)
 
 set(SRCS
 	topic_listener.cpp

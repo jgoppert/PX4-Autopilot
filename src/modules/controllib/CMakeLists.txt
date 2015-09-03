@@ -40,7 +40,7 @@ set(SRCS
 	block/Block.cpp
 	block/BlockParam.cpp
 	uorb/blocks.cpp
-	blocks.cpp.cpp
+	blocks.cpp
 	)
 
 add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})

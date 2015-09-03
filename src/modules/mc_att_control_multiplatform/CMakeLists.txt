@@ -41,7 +41,6 @@ set(SRCS
 	mc_att_control.cpp
 	mc_att_control_base.cpp
 	mc_att_control_params.c
-	logbuffer.c
 	)
 
 add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})

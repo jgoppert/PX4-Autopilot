@@ -31,18 +31,16 @@
 #
 ############################################################################
 
-set(module sensors)
-set(stack 1200)
-set(main sensors_main)
+set(module reboot)
+set(stack 800)
+set(main reboot_main)
 
 set(SRCS
-	sensors.cpp
-	sensor_params.c
+	reboot.c
 	)
 
 add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-set_target_properties(${module} PROPERTIES COMPILE_FLAGS "-Os")
-set_target_properties(${module} PROPERTIES EXTRACXXFLAGS "-Wno-type-limits")
-set_target_properties(${module} PROPERTIES MODULE_PRIORITY "SCHED_PRIORITY_MAX-5")
+set_target_properties(${module} PROPERTIES
+        COMPILE_FLAGS "-Os")
 
 # vim: set noet fenc=utf-8 ft=cmake ff=unix sts=4 sw=4 ts=4 :

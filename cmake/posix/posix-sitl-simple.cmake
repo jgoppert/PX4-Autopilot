@@ -10,7 +10,7 @@ list(APPEND module_directories
 	./src/platforms/posix/drivers/gyrosim
 	./src/systemcmds/param
 	./src/systemcmds/mixer
-	./src/systemcmds/topic_listener
+	#./src/systemcmds/topic_listener
 	./src/systemcmds/ver
 	./src/systemcmds/esc_calib
 	./src/systemcmds/reboot
@@ -19,7 +19,6 @@ list(APPEND module_directories
 	./src/modules/attitude_estimator_ekf
 	./src/modules/attitude_estimator_q
 	./src/modules/ekf_att_pos_estimator
-	./src/modules/attitude_estimator_q
 	./src/modules/position_estimator_inav
 	./src/modules/navigator
 	./src/modules/mc_pos_control
@@ -34,14 +33,11 @@ list(APPEND module_directories
 	./src/modules/simulator
 	./src/modules/commander
 	./src/modules/controllib
-	./src/modules/controllib
 	./src/lib/mathlib
-	./src/lib/mathlib/filter
 	./src/lib/ecl
 	./src/lib/external_lgpl
 	./src/lib/geo
 	./src/lib/geo_lookup
-	./src/lib/conversion
 	./src/lib/launchdetection
 	)
 

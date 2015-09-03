@@ -31,18 +31,24 @@
 #
 ############################################################################
 
-set(module sensors)
+set(module fw_pos_control_l1)
 set(stack 1200)
-set(main sensors_main)
+set(main fw_pos_control_l1_main)
 
 set(SRCS
-	sensors.cpp
-	sensor_params.c
+	fw_pos_control_l1_main.cpp
+	fw_pos_control_l1_params.c
+	landingslope.cpp
+	mtecs/mTecs.cpp
+	mtecs/limitoverride.cpp
+	mtecs/mTecs_params.c
 	)
 
 add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-set_target_properties(${module} PROPERTIES COMPILE_FLAGS "-Os")
-set_target_properties(${module} PROPERTIES EXTRACXXFLAGS "-Wno-type-limits")
-set_target_properties(${module} PROPERTIES MODULE_PRIORITY "SCHED_PRIORITY_MAX-5")
+set_target_properties(${module} PROPERTIES
+        COMPILE_FLAGS "-Os")
+
+set_target_properties(${module} PROPERTIES
+        EXTRACXXFLAGS "-Wno-float-equal")
 
 # vim: set noet fenc=utf-8 ft=cmake ff=unix sts=4 sw=4 ts=4 :
