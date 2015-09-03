@@ -8,13 +8,13 @@ list(APPEND module_directories
 	./src/platforms/posix/drivers/airspeedsim
 	./src/platforms/posix/drivers/barosim
 	./src/platforms/posix/drivers/gyrosim
+	./src/systemcmds/param
+	./src/systemcmds/mixer
+	./src/systemcmds/topic_listener
+	./src/systemcmds/ver
+	./src/systemcmds/esc_calib
+	./src/systemcmds/reboot
 	./src/modules/sensors
-	./src/modules/systemcmds/param
-	./src/modules/systemcmds/mixer
-	./src/modules/systemcmds/topic_listener
-	./src/modules/systemcmds/ver
-	./src/modules/systemcmds/esc_calib
-	./src/modules/systemcmds/reboot
 	./src/modules/mavlink
 	./src/modules/attitude_estimator_ekf
 	./src/modules/attitude_estimator_q
