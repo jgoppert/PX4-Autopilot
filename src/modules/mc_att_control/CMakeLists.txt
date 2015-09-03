@@ -32,9 +32,9 @@
 ############################################################################
 set(module modules_mc_att_control)
 set(main mc_att_control)
-set(priority )
+set(priority)
 set(stack_size 1200)
-set(max_optimization )
+set(max_optimization)
 set(extra_cxxflags
 	)
 set(extra_cflags

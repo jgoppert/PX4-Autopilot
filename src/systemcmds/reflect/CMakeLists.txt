@@ -32,8 +32,8 @@
 ############################################################################
 set(module systemcmds_reflect)
 set(main reflect)
-set(priority )
-set(stack_size )
+set(priority)
+set(stack_size)
 set(max_optimization -Os)
 set(extra_cxxflags
 	)

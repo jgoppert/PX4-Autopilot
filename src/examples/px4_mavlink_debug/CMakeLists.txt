@@ -32,9 +32,9 @@
 ############################################################################
 set(module examples_px4_mavlink_debug)
 set(main px4_mavlink_debug)
-set(priority )
+set(priority)
 set(stack_size 2000)
-set(max_optimization )
+set(max_optimization)
 set(extra_cxxflags
 	)
 set(extra_cflags

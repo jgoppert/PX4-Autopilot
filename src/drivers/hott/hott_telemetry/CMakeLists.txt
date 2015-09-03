@@ -32,8 +32,8 @@
 ############################################################################
 set(module drivers_hott_hott_telemetry)
 set(main hott_telemetry)
-set(priority )
-set(stack_size )
+set(priority)
+set(stack_size)
 set(max_optimization -Os)
 set(extra_cxxflags
 	)

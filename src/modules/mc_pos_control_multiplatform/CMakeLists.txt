@@ -32,9 +32,9 @@
 ############################################################################
 set(module modules_mc_pos_control_multiplatform)
 set(main mc_pos_control_m)
-set(priority )
-set(stack_size )
-set(max_optimization )
+set(priority)
+set(stack_size)
+set(max_optimization)
 set(extra_cxxflags
 	-Wframe-larger-than=1200
 	)

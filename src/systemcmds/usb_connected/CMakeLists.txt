@@ -32,16 +32,13 @@
 ############################################################################
 set(module systemcmds_usb_connected)
 set(main usb_connected)
-set(priority )
-set(stack_size )
+set(priority)
+set(stack_size)
 set(max_optimization -Os)
-set(extra_cxxflags
-	)
-set(extra_cflags
-	)
+set(extra_cxxflags)
+set(extra_cflags)
 set(srcs
 	usb_connected.c
 	)
-set(includes
-	)
+set(includes)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

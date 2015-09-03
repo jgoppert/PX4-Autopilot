@@ -32,7 +32,7 @@
 ############################################################################
 set(module modules_fw_pos_control_l1)
 set(main fw_pos_control_l1)
-set(priority )
+set(priority)
 set(stack_size 1200)
 set(max_optimization -Os)
 set(extra_cxxflags

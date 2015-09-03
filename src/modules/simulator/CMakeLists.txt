@@ -32,9 +32,9 @@
 ############################################################################
 set(module modules_simulator)
 set(main simulator)
-set(priority )
-set(stack_size )
-set(max_optimization )
+set(priority)
+set(stack_size)
+set(max_optimization)
 set(extra_cxxflags
 	-Weffc++
 	-Wno-attributes

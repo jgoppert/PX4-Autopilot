@@ -32,7 +32,7 @@
 ############################################################################
 set(module drivers_px4flow)
 set(main px4flow)
-set(priority )
+set(priority)
 set(stack_size 1200)
 set(max_optimization -Os)
 set(extra_cxxflags

@@ -32,8 +32,8 @@
 ############################################################################
 set(module drivers_mb12xx)
 set(main mb12xx)
-set(priority )
-set(stack_size )
+set(priority)
+set(stack_size)
 set(max_optimization -Os)
 set(extra_cxxflags
 	)

@@ -32,9 +32,9 @@
 ############################################################################
 set(module modules_ekf_att_pos_estimator)
 set(main ekf_att_pos_estimator)
-set(priority )
-set(stack_size )
-set(max_optimization )
+set(priority)
+set(stack_size)
+set(max_optimization)
 set(extra_cxxflags
 	-Weffc++
 	-Wframe-larger-than=3400

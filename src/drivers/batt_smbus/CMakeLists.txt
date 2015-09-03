@@ -32,8 +32,8 @@
 ############################################################################
 set(module drivers_batt_smbus)
 set(main batt_smbus)
-set(priority )
-set(stack_size )
+set(priority)
+set(stack_size)
 set(max_optimization -Os)
 set(extra_cxxflags
 	)

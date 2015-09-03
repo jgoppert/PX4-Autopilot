@@ -32,9 +32,9 @@
 ############################################################################
 set(module modules_land_detector)
 set(main land_detector)
-set(priority )
+set(priority)
 set(stack_size 1200)
-set(max_optimization )
+set(max_optimization)
 set(extra_cxxflags
 	-Weffc++
 	-Os

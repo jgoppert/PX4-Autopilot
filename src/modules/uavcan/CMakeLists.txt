@@ -32,7 +32,7 @@
 ############################################################################
 set(module modules_uavcan)
 set(main uavcan)
-set(priority )
+set(priority)
 set(stack_size 3200)
 set(max_optimization -O3)
 set(extra_cxxflags

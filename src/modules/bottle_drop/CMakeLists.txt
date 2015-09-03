@@ -32,7 +32,7 @@
 ############################################################################
 set(module modules_bottle_drop)
 set(main bottle_drop)
-set(priority )
+set(priority)
 set(stack_size 1200)
 set(max_optimization -Os)
 set(extra_cxxflags

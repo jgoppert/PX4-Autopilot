@@ -32,9 +32,9 @@
 ############################################################################
 set(module examples_subscriber)
 set(main subscriber)
-set(priority )
+set(priority)
 set(stack_size 2400)
-set(max_optimization )
+set(max_optimization)
 set(extra_cxxflags
 	)
 set(extra_cflags

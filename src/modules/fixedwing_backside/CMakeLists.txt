@@ -32,9 +32,9 @@
 ############################################################################
 set(module modules_fixedwing_backside)
 set(main fixedwing_backside)
-set(priority )
-set(stack_size )
-set(max_optimization )
+set(priority)
+set(stack_size)
+set(max_optimization)
 set(extra_cxxflags
 	)
 set(extra_cflags

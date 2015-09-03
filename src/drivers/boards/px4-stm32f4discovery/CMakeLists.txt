@@ -31,10 +31,10 @@
 #
 ############################################################################
 set(module drivers_boards_px4-stm32f4discovery)
-set(main )
-set(priority )
-set(stack_size )
-set(max_optimization )
+set(main)
+set(priority)
+set(stack_size)
+set(max_optimization)
 set(extra_cxxflags
 	)
 set(extra_cflags

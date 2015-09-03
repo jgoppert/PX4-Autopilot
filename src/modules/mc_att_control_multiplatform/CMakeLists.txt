@@ -32,9 +32,9 @@
 ############################################################################
 set(module modules_mc_att_control_multiplatform)
 set(main mc_att_control_m)
-set(priority )
-set(stack_size )
-set(max_optimization )
+set(priority)
+set(stack_size)
+set(max_optimization)
 set(extra_cxxflags
 	)
 set(extra_cflags

@@ -32,9 +32,9 @@
 ############################################################################
 set(module examples_matlab_csv_serial)
 set(main matlab_csv_serial)
-set(priority )
-set(stack_size )
-set(max_optimization )
+set(priority)
+set(stack_size)
+set(max_optimization)
 set(extra_cxxflags
 	)
 set(extra_cflags

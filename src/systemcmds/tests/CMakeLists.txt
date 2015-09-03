@@ -32,7 +32,7 @@
 ############################################################################
 set(module systemcmds_tests)
 set(main tests)
-set(priority )
+set(priority)
 set(stack_size 60000)
 set(max_optimization -O0)
 set(extra_cxxflags

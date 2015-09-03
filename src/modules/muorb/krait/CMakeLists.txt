@@ -32,9 +32,9 @@
 ############################################################################
 set(module modules_muorb_krait)
 set(main muorb)
-set(priority )
-set(stack_size )
-set(max_optimization )
+set(priority)
+set(stack_size)
+set(max_optimization)
 set(extra_cxxflags
 	)
 set(extra_cflags

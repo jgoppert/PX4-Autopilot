@@ -32,7 +32,7 @@
 ############################################################################
 set(module modules_mavlink_mavlink_tests)
 set(main mavlink_tests)
-set(priority )
+set(priority)
 set(stack_size 5000)
 set(max_optimization -Os)
 set(extra_cxxflags

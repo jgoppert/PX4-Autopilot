@@ -32,9 +32,9 @@
 ############################################################################
 set(module examples_hwtest)
 set(main ex_hwtest)
-set(priority )
-set(stack_size )
-set(max_optimization )
+set(priority)
+set(stack_size)
+set(max_optimization)
 set(extra_cxxflags
 	)
 set(extra_cflags

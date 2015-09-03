@@ -32,7 +32,7 @@
 ############################################################################
 set(module systemcmds_motor_test)
 set(main motor_test)
-set(priority )
+set(priority)
 set(stack_size 4096)
 set(max_optimization -Os)
 set(extra_cxxflags
