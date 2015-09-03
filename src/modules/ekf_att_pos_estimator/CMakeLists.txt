@@ -30,21 +30,23 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-set(module ekf_att_pos_estimator)
-set(stack)
-set(main ekf_att_pos_estimator_main)
-
-set(SRCS
+set(module modules_ekf_att_pos_estimator)
+set(main ekf_att_pos_estimator)
+set(priority )
+set(stack_size )
+set(max_optimization )
+set(extra_cxxflags
+	-Weffc++
+	-Wframe-larger-than=3400
+	)
+set(extra_cflags
+	)
+set(srcs
 	ekf_att_pos_estimator_main.cpp
 	ekf_att_pos_estimator_params.c
 	estimator_22states.cpp
 	estimator_utilities.cpp
 	)
-
-add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-
-set_target_properties(${module} PROPERTIES
-        EXTRACFLAGS "-Wframe-larger-than=3400")
-
-# vim: set noet fenc=utf-8 ft=cmake ff=unix sts=4 sw=4 ts=4 :
+set(includes
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

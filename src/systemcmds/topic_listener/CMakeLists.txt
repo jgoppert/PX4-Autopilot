@@ -30,28 +30,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-set(module listener)
-set(stack 1800)
-set(main listener_main)
-
-# FIXME
-add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/topic_listener.cpp
-	COMMAND PYTHONPATH=${PYTHONPATH} ${PYTHON_EXECUTABLE} 
-		${CMAKE_SOURCE_DIR}/Tools/generate_listener.py
-		${CMAKE_SOURCE_DIR}
-		> ${CMAKE_CURRENT_BINARY_DIR}/topic_listener.cpp
-	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-	COMMENT "Generating topic_listener.cpp"
-	VERBATIM
+set(module systemcmds_topic_listener)
+set(main listener)
+set(priority )
+set(stack_size 1800)
+set(max_optimization -Os)
+set(extra_cxxflags
 	)
-
-set(SRCS
-	${CMAKE_CURRENT_BINARY_DIR}/topic_listener.cpp
+set(extra_cflags
 	)
-
-add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-set_target_properties(${module} PROPERTIES
-        COMPILE_FLAGS "-Os")
-
-# vim: set noet fenc=utf-8 ft=cmake ff=unix sts=4 sw=4 ts=4 :
+set(srcs
+	topic_listener.cpp
+	)
+set(includes
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

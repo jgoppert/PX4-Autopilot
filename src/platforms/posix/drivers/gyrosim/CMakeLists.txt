@@ -30,22 +30,19 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-set(module gyrosim)
-set(stack 1200)
-set(main gyrosim_main)
-
-set(SRCS
+set(module platforms_posix_drivers_gyrosim)
+set(main gyrosim)
+set(priority )
+set(stack_size 1200)
+set(max_optimization -Os)
+set(extra_cxxflags
+	-Weffc++
+	)
+set(extra_cflags
+	)
+set(srcs
 	gyrosim.cpp
 	)
-
-add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-
-set(EXTRA_COMPILE_FLAGS
-	-Os
-	#-Weffc++ # very verbose due to eigen
+set(includes
 	)
-join(OUT EXTRA_COMPILE_FLAGS LIST ${EXTRA_COMPILE_FLAGS} GLUE " ")
-set_target_properties(${module} PROPERTIES COMPILE_FLAGS ${EXTRA_COMPILE_FLAGS})
-
-# vim: set noet fenc=utf-8 ft=cmake ff=unix sts=4 sw=4 ts=4 :
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

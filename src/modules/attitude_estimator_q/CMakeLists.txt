@@ -30,20 +30,19 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-#
-# Attitude estimator (quaternion based)
-#
-
-set(module attitude_estimator_q)
-set(stack 1200)
-set(main attitude_estimator_q_main)
-
-set(SRCS
+set(module modules_attitude_estimator_q)
+set(main attitude_estimator_q)
+set(priority )
+set(stack_size 1200)
+set(max_optimization )
+set(extra_cxxflags
+	)
+set(extra_cflags
+	)
+set(srcs
 	attitude_estimator_q_main.cpp
 	attitude_estimator_q_params.c
 	)
-
-add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-
-# vim: set noet fenc=utf-8 ft=cmake ff=unix sts=4 sw=4 ts=4 :
+set(includes
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

@@ -30,12 +30,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-set(module navigator)
-set(stack 1200)
-set(main navigator_main)
-
-set(SRCS
+set(module modules_navigator)
+set(main navigator)
+set(priority )
+set(stack_size 1200)
+set(max_optimization -Os)
+set(extra_cxxflags
+	-Wno-sign-compare
+	)
+set(extra_cflags
+	)
+set(srcs
 	navigator_main.cpp
 	navigator_params.c
 	navigator_mode.cpp
@@ -56,14 +61,7 @@ set(SRCS
 	gpsfailure.cpp
 	gpsfailure_params.c
 	)
-
-add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-set_target_properties(${module} PROPERTIES
-        COMPILE_FLAGS "-Os")
-
-include_directories(${MAVLINK_SRC}/include/mavlink)
-
-set_target_properties(${module} PROPERTIES
-        EXTRACFLAGS "-Wno-sign-compare")
-
-# vim: set noet fenc=utf-8 ft=cmake ff=unix sts=4 sw=4 ts=4 :
+set(includes
+	${MAVLINK_SRC}/include/mavlink
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

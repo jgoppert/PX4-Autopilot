@@ -30,17 +30,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-set(module tone_alarm)
-set(stack)
-set(main tone_alarm_main)
-
-set(SRCS
+set(module platforms_posix_drivers_tonealrmsim)
+set(main tone_alarm)
+set(priority )
+set(stack_size )
+set(max_optimization -Os)
+set(extra_cxxflags
+	)
+set(extra_cflags
+	)
+set(srcs
 	tone_alarm.cpp
 	)
-
-add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-
-set_target_properties(${module} PROPERTIES COMPILE_FLAGS "-Os")
-
-# vim: set noet fenc=utf-8 ft=cmake ff=unix sts=4 sw=4 ts=4 :
+set(includes
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

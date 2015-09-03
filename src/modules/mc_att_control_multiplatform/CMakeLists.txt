@@ -30,19 +30,22 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-set(module mc_att_control_m)
-set(stack 1200)
-set(main mc_att_control_m_main)
-
-set(SRCS
+set(module modules_mc_att_control_multiplatform)
+set(main mc_att_control_m)
+set(priority )
+set(stack_size )
+set(max_optimization )
+set(extra_cxxflags
+	)
+set(extra_cflags
+	)
+set(srcs
 	mc_att_control_main.cpp
 	mc_att_control_start_nuttx.cpp
 	mc_att_control.cpp
 	mc_att_control_base.cpp
 	mc_att_control_params.c
 	)
-
-add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-
-# vim: set noet fenc=utf-8 ft=cmake ff=unix sts=4 sw=4 ts=4 :
+set(includes
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

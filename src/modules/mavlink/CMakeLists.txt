@@ -30,33 +30,23 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-set(module mavlink)
-set(stack 1200)
-set(main mavlink_main)
-
-set(SRCS
-	mavlink.c
-	mavlink_main.cpp
-	mavlink_mission.cpp
-	mavlink_parameters.cpp
-	mavlink_orb_subscription.cpp
-	mavlink_messages.cpp
-	mavlink_stream.cpp
-	mavlink_rate_limiter.cpp
-	mavlink_receiver.cpp
-	mavlink_ftp.cpp
+set(module modules_mavlink)
+set(main mavlink)
+set(priority )
+set(stack_size 1200)
+set(max_optimization -Os)
+set(extra_cxxflags
+	-Weffc++
+	-Wno-attributes
+	-Wno-packed
+	-DMAVLINK_COMM_NUM_BUFFERS=3
 	)
-
-add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-set_target_properties(${module} PROPERTIES
-        COMPILE_FLAGS "-Os")
-
-include_directories(${MAVLINK_SRC}/include/mavlink)
-
-set_target_properties(${module} PROPERTIES
-        EXTRACXXFLAGS "-Weffc++ -Wno-attributes -Wno-packed -DMAVLINK_COMM_NUM_BUFFERS=3")
-set_target_properties(${module} PROPERTIES
-        EXTRACFLAGS "-Wno-packed -DMAVLINK_COMM_NUM_BUFFERS=3")
-
-# vim: set noet fenc=utf-8 ft=cmake ff=unix sts=4 sw=4 ts=4 :
+set(extra_cflags
+	-Wno-packed
+	)
+set(srcs
+	)
+set(includes
+	${MAVLINK_SRC}/include/mavlink
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

@@ -30,23 +30,22 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-set(module mc_pos_control_m)
-set(stack)
-set(main mc_pos_control_m_main)
-
-set(SRCS
+set(module modules_mc_pos_control_multiplatform)
+set(main mc_pos_control_m)
+set(priority )
+set(stack_size )
+set(max_optimization )
+set(extra_cxxflags
+	-Wframe-larger-than=1200
+	)
+set(extra_cflags
+	)
+set(srcs
 	mc_pos_control_main.cpp
 	mc_pos_control_start_nuttx.cpp
 	mc_pos_control.cpp
 	mc_pos_control_params.c
 	)
-
-add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-
-if ("${OS}" STREQUAL "nuttx")
-set_target_properties(${module} PROPERTIES
-        EXTRACFLAGS "-Wframe-larger-than=1200")
-endif()
-
-# vim: set noet fenc=utf-8 ft=cmake ff=unix sts=4 sw=4 ts=4 :
+set(includes
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

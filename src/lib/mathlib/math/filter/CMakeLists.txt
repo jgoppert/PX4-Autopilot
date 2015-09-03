@@ -30,15 +30,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-set(module filter)
-set(stack)
-set(main)
-
-set(SRCS
+set(module lib_mathlib_math_filter)
+set(main )
+set(priority )
+set(stack_size )
+set(max_optimization )
+set(extra_cxxflags
+	)
+set(extra_cflags
+	)
+set(srcs
 	LowPassFilter2p.cpp
 	)
-
-add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-
-# vim: set noet fenc=utf-8 ft=cmake ff=unix sts=4 sw=4 ts=4 :
+set(includes
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

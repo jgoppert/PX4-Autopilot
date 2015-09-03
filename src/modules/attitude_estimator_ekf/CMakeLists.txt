@@ -30,27 +30,22 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-set(module attitude_estimator_ekf)
-set(stack 1200)
-set(main attitude_estimator_ekf_main)
-
-set(SRCS
+set(module modules_attitude_estimator_ekf)
+set(main attitude_estimator_ekf)
+set(priority )
+set(stack_size 1200)
+set(max_optimization )
+set(extra_cxxflags
+	-Wframe-larger-than=2400
+	)
+set(extra_cflags
+	-Wno-float-equal
+	)
+set(srcs
 	attitude_estimator_ekf_main.cpp
 	attitude_estimator_ekf_params.c
 	codegen/AttitudeEKF.c
 	)
-
-add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-set_target_properties(${module} PROPERTIES
-        COMPILE_FLAGS "-Os")
-
-set_target_properties(${module} PROPERTIES
-        EXTRACFLAGS "-Wno-float-equal -Wframe-larger-than=3700")
-
-if ("${OS}" STREQUAL "nuttx")
-set_target_properties(${module} PROPERTIES
-        EXTRACXXFLAGS "-Wframe-larger-than=2400")
-endif()
-
-# vim: set noet fenc=utf-8 ft=cmake ff=unix sts=4 sw=4 ts=4 :
+set(includes
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

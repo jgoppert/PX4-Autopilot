@@ -30,25 +30,24 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-if ("${OS}" STREQUAL "posix-arm")
-	set(module muorb)
-	set(stack)
-	set(main muorb_main)
-
-	set(SRCS
-		uORBKraitFastRpcChannel.cpp
-		muorb_main.cpp
-		)
-
-	add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-
-	set_target_properties(${module} PROPERTIES
-		INCLUDE_DIRS "${EXT_MUORB_LIB_ROOT}/krait/include"
-			"${CMAKE_SOURCE_DIR}/src/modules/uORB"
-			"${CMAKE_SOURCE_DIR}/src/modules")
-else()
-	message(FATAL_ERROR "MuORB is only supported by posix-arm target")
-endif()
-
-# vim: set noet fenc=utf-8 ft=cmake ff=unix sts=4 sw=4 ts=4 :
+set(module modules_muorb_krait)
+set(main muorb)
+set(priority )
+set(stack_size )
+set(max_optimization )
+set(extra_cxxflags
+	)
+set(extra_cflags
+	)
+set(srcs
+	uORBKraitFastRpcChannel.cpp
+	muorb_main.cpp
+	)
+set(includes
+	${EXT_MUORB_LIB_ROOT}/krait/include
+	\
+	${PX4_BASE}/src/modules/uORB
+	\
+	${PX4_BASE}/src/modules
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

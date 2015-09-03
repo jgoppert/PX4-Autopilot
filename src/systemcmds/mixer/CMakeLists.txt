@@ -30,22 +30,19 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-set(module mixer)
-set(stack 4096)
-set(main mixer_main)
-
-set(SRCS
+set(module systemcmds_mixer)
+set(main mixer)
+set(priority )
+set(stack_size 4096)
+set(max_optimization -Os)
+set(extra_cxxflags
+	-Wframe-larger-than=2048
+	)
+set(extra_cflags
+	)
+set(srcs
 	mixer.cpp
 	)
-
-add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-set_target_properties(${module} PROPERTIES
-        COMPILE_FLAGS "-Os")
-
-if ("${OS}" STREQUAL "nuttx")
-set_target_properties(${module} PROPERTIES
-        EXTRACFLAGS "-Wframe-larger-than=2048")
-endif()
-
-# vim: set noet fenc=utf-8 ft=cmake ff=unix sts=4 sw=4 ts=4 :
+set(includes
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

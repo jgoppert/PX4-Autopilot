@@ -30,16 +30,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-set(module platform_nuttx)
-set(stack)
-set(main)
-set(SRCS
+set(module platforms_nuttx)
+set(main )
+set(priority )
+set(stack_size )
+set(max_optimization -Os)
+set(extra_cxxflags
+	)
+set(extra_cflags
+	)
+set(srcs
 	px4_nuttx_impl.cpp
 	)
-add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-set_target_properties(${module} PROPERTIES
-	COMPILE_FLAGS "-Os")
-add_dependencies(${module} NuttX_${BOARD})
-
-# vim: set noet fenc=utf-8 ft=cmake ff=unix sts=4 sw=4 ts=4 :
+set(includes
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

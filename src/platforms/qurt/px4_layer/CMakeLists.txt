@@ -30,42 +30,23 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-set(module dspal)
-set(stack)
-set(main dspal_main)
-
-set(SRCS
+set(module platforms_qurt_px4_layer)
+set(main )
+set(priority )
+set(stack_size )
+set(max_optimization -Os)
+set(extra_cxxflags
+	)
+set(extra_cflags
+	)
+set(srcs
 	px4_qurt_impl.cpp
 	px4_qurt_tasks.cpp
 	lib_crc32.c
 	drv_hrt.c
+	qurt_stubs.c
 	main.cpp
 	)
-
-if ("${BOARD}" STREQUAL "hello")
-set(SRCS ${SRCS}
-	commands_hello.c
+set(includes
 	)
-endif()
-if ("${BOARD}" STREQUAL "default")
-set(SRCS ${SRCS}
-	commands_default.c
-	)
-endif()
-if ("${BOARD}" STREQUAL "muorb_test")
-set(SRCS ${SRCS}
-	commands_muorb_test.c
-	)
-endif()
-if ("${BOARD}" STREQUAL "hil")
-set(SRCS ${SRCS}
-	commands_hil.c
-	)
-endif()
-
-add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-set_target_properties(${module} PROPERTIES
-        COMPILE_FLAGS "-Os")
-
-# vim: set noet fenc=utf-8 ft=cmake ff=unix sts=4 sw=4 ts=4 :
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

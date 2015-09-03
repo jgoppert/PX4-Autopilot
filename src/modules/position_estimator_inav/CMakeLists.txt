@@ -30,22 +30,21 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-set(module position_estimator_inav)
-set(stack 1200)
-set(main position_estimator_inav_main)
-
-set(SRCS
+set(module modules_position_estimator_inav)
+set(main position_estimator_inav)
+set(priority )
+set(stack_size 1200)
+set(max_optimization )
+set(extra_cxxflags
+	)
+set(extra_cflags
+	-Wframe-larger-than=3800
+	)
+set(srcs
 	position_estimator_inav_main.c
 	position_estimator_inav_params.c
 	inertial_filter.c
 	)
-
-add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-
-if ("${OS}" STREQUAL "nuttx")
-set_target_properties(${module} PROPERTIES
-        EXTRACFLAGS "-Wframe-larger-than=3800")
-endif()
-
-# vim: set noet fenc=utf-8 ft=cmake ff=unix sts=4 sw=4 ts=4 :
+set(includes
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

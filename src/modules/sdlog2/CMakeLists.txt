@@ -30,23 +30,20 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-set(module sdlog2)
-set(stack 1200)
-set(main sdlog2_main)
-
-set(SRCS
+set(module modules_sdlog2)
+set(main sdlog2)
+set(priority "SCHED_PRIORITY_MAX-30")
+set(stack_size 1200)
+set(max_optimization -Os)
+set(extra_cxxflags
+	)
+set(extra_cflags
+	-Wframe-larger-than=1400
+	)
+set(srcs
 	sdlog2.c
 	logbuffer.c
 	)
-
-add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-set_target_properties(${module} PROPERTIES
-        COMPILE_FLAGS "-Os")
-
-if ("${OS}" STREQUAL "nuttx")
-set_target_properties(${module} PROPERTIES
-        EXTRACFLAGS "-Wframe-larger-than=1400")
-endif()
-
-# vim: set noet fenc=utf-8 ft=cmake ff=unix sts=4 sw=4 ts=4 :
+set(includes
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

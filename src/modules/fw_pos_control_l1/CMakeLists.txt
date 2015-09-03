@@ -30,12 +30,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-set(module fw_pos_control_l1)
-set(stack 1200)
-set(main fw_pos_control_l1_main)
-
-set(SRCS
+set(module modules_fw_pos_control_l1)
+set(main fw_pos_control_l1)
+set(priority )
+set(stack_size 1200)
+set(max_optimization -Os)
+set(extra_cxxflags
+	-Wno-float-equal
+	)
+set(extra_cflags
+	)
+set(srcs
 	fw_pos_control_l1_main.cpp
 	fw_pos_control_l1_params.c
 	landingslope.cpp
@@ -43,12 +48,6 @@ set(SRCS
 	mtecs/limitoverride.cpp
 	mtecs/mTecs_params.c
 	)
-
-add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-set_target_properties(${module} PROPERTIES
-        COMPILE_FLAGS "-Os")
-
-set_target_properties(${module} PROPERTIES
-        EXTRACXXFLAGS "-Wno-float-equal")
-
-# vim: set noet fenc=utf-8 ft=cmake ff=unix sts=4 sw=4 ts=4 :
+set(includes
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

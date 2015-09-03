@@ -30,29 +30,19 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-#
-# Math library
-#
-
-set(module mathlib)
-set(stack)
-set(main)
-
-set(SRCS
+set(module lib_mathlib)
+set(main )
+set(priority )
+set(stack_size )
+set(max_optimization )
+set(extra_cxxflags
+	)
+set(extra_cflags
+	)
+set(srcs
 	math/test/test.cpp
 	math/Limits.cpp
 	)
-
-add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-set_target_properties(${module} PROPERTIES
-        COMPILE_FLAGS "-Os")
-
-# FIXME - Not cmake compliant
-#
-# In order to include .config we first have to save off the
-# current makefile name, since app.mk needs it.
-#
-#APP_MAKEFILE	:= $(lastword $(MAKEFILE_LIST))
-
-# vim: set noet fenc=utf-8 ft=cmake ff=unix sts=4 sw=4 ts=4 :
+set(includes
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

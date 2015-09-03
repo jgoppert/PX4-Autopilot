@@ -30,19 +30,20 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-set(module sensors)
-set(stack 1200)
-set(main sensors_main)
-
-set(SRCS
+set(module modules_sensors)
+set(main sensors)
+set(priority "SCHED_PRIORITY_MAX-5")
+set(stack_size 1200)
+set(max_optimization -Os)
+set(extra_cxxflags
+	-Wno-type-limits
+	)
+set(extra_cflags
+	)
+set(srcs
 	sensors.cpp
 	sensor_params.c
 	)
-
-add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-set_target_properties(${module} PROPERTIES COMPILE_FLAGS "-Os")
-set_target_properties(${module} PROPERTIES EXTRACXXFLAGS "-Wno-type-limits")
-set_target_properties(${module} PROPERTIES MODULE_PRIORITY "SCHED_PRIORITY_MAX-5")
-
-# vim: set noet fenc=utf-8 ft=cmake ff=unix sts=4 sw=4 ts=4 :
+set(includes
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

@@ -30,17 +30,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-set(module airspeedsim)
-set(stack)
-set(main)
-
-set(SRCS
+set(module platforms_posix_drivers_airspeedsim)
+set(main )
+set(priority )
+set(stack_size )
+set(max_optimization -Os)
+set(extra_cxxflags
+	)
+set(extra_cflags
+	)
+set(srcs
 	airspeedsim.cpp
 	)
-
-add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-
-set_target_properties(${module} PROPERTIES COMPILE_FLAGS "-Os")
-
-# vim: set noet fenc=utf-8 ft=cmake ff=unix sts=4 sw=4 ts=4 :
+set(includes
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

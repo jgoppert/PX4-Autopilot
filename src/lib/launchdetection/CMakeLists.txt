@@ -30,19 +30,20 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-set(module launchdetection)
-set(stack)
-set(main)
-
-set(SRCS
+set(module lib_launchdetection)
+set(main )
+set(priority )
+set(stack_size )
+set(max_optimization -Os)
+set(extra_cxxflags
+	)
+set(extra_cflags
+	)
+set(srcs
 	LaunchDetector.cpp
 	CatapultLaunchMethod.cpp
 	launchdetection_params.c
 	)
-
-add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-set_target_properties(${module} PROPERTIES
-        COMPILE_FLAGS "-Os")
-
-# vim: set noet fenc=utf-8 ft=cmake ff=unix sts=4 sw=4 ts=4 :
+set(includes
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

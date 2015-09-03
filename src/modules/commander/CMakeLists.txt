@@ -30,12 +30,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-set(module commander)
-set(stack 5000)
-set(main commander_main)
-
-set(SRCS
+set(module modules_commander)
+set(main commander)
+set(priority )
+set(stack_size 5000)
+set(max_optimization -Os)
+set(extra_cxxflags
+	-Wframe-larger-than=2200
+	)
+set(extra_cflags
+	)
+set(srcs
 	commander.cpp
 	commander_params.c
 	state_machine_helper.cpp
@@ -50,14 +55,6 @@ set(SRCS
 	esc_calibration.cpp
 	PreflightCheck.cpp
 	)
-
-add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-set_target_properties(${module} PROPERTIES
-        COMPILE_FLAGS "-Os")
-
-if ("${OS}" STREQUAL "nuttx")
-set_target_properties(${module} PROPERTIES
-        EXTRACXXFLAGS "-Wframe-larger-than=2200")
-endif()
-
-# vim: set noet fenc=utf-8 ft=cmake ff=unix sts=4 sw=4 ts=4 :
+set(includes
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

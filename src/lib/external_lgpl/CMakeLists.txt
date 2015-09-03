@@ -30,31 +30,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-#
-#  W A R N I N G: The contents of this directory are license-incompatible
-# 			with the rest of the codebase. Do NOT copy any parts of it
-#			into other folders.
-#
-#  Acknowledgements:
-#
-#			The algorithms in this folder have been developed by Paul Riseborough
-#			with support from Andrew Tridgell.
-#			Originally licensed as LGPL for APM. As this is built as library and
-#			linked, use of this code does not change the usability of PX4 in general
-#			or any of the license implications.
-#
-
-set(module tecs)
-set(stack)
-set(main)
-
-set(SRCS
+set(module lib_external_lgpl)
+set(main )
+set(priority )
+set(stack_size )
+set(max_optimization -Os)
+set(extra_cxxflags
+	)
+set(extra_cflags
+	)
+set(srcs
 	tecs/tecs.cpp
 	)
-
-add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-set_target_properties(${module} PROPERTIES
-        COMPILE_FLAGS "-Os")
-
-# vim: set noet fenc=utf-8 ft=cmake ff=unix sts=4 sw=4 ts=4 :
+set(includes
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

@@ -30,21 +30,24 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-set(module land_detector)
-set(stack 1200)
-set(main land_detector_main)
-
-set(SRCS
+set(module modules_land_detector)
+set(main land_detector)
+set(priority )
+set(stack_size 1200)
+set(max_optimization )
+set(extra_cxxflags
+	-Weffc++
+	-Os
+	)
+set(extra_cflags
+	)
+set(srcs
 	land_detector_main.cpp
 	land_detector_params.c
 	LandDetector.cpp
 	MulticopterLandDetector.cpp
 	FixedwingLandDetector.cpp
 	)
-
-add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-set_target_properties(${module} PROPERTIES
-        COMPILE_FLAGS "-Weffc++ -Os")
-
-# vim: set noet fenc=utf-8 ft=cmake ff=unix sts=4 sw=4 ts=4 :
+set(includes
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

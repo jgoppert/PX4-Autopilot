@@ -30,24 +30,23 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-set(module simulator)
-set(stack)
-set(main simulator_main)
-
-set(SRCS
+set(module modules_simulator)
+set(main simulator)
+set(priority )
+set(stack_size )
+set(max_optimization )
+set(extra_cxxflags
+	-Weffc++
+	-Wno-attributes
+	-Wno-packed
+	)
+set(extra_cflags
+	-Wno-packed
+	)
+set(srcs
 	simulator.cpp
 	)
-
-if(NOT ${OS} STREQUAL "qurt")
-	list(APPEND SRCS
-		simulator_mavlink.cpp
-		)
-endif()
-
-add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-#set_target_properties(${module} PROPERTIES
-	#COMPILE_FLAGS "-Weffc++ -Wno-attributes -Wno-packed"
-	#)
-
-# vim: set noet fenc=utf-8 ft=cmake ff=unix sts=4 sw=4 ts=4 :
+set(includes
+	${MAVLINK_SRC}/include/mavlink
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

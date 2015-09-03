@@ -30,21 +30,22 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-set(module ecl_controller)
-set(stack)
-set(main)
-
-set(SRCS
+set(module lib_ecl)
+set(main )
+set(priority )
+set(stack_size )
+set(max_optimization -Os)
+set(extra_cxxflags
+	)
+set(extra_cflags
+	)
+set(srcs
 	attitude_fw/ecl_controller.cpp
 	attitude_fw/ecl_pitch_controller.cpp
 	attitude_fw/ecl_roll_controller.cpp
 	attitude_fw/ecl_yaw_controller.cpp
 	l1/ecl_l1_pos_controller.cpp
 	)
-
-add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-set_target_properties(${module} PROPERTIES
-        COMPILE_FLAGS "-Os")
-
-# vim: set noet fenc=utf-8 ft=cmake ff=unix sts=4 sw=4 ts=4 :
+set(includes
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

@@ -30,25 +30,21 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-if ("${OS}" STREQUAL "qurt")
-	set(module muorb)
-	set(stack)
-	set(main)
-
-	set(SRCS
-		px4muorb.cpp
-		uORBFastRpcChannel.cpp
-		)
-
-	add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
-	set_target_properties(${module} PROPERTIES
-		COMPILE_FLAGS "-Os")
-
-	set_target_properties(${module} PROPERTIES
-		INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/src/modules/uORB")
-else()
-	message(FATAL_ERROR "MuORB is only supported by qurt target")
-endif()
-
-# vim: set noet fenc=utf-8 ft=cmake ff=unix sts=4 sw=4 ts=4 :
+set(module modules_muorb_adsp)
+set(main )
+set(priority )
+set(stack_size )
+set(max_optimization -Os)
+set(extra_cxxflags
+	)
+set(extra_cflags
+	)
+set(srcs
+	px4muorb.cpp
+	uORBFastRpcChannel.cpp
+	)
+set(includes
+	\
+	${PX4_BASE}/src/modules/uORB
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
