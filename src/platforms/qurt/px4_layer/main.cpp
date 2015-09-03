@@ -46,17 +46,13 @@
 #include <string>
 #include <map>
 #include <stdio.h>
+#include "qurt_commands_proto.h"
 
 using namespace std;
 
 extern void init_app_map(map<string,px4_main_t> &apps);
 extern void list_builtins(map<string,px4_main_t> &apps);
 static px4_task_t g_dspal_task = -1;
-
-__BEGIN_DECLS
-// The commands to run are specified in a target file: commands_<target>.c
-extern const char *get_commands(void);
-__END_DECLS
 
 static void run_cmd(map<string,px4_main_t> &apps, const vector<string> &appargs) {
 	// command is appargs[0]
