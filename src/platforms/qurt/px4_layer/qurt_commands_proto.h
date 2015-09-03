@@ -30,53 +30,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-/**
- * @file commands_muorb_test.c
- * Commands to run for the "qurt_muorb_test" config
- *
- * @author Mark Charlebois <charlebm@gmail.com>
- */
+#pragma once
 
-#include "qurt_commands_proto.h"
-
-const char *get_commands()
-{
-	static const char *commands = 
-                  "uorb start\n"
-                  "muorb_test start\n";
-
-/*
-                  "hil mode_pwm\n"
-                  "mixer load /dev/pwm_output0 /startup/quad_x.main.mix\n";
-*/
-/*                  
-                  "param show\n"
-                  "param set CAL_GYRO_ID 2293760\n"
-                  "param set CAL_ACC0_ID 1310720\n"
-                  "param set CAL_ACC1_ID 1376256\n"
-                  "param set CAL_MAG0_ID 196608\n"
-                  "gyrosim start\n"
-                  "accelsim start\n"
-                  "rgbled start\n"
-                  "tone_alarm start\n"
-                  "simulator start -s\n"
-                  "commander start\n"
-                  "sensors start\n"
-                  "ekf_att_pos_estimator start\n"
-                  "mc_pos_control start\n"
-                  "mc_att_control start\n"
-                  "param set MAV_TYPE 2\n"
-                  "param set RC1_MAX 2015\n"
-                  "param set RC1_MIN 996\n"
-                  "param set RC_TRIM 1502\n"
-*/
-
-	return commands;
-/*====================================== Working set
-======================================*/
-                  
-                  //"muorb_test start\n"
-                  //"gyrosim start\n"
-                  //"adcsim start\n"
-                  
-}
+__BEGIN_DECLS
+// The commands to run are specified in a target file: commands_<target>.c
+const char *get_commands(void);
+__END_DECLS

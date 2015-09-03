@@ -37,6 +37,8 @@
  * @author Mark Charlebois <charlebm@gmail.com>
  */
 
+#include "qurt_commands_proto.h"
+
 const char *get_commands()
 {
 
@@ -89,7 +91,6 @@ const char *get_commands()
 		"param set ATT_W_GYRO_BIAS 0.05\n"
 		"sleep 1\n"
 
-
 		"param set MAV_TYPE 2\n"
 		"mixer load /dev/pwm_output0 /startup/quad_x.main.mix\n"
 		"list_devices\n"
@@ -99,9 +100,7 @@ const char *get_commands()
 		"sleep 10\n"
 		"list_tasks\n"
 		"sleep 10\n"
-
 		;
 
 	return commands;
-  
 }

@@ -99,6 +99,20 @@ include(px4_common)
 include(px4_target_impl)
 
 #=============================================================================
+#		Generate git header
+#
+set(PX4_VERSIONING_DIR ${CMAKE_BINARY_DIR}/versioning)
+add_custom_target(make_git_versioning_dir ALL
+                COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_VERSIONING_DIR})
+
+execute_process(COMMAND git log -1 --pretty=format:%H
+		OUTPUT_VARIABLE GIT_DESC)
+#set(GIT_DESC "1234567890123456789012345678901234567890")
+string(SUBSTRING ${GIT_DESC} 1 16 GIT_SHORT_DESC)
+
+configure_file("${CMAKE_SOURCE_DIR}/src/include/build_git_version.h.in" "${PX4_VERSIONING_DIR}/build_git_version.h" @ONLY)
+
+#=============================================================================
 #		Config validation
 #
 px4_target_validate_config()
@@ -136,6 +150,7 @@ px4_common_generate_messages()
 #=============================================================================
 #		generic flags
 #
+include_directories(${PX4_VERSIONING_DIR})
 px4_common_set_flags()
 px4_common_set_modules()
 px4_target_set_modules()

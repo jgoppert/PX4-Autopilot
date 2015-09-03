@@ -39,6 +39,7 @@
 #
 #	px4_target_set_flags
 #	px4_target_validate_config
+#	px4_target_set_modules
 #	px4_target_firmware
 #	px4_target_rules
 #	px4_target_testing

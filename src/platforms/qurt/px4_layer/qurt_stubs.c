@@ -33,7 +33,7 @@
 #include "px4_log.h"
 //extern "C" {
 
-void block_indefinite( void )
+static void block_indefinite( void )
 {
    for(;;)
    {
