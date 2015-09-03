@@ -80,7 +80,7 @@ for module_file in module_files:
         if args.overwrite:
             print('overwriting', cmake_file)
         else:
-            print('error: file already exists:', cmake_file_backup)
+            print('error: file already exists:', cmake_file)
             sys.exit(1)
 
     with open(cmake_file, 'w') as f:
