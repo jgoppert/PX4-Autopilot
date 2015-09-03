@@ -126,14 +126,14 @@ macro(px4_target_firmware)
 	add_dependencies(main NuttX_${BOARD})
 
 	set(main_link_list
-		${EXE_LINK_LIBS}
 		${module_list}
 		${EXE_LINK_LIBS}
 		)
 
 	target_link_libraries(main
 		${main_link_list}
-		${main_link_list} # link twice to handle library dependencies
+		${main_link_list}
+		${main_link_list}
 		)
 
 	# startup library
