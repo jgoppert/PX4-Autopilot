@@ -106,9 +106,14 @@ macro(px4_target_validate_config)
 		endif()
 	endif()
 
-	if(NOT EXISTS ${CMAKE_SOURCE_DIR}/cmake/${OS}/${TARGET_NAME})
+	if(NOT EXISTS ${CMAKE_SOURCE_DIR}/cmake/${OS}/${TARGET_NAME}.cmake)
 		message(FATAL_ERROR "not implemented yet: ${TARGET_NAME}")
 	endif()
+endmacro()
+
+macro(px4_target_set_modules)
+	# Include the target config file
+	include(${TARGET_NAME})
 endmacro()
 
 macro(px4_target_firmware)
