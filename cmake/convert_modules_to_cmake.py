@@ -4,16 +4,19 @@ from __future__ import print_function
 
 import argparse
 import os
+import sys
 import fnmatch
 import re
+import shutil
 import jinja2
 
 src_path = os.path.join(os.path.curdir, 'src')
 
 parser = argparse.ArgumentParser('converts module.mk to CMakeList.txt, run in root of repo')
 parser.add_argument('path', help='directory of modules to convert')
-parser.add_argument('--overwrite', help='overwrite existing cmake files, default to src', default=src_path)
-parser.add_argument('--backup', help='create backup of existing files if overwriting')
+parser.add_argument('--overwrite', help='overwrite existing files', dest='overwrite', action='store_true')
+parser.add_argument('--backup', help='create backup of existing files if overwriting', dest='backup', action='store_true')
+parser.set_defaults(overwrite=False, backup=False)
 args = parser.parse_args()
 
 cmake_template = jinja2.Template(open('cmake/cmake_lists.jinja', 'r').read())
@@ -67,14 +70,22 @@ for module_file in module_files:
     cmake_file = os.path.join(os.path.dirname(module_file), 'CMakeLists.txt')
     cmake_file_backup = cmake_file + '.backup'
 
-    if os.path.exists(cmake_file + '.old'):
-        print("delete backup file first")
-        continue
+    if os.path.exists(cmake_file):
+        if args.backup:
+            if os.path.exists(cmake_file_backup):
+                print('error: file already exists:', cmake_file_backup)
+                sys.exit(1)
+            else:
+                shutil.copyfile(cmake_file, cmake_file_backup)
+        if args.overwrite:
+            print('overwriting', cmake_file)
+        else:
+            print('error: file already exists:', cmake_file_backup)
+            sys.exit(1)
 
-    if not os.path.exists(cmake_file):
-        with open(cmake_file, 'w') as f:
-            data_rendered = cmake_template.render(data=data)
-            f.write(data_rendered)
+    with open(cmake_file, 'w') as f:
+        data_rendered = cmake_template.render(data=data)
+        f.write(data_rendered)
 
 
 # vim: set et fenc= ff=unix sts=4 sw=4 ts=4 : 
