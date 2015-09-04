@@ -44,8 +44,7 @@ set(extra_cxxflags
 set(extra_cflags
 	-Wno-packed
 	)
-set(srcs
-	)
+set(srcs)
 set(includes
 	${MAVLINK_SRC}/include/mavlink
 	)

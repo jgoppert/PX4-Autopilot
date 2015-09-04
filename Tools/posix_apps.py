@@ -44,8 +44,6 @@ print("""
 #include <string>
 #include <map>
 
-#define __EXPORT 
-
 #include <px4_tasks.h>
 #include <px4_posix.h>
 #include <stdlib.h>

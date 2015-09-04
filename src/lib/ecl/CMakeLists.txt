@@ -35,10 +35,8 @@ set(main)
 set(priority)
 set(stack_size)
 set(max_optimization -Os)
-set(extra_cxxflags
-	)
-set(extra_cflags
-	)
+set(extra_cxxflags)
+set(extra_cflags)
 set(srcs
 	attitude_fw/ecl_controller.cpp
 	attitude_fw/ecl_pitch_controller.cpp
@@ -46,6 +44,5 @@ set(srcs
 	attitude_fw/ecl_yaw_controller.cpp
 	l1/ecl_l1_pos_controller.cpp
 	)
-set(includes
-	)
+set(includes)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

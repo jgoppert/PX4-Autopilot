@@ -38,8 +38,7 @@ set(max_optimization -Os)
 set(extra_cxxflags
 	-Weffc++
 	)
-set(extra_cflags
-	)
+set(extra_cflags)
 set(srcs
 	px4io.cpp
 	px4io_uploader.cpp

@@ -38,8 +38,7 @@ set(max_optimization -Os)
 set(extra_cxxflags
 	-Wframe-larger-than=2200
 	)
-set(extra_cflags
-	)
+set(extra_cflags)
 set(srcs
 	commander.cpp
 	commander_params.c
@@ -55,6 +54,5 @@ set(srcs
 	esc_calibration.cpp
 	PreflightCheck.cpp
 	)
-set(includes
-	)
+set(includes)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

@@ -120,7 +120,19 @@ px4_target_validate_config()
 ##############################################################################
 #	GIT
 #
-px4_common_git_submodules()
+message(STATUS "Running px4_common_git_submodules")
+# convenience target to nuke all submodules
+add_custom_target(submodule_clean
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+	COMMAND git submodule deinit -f .
+	COMMAND rm -rf .git/modules/*
+	)
+
+# add all git submodules and paths
+add_git_submodule(mavlink mavlink/include/mavlink/v1.0)
+add_git_submodule(genmsg Tools/genmsg)
+add_git_submodule(gencpp Tools/gencpp)
+add_git_submodule(gtest unittests/gtest)
 
 ##############################################################################
 #	Programs
@@ -140,20 +152,67 @@ px4_target_rules()
 #=============================================================================
 #		messages
 #
-px4_common_generate_messages()
+set(msg_files_out)
+set(msg_multi_files_out)
+px4_common_generate_messages(
+	msg_files_out
+	msg_multi_files_out
+	)
+add_custom_target(msg_files DEPENDS ${msg_files_out})
+add_custom_target(msg_files_multi DEPENDS ${msg_multi_files_out})
+
 
 ##############################################################################
 #	Build Flags
-# 
+#
 # These are the project build flags.
 #
 #=============================================================================
 #		generic flags
 #
 include_directories(${PX4_VERSIONING_DIR})
-px4_common_set_flags()
-px4_common_set_modules()
-px4_target_set_modules()
+set(MAX_OPTIMIZATION -Os)
+set(WARNINGS)
+set(OPTIMIZATION_FLAGS)
+set(C_WARNINGS)
+set(C_FLAGS)
+set(CXX_WARNINGS)
+set(CXX_FLAGS)
+set(LD_FLAGS)
+set(VISIBILITY_FLAGS)
+px4_common_set_flags(
+	WARNINGS
+	OPTIMIZATION_FLAGS
+	C_WARNINGS
+	C_FLAGS
+	CXX_WARNINGS
+	CXX_FLAGS
+	LD_FLAGS
+	VISIBILITY_FLAGS
+	)
+set(EXE_LINK_FLAGS)
+set(EXE_LINK_LIBS)
+
+##############################################################################
+#	Common Module Directories
+#
+# These are the common project module directories
+#
+#=============================================================================
+set(module_directories)
+px4_common_add_modules(module_directories)
+#message(STATUS "module_directories ${module_directories}")
+
+##############################################################################
+#	Target Module Directories
+#
+# These are the target specific project module directories
+#
+#=============================================================================
+# Include the target config file
+include(${TARGET_NAME})
+message("Included ${TARGET_NAME}")
+message(STATUS "module_directories ${module_directories}")
 
 #=============================================================================
 #		os/board specific flags
@@ -196,14 +255,20 @@ join(OUT CMAKE_EXE_LINKER_FLAGS
 # Each module is a process that runs on PX4.
 # Interprocess communication is conducted using uORB.
 #
-# Note that not all modules are used on every board 
+# Note that not all modules are used on every board
 # configuration.
 #
 
 #=============================================================================
 #		add required modules to build
 #
-px4_common_modules()
+set(module_list)
+px4_common_modules(module_list)
+foreach(module ${module_list})
+	message(STATUS "Adding ${module}")
+	add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
+	add_dependencies(${module} platform_common)
+endforeach()
 
 ##############################################################################
 #	Firmware configurations

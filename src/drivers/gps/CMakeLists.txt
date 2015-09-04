@@ -35,10 +35,8 @@ set(main gps)
 set(priority)
 set(stack_size 1200)
 set(max_optimization -Os)
-set(extra_cxxflags
-	)
-set(extra_cflags
-	)
+set(extra_cxxflags)
+set(extra_cflags)
 set(srcs
 	gps.cpp
 	gps_helper.cpp
@@ -46,6 +44,5 @@ set(srcs
 	ashtech.cpp
 	ubx.cpp
 	)
-set(includes
-	)
+set(includes)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

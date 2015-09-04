@@ -35,15 +35,12 @@ set(main hrttest)
 set(priority)
 set(stack_size)
 set(max_optimization)
-set(extra_cxxflags
-	)
-set(extra_cflags
-	)
+set(extra_cxxflags)
+set(extra_cflags)
 set(srcs
 	hrt_test_main.cpp
 	hrt_test_start_posix.cpp
 	hrt_test.cpp
 	)
-set(includes
-	)
+set(includes)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

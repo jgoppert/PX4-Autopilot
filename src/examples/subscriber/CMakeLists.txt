@@ -35,16 +35,13 @@ set(main subscriber)
 set(priority)
 set(stack_size 2400)
 set(max_optimization)
-set(extra_cxxflags
-	)
-set(extra_cflags
-	)
+set(extra_cxxflags)
+set(extra_cflags)
 set(srcs
 	subscriber_main.cpp
 	subscriber_start_nuttx.cpp
 	subscriber_example.cpp
 	subscriber_params.c
 	)
-set(includes
-	)
+set(includes)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

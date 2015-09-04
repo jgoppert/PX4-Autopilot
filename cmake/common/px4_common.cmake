@@ -39,13 +39,14 @@
 # Defined macros:
 #
 # 	px4_common_set_flags
-#	px4_common_set_modules
+#	px4_common_add_modules
 #	px4_common_generate_messages
 #	px4_common_modules
 #	px4_common_git_submodules
 #
 
-macro(px4_common_set_flags)
+function(px4_common_set_flags WARNINGS OPTIMIZATION_FLAGS C_WARNINGS C_FLAGS CXX_WARNINGS CXX_FLAGS LD_FLAGS VISIBILITY_FLAGS)
+
 	message(STATUS "Running px4_common_set_flags")
 	include_directories(
 		src
@@ -63,7 +64,7 @@ macro(px4_common_set_flags)
 		mavlink/include/mavlink
 		)
 
-	set(WARNINGS
+	set(${WARNINGS}
 		-Wall
 		-Wno-sign-compare
 		-Wextra
@@ -87,70 +88,77 @@ macro(px4_common_set_flags)
 		#               conversions in the code
 		#-Wcast-align - would help catch bad casts in some cases,
 		#               but generates too many false positives
+		PARENT_SCOPE
 		)
 
 	if (NOT "${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
-		set(WARNINGS ${WARNINGS}
+		list(APPEND ${WARNINGS}
 			-Werror=unused-but-set-variable
 			-Wformat=1
 			#-Wlogical-op # very verbose due to eigen
 			-Wdouble-promotion
 			-Werror=double-promotion
+			PARENT_SCOPE
 		)
 	endif()
 	
 
-	set(MAX_OPTIMIZATION -Os)
-
-	set(OPTIMIZATION_FLAGS
+	set(${OPTIMIZATION_FLAGS}
 		-fno-strict-aliasing
 		-fomit-frame-pointer
 		-funsafe-math-optimizations
 		-ffunction-sections
 		-fdata-sections
+		PARENT_SCOPE
 		)
 	if (NOT "${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
-		set(OPTIMIZATION_FLAGS ${OPTIMIZATION_FLAGS}
+		list(APPEND ${OPTIMIZATION_FLAGS}
 			-fno-strength-reduce
 			-fno-builtin-printf
+			PARENT_SCOPE
 		)
 	endif()
 
 	#=============================================================================
 	#		c flags
 	#
-	set(C_WARNINGS
+	set(${C_WARNINGS}
 		-Wbad-function-cast
 		-Wstrict-prototypes
 		-Wmissing-prototypes
 		-Wnested-externs
+		PARENT_SCOPE
 		)
 
 	if (NOT "${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
-		set(C_WARNINGS ${C_WARNINGS}
+		list(APPEND ${C_WARNINGS}
 			-Wold-style-declaration
 			-Wmissing-parameter-type
+			PARENT_SCOPE
 		)
 	endif()
 
-	set(C_FLAGS
+	set(${C_FLAGS}
 		-std=gnu99
 		-fno-common
+		PARENT_SCOPE
 		)
 
 	#=============================================================================
 	#		cxx flags
 	#
-	set(CXX_WARNINGS
+	set(${CXX_WARNINGS}
 		-Wno-missing-field-initializers
+		PARENT_SCOPE
 		)
-	set(CXX_FLAGS
+	set(${CXX_FLAGS}
 		-fno-exceptions
 		-fno-rtti
 		-std=gnu++0x
 		-fno-threadsafe-statics
 		-DCONFIG_WCHAR_BUILTIN
 		-D__CUSTOM_FILE_IO__
+		PARENT_SCOPE
 		)
 
 	add_definitions(
@@ -160,30 +168,28 @@ macro(px4_common_set_flags)
 	#=============================================================================
 	#		ld flags
 	#
-	set(LD_FLAGS
+	set(${LD_FLAGS}
 		-Wl,--warn-common
 		-Wl,--gc-sections
+		PARENT_SCOPE
 		)
-
-	set(EXE_LINK_FLAGS)
-
-	set(EXE_LINK_LIBS)
 
 	#=============================================================================
 	#		misc flags
 	#
-	set(VISIBILITY_FLAGS
+	set(${VISIBILITY_FLAGS}
 		-fvisibility=hidden
 		"-include ${CMAKE_SOURCE_DIR}/src/include/visibility.h"
+		PARENT_SCOPE
 		)
-endmacro()
+endfunction()
 
-macro(px4_common_set_modules)
-	message(STATUS "Running px4_common_set_modules")
+function(px4_common_add_modules module_dirs)
+	message(STATUS "Running px4_common_add_modules")
 	#=============================================================================
 	#		Common Modules
 	#
-	set(module_directories
+	set(${module_dirs}
 		./src/drivers/led
 		./src/drivers/device
 		./src/platforms/common
@@ -194,10 +200,11 @@ macro(px4_common_set_modules)
 		#./src/systemcmds/perf
 		./src/lib/mathlib/math/filter
 		./src/lib/conversion
+		PARENT_SCOPE
 		)
-endmacro()
+endfunction()
 
-macro(px4_common_generate_messages)
+function(px4_common_generate_messages OUT_MSG_FILES OUT_MSG_MULTI_FILES)
 	message(STATUS "Running px4_common_generate_messages")
 	#=============================================================================
 	#		messages
@@ -226,7 +233,7 @@ macro(px4_common_generate_messages)
 		COMMENT "Generating uORB topic headers"
 		VERBATIM
 		)
-	add_custom_target(msg_files DEPENDS ${MSG_FILES_OUT})
+	set(${OUT_MSG_FILES} ${MSG_FILES_OUT} PARENT_SCOPE)
 
 	#=============================================================================
 	#		multi messages for target OS
@@ -251,23 +258,22 @@ macro(px4_common_generate_messages)
 		COMMENT "Generating uORB topic multi headers for ${OS}"
 		VERBATIM
 		)
-	add_custom_target(msg_files_multi DEPENDS ${MSG_MULTI_FILES_OUT})
-endmacro()
+	set(${OUT_MSG_MULTI_FILES} ${MSG_MULTI_FILES_OUT} PARENT_SCOPE)
+endfunction()
 
 #=============================================================================
-# Macro px4_common_modules
+# Function px4_common_modules
 #
 # Inputs:
 #	CMAKE_BINARY_DIR
 #	module_directories
 #
 # Outputs:
-#	module_list
-#	platform_common (deps)
+#	out_module_list
 #
-macro(px4_common_modules)
-	message(STATUS "Running px4_common_modules")
+function(px4_common_modules out_module_list)
 	set(module_list)
+	message(STATUS "Running px4_common_modules")
 	file(REMOVE ${CMAKE_BINARY_DIR}/builtin_commands)
 	file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/builtin_commands)
 	foreach(module_directory ${module_directories})
@@ -294,32 +300,14 @@ macro(px4_common_modules)
 		if ("${module_stack}" STREQUAL "")
 			set(module_stack 1024)
 		endif()
-		list(APPEND module_list ${module})
-		#message(STATUS "module: ${module}\n\tstack: ${module_stack}\n\tmain: ${module_main}")
+		list(APPEND module_list ${module} PARENT_SCOPE)
+		message(STATUS "out_module_list ${${out_module_list}}")
+		message(STATUS "module: ${module}\n\tstack: ${module_stack}\n\tmain: ${module_main}")
 		if(NOT "${module_main}" STREQUAL "")
 			file(WRITE "${CMAKE_BINARY_DIR}/builtin_commands/COMMAND.${module}.${module_priority}.${module_stack}.${module_main}")
 		endif()
-		add_dependencies(${module} platform_common)
 	endforeach()
-endmacro()
-
-##############################################################################
-#	Common Submodules
-#
-
-macro(px4_common_git_submodules)
-	message(STATUS "Running px4_common_git_submodules")
-	# convenience target to nuke all submodules
-	add_custom_target(submodule_clean
-		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-		COMMAND git submodule deinit -f .
-		COMMAND rm -rf .git/modules/*
-		)
-
-	# add all git submodules and paths
-	add_git_submodule(mavlink mavlink/include/mavlink/v1.0)
-	add_git_submodule(genmsg Tools/genmsg)
-	add_git_submodule(gencpp Tools/gencpp)
-	add_git_submodule(gtest unittests/gtest)
-endmacro()
+	set(${out_module_list} ${module_list} PARENT_SCOPE)
+	message(STATUS "module_list ${module_list}")
+endfunction()
 

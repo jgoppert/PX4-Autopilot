@@ -35,8 +35,7 @@ set(main)
 set(priority)
 set(stack_size)
 set(max_optimization -Os)
-set(extra_cxxflags
-	)
+set(extra_cxxflags)
 set(extra_cflags
 	-Wno-sign-compare
 	)
@@ -58,6 +57,5 @@ set(srcs
 	circuit_breaker.cpp
 	circuit_breaker_params.c
 	)
-set(includes
-	)
+set(includes)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

@@ -35,15 +35,12 @@ set(main publisher)
 set(priority)
 set(stack_size 1200)
 set(max_optimization)
-set(extra_cxxflags
-	)
-set(extra_cflags
-	)
+set(extra_cxxflags)
+set(extra_cflags)
 set(srcs
 	publisher_main.cpp
 	publisher_start_nuttx.cpp
 	publisher_example.cpp
 	)
-set(includes
-	)
+set(includes)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

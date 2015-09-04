@@ -46,6 +46,5 @@ set(srcs
 	attitude_estimator_ekf_params.c
 	codegen/AttitudeEKF.c
 	)
-set(includes
-	)
+set(includes)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

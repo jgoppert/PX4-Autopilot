@@ -35,13 +35,25 @@ set(main)
 set(priority)
 set(stack_size)
 set(max_optimization)
-set(extra_cxxflags
-	)
-set(extra_cflags
-	)
+set(extra_cxxflags)
+set(extra_cflags)
 set(srcs
 	px4_getopt.c
 	)
-set(includes
-	)
+set(includes)
+
+add_library(${module} STATIC EXCLUDE_FROM_ALL ${srcs})
+add_dependencies(${module} msg_files msg_files_multi git_mavlink)
+
+if (${OS} STREQUAL "nuttx")
+	add_dependencies(${module} NuttX_${BOARD})
+elseif (${OS} STREQUAL "posix")
+	message(STATUS "OS = ${OS}")
+	add_dependencies(${module} posix_apps)
+endif()
+
+if (NOT ${OS} STREQUAL "qurt")
+	add_dependencies(${module} git_eigen)
+endif()
+
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

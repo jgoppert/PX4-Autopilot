@@ -38,13 +38,11 @@ set(max_optimization -Os)
 set(extra_cxxflags
 	-Weffc++
 	)
-set(extra_cflags
-	)
+set(extra_cflags)
 set(srcs
 	hmc5883_i2c.cpp
 	hmc5883_spi.cpp
 	hmc5883.cpp
 	)
-set(includes
-	)
+set(includes)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

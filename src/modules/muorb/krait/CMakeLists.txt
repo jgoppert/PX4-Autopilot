@@ -35,10 +35,8 @@ set(main muorb)
 set(priority)
 set(stack_size)
 set(max_optimization)
-set(extra_cxxflags
-	)
-set(extra_cflags
-	)
+set(extra_cxxflags)
+set(extra_cflags)
 set(srcs
 	uORBKraitFastRpcChannel.cpp
 	muorb_main.cpp

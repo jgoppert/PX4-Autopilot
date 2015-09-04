@@ -35,10 +35,8 @@ set(main mc_att_control_m)
 set(priority)
 set(stack_size)
 set(max_optimization)
-set(extra_cxxflags
-	)
-set(extra_cflags
-	)
+set(extra_cxxflags)
+set(extra_cflags)
 set(srcs
 	mc_att_control_main.cpp
 	mc_att_control_start_nuttx.cpp
@@ -46,6 +44,5 @@ set(srcs
 	mc_att_control_base.cpp
 	mc_att_control_params.c
 	)
-set(includes
-	)
+set(includes)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 
