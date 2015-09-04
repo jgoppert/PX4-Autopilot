@@ -32,9 +32,9 @@
 ############################################################################
 set(module modules_attitude_estimator_q)
 set(main attitude_estimator_q)
-set(priority )
+set(priority)
 set(stack_size 1200)
-set(max_optimization )
+set(max_optimization)
 set(extra_cxxflags
 	)
 set(extra_cflags

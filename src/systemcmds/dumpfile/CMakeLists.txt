@@ -32,8 +32,8 @@
 ############################################################################
 set(module systemcmds_dumpfile)
 set(main dumpfile)
-set(priority )
-set(stack_size )
+set(priority)
+set(stack_size)
 set(max_optimization -Os)
 set(extra_cxxflags
 	)

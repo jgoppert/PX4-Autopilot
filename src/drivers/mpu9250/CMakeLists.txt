@@ -32,7 +32,7 @@
 ############################################################################
 set(module drivers_mpu9250)
 set(main mpu9250)
-set(priority )
+set(priority)
 set(stack_size 1200)
 set(max_optimization -Os)
 set(extra_cxxflags

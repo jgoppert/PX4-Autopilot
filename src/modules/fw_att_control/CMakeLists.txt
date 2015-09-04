@@ -32,7 +32,7 @@
 ############################################################################
 set(module modules_fw_att_control)
 set(main fw_att_control)
-set(priority )
+set(priority)
 set(stack_size 1200)
 set(max_optimization -Os)
 set(extra_cxxflags

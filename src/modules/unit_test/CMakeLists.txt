@@ -31,9 +31,9 @@
 #
 ############################################################################
 set(module modules_unit_test)
-set(main )
-set(priority )
-set(stack_size )
+set(main)
+set(priority)
+set(stack_size)
 set(max_optimization -Os)
 set(extra_cxxflags
 	)

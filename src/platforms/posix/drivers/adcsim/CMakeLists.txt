@@ -32,8 +32,8 @@
 ############################################################################
 set(module platforms_posix_drivers_adcsim)
 set(main adcsim)
-set(priority )
-set(stack_size )
+set(priority)
+set(stack_size)
 set(max_optimization -Os)
 set(extra_cxxflags
 	)

@@ -56,7 +56,7 @@ set_property(CACHE BOARD PROPERTY STRINGS px4fmu-v2 sitl)
 set(LABEL "simple" CACHE STRING "module set label")
 set_property(CACHE LABEL PROPERTY STRINGS simple default)
 
-set(PYTHONPATH "${CMAKE_SOURCE_DIR}/Tools/genmsg/src:${CMAKE_SOURCE_DIR}/Tools/gencpp/src:$ENV{PYTHONPATH}" CACHE INTERNAL "PYTHONPATH" )
+set(PYTHONPATH "${CMAKE_SOURCE_DIR}/Tools/genmsg/src:${CMAKE_SOURCE_DIR}/Tools/gencpp/src:$ENV{PYTHONPATH}" CACHE INTERNAL "PYTHONPATH")
 
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE Debug "Choose type type of build" FORCE)

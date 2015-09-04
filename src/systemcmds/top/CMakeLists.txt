@@ -32,7 +32,7 @@
 ############################################################################
 set(module systemcmds_top)
 set(main top)
-set(priority )
+set(priority)
 set(stack_size 1700)
 set(max_optimization -Os)
 set(extra_cxxflags

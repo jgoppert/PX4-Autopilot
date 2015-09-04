@@ -32,9 +32,9 @@
 ############################################################################
 set(module examples_fixedwing_control)
 set(main ex_fixedwing_control)
-set(priority )
+set(priority)
 set(stack_size 1200)
-set(max_optimization )
+set(max_optimization)
 set(extra_cxxflags
 	)
 set(extra_cflags

@@ -31,9 +31,9 @@
 #
 ############################################################################
 set(module drivers_stm32)
-set(main )
-set(priority )
-set(stack_size )
+set(main)
+set(priority)
+set(stack_size)
 set(max_optimization -Os)
 set(extra_cxxflags
 	)

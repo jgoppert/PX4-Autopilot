@@ -32,8 +32,8 @@
 ############################################################################
 set(module drivers_ll40ls)
 set(main ll40ls)
-set(priority )
-set(stack_size )
+set(priority)
+set(stack_size)
 set(max_optimization -Os)
 set(extra_cxxflags
 	)

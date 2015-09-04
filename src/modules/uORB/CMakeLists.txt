@@ -32,7 +32,7 @@
 ############################################################################
 set(module modules_uORB)
 set(main uorb)
-set(priority )
+set(priority)
 set(stack_size 2048)
 set(max_optimization -Os)
 set(extra_cxxflags

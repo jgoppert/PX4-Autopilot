@@ -32,7 +32,7 @@
 ############################################################################
 set(module systemcmds_perf)
 set(main perf)
-set(priority )
+set(priority)
 set(stack_size 1800)
 set(max_optimization -Os)
 set(extra_cxxflags

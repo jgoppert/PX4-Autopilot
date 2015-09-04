@@ -32,7 +32,7 @@
 ############################################################################
 set(module drivers_gps)
 set(main gps)
-set(priority )
+set(priority)
 set(stack_size 1200)
 set(max_optimization -Os)
 set(extra_cxxflags

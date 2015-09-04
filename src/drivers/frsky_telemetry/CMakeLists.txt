@@ -32,7 +32,7 @@
 ############################################################################
 set(module drivers_frsky_telemetry)
 set(main frsky_telemetry)
-set(priority )
+set(priority)
 set(stack_size 1200)
 set(max_optimization -Os)
 set(extra_cxxflags

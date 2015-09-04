@@ -32,9 +32,9 @@
 ############################################################################
 set(module modules_attitude_estimator_ekf)
 set(main attitude_estimator_ekf)
-set(priority )
+set(priority)
 set(stack_size 1200)
-set(max_optimization )
+set(max_optimization)
 set(extra_cxxflags
 	-Wframe-larger-than=2400
 	)

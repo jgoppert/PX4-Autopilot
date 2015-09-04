@@ -32,7 +32,7 @@
 ############################################################################
 set(module drivers_l3gd20)
 set(main l3gd20)
-set(priority )
+set(priority)
 set(stack_size 1200)
 set(max_optimization -Os)
 set(extra_cxxflags

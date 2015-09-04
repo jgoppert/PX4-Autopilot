@@ -32,9 +32,9 @@
 ############################################################################
 set(module examples_rover_steering_control)
 set(main rover_steering_control)
-set(priority )
+set(priority)
 set(stack_size 1200)
-set(max_optimization )
+set(max_optimization)
 set(extra_cxxflags
 	)
 set(extra_cflags

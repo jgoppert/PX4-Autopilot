@@ -32,8 +32,8 @@
 ############################################################################
 set(module systemcmds_mtd)
 set(main mtd)
-set(priority )
-set(stack_size )
+set(priority)
+set(stack_size)
 set(max_optimization -Os)
 set(extra_cxxflags
 	)

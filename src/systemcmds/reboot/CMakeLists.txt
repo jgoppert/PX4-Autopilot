@@ -32,7 +32,7 @@
 ############################################################################
 set(module systemcmds_reboot)
 set(main reboot)
-set(priority )
+set(priority)
 set(stack_size 800)
 set(max_optimization -Os)
 set(extra_cxxflags

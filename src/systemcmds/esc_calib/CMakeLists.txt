@@ -32,7 +32,7 @@
 ############################################################################
 set(module systemcmds_esc_calib)
 set(main esc_calib)
-set(priority )
+set(priority)
 set(stack_size 4096)
 set(max_optimization -Os)
 set(extra_cxxflags

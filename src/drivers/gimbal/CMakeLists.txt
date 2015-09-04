@@ -32,8 +32,8 @@
 ############################################################################
 set(module drivers_gimbal)
 set(main gimbal)
-set(priority )
-set(stack_size )
+set(priority)
+set(stack_size)
 set(max_optimization -Os)
 set(extra_cxxflags
 	)

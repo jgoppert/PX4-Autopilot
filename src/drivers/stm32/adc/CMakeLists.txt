@@ -32,8 +32,8 @@
 ############################################################################
 set(module drivers_stm32_adc)
 set(main adc)
-set(priority )
-set(stack_size )
+set(priority)
+set(stack_size)
 set(max_optimization -Os)
 set(extra_cxxflags
 	)

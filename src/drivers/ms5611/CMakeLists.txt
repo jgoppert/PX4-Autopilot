@@ -32,8 +32,8 @@
 ############################################################################
 set(module drivers_ms5611)
 set(main ms5611)
-set(priority )
-set(stack_size )
+set(priority)
+set(stack_size)
 set(max_optimization -Os)
 set(extra_cxxflags
 	)

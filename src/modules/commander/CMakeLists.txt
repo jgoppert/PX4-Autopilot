@@ -32,7 +32,7 @@
 ############################################################################
 set(module modules_commander)
 set(main commander)
-set(priority )
+set(priority)
 set(stack_size 5000)
 set(max_optimization -Os)
 set(extra_cxxflags

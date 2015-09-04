@@ -32,9 +32,9 @@
 ############################################################################
 set(module platforms_posix_tests_hrt_test)
 set(main hrttest)
-set(priority )
-set(stack_size )
-set(max_optimization )
+set(priority)
+set(stack_size)
+set(max_optimization)
 set(extra_cxxflags
 	)
 set(extra_cflags

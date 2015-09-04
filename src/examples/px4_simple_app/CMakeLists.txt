@@ -32,9 +32,9 @@
 ############################################################################
 set(module examples_px4_simple_app)
 set(main px4_simple_app)
-set(priority )
-set(stack_size )
-set(max_optimization )
+set(priority)
+set(stack_size)
+set(max_optimization)
 set(extra_cxxflags
 	)
 set(extra_cflags

@@ -32,7 +32,7 @@
 ############################################################################
 set(module platforms_posix_drivers_gyrosim)
 set(main gyrosim)
-set(priority )
+set(priority)
 set(stack_size 1200)
 set(max_optimization -Os)
 set(extra_cxxflags

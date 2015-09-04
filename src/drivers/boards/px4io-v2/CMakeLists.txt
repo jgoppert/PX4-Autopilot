@@ -31,9 +31,9 @@
 #
 ############################################################################
 set(module drivers_boards_px4io-v2)
-set(main )
-set(priority )
-set(stack_size )
+set(main)
+set(priority)
+set(stack_size)
 set(max_optimization -Os)
 set(extra_cxxflags
 	)

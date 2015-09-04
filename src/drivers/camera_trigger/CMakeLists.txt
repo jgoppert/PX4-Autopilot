@@ -32,8 +32,8 @@
 ############################################################################
 set(module drivers_camera_trigger)
 set(main camera_trigger)
-set(priority )
-set(stack_size )
+set(priority)
+set(stack_size)
 set(max_optimization -Os)
 set(extra_cxxflags
 	)

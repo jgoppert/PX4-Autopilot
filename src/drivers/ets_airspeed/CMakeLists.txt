@@ -32,7 +32,7 @@
 ############################################################################
 set(module drivers_ets_airspeed)
 set(main ets_airspeed)
-set(priority )
+set(priority)
 set(stack_size 1200)
 set(max_optimization -Os)
 set(extra_cxxflags

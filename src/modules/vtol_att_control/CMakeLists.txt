@@ -32,9 +32,9 @@
 ############################################################################
 set(module modules_vtol_att_control)
 set(main vtol_att_control)
-set(priority )
-set(stack_size )
-set(max_optimization )
+set(priority)
+set(stack_size)
+set(max_optimization)
 set(extra_cxxflags
 	-Wno-write-strings
 	)

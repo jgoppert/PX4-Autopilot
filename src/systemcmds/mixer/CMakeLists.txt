@@ -32,7 +32,7 @@
 ############################################################################
 set(module systemcmds_mixer)
 set(main mixer)
-set(priority )
+set(priority)
 set(stack_size 4096)
 set(max_optimization -Os)
 set(extra_cxxflags

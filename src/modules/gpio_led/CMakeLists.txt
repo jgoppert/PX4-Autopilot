@@ -32,8 +32,8 @@
 ############################################################################
 set(module modules_gpio_led)
 set(main gpio_led)
-set(priority )
-set(stack_size )
+set(priority)
+set(stack_size)
 set(max_optimization -Os)
 set(extra_cxxflags
 	)

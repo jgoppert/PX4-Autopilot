@@ -31,10 +31,10 @@
 #
 ############################################################################
 set(module lib_mathlib_math_filter)
-set(main )
-set(priority )
-set(stack_size )
-set(max_optimization )
+set(main)
+set(priority)
+set(stack_size)
+set(max_optimization)
 set(extra_cxxflags
 	)
 set(extra_cflags

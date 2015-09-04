@@ -32,8 +32,8 @@
 ############################################################################
 set(module drivers_md25)
 set(main md25)
-set(priority )
-set(stack_size )
+set(priority)
+set(stack_size)
 set(max_optimization -Os)
 set(extra_cxxflags
 	)

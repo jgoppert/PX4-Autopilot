@@ -32,8 +32,8 @@
 ############################################################################
 set(module drivers_rgbled)
 set(main rgbled)
-set(priority )
-set(stack_size )
+set(priority)
+set(stack_size)
 set(max_optimization -Os)
 set(extra_cxxflags
 	)
