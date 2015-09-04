@@ -35,12 +35,9 @@ set(main uavcan)
 set(priority)
 set(stack_size 3200)
 set(max_optimization -O3)
-set(extra_cxxflags
-	)
-set(extra_cflags
-	)
-set(srcs
-	)
+set(extra_cxxflags)
+set(extra_cflags)
+set(srcs)
 set(includes
 	${LIBUAVCAN_INC}
 	)

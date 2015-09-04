@@ -35,13 +35,10 @@ set(main nshterm)
 set(priority "SCHED_PRIORITY_DEFAULT-30")
 set(stack_size 1500)
 set(max_optimization -Os)
-set(extra_cxxflags
-	)
-set(extra_cflags
-	)
+set(extra_cxxflags)
+set(extra_cflags)
 set(srcs
 	nshterm.c
 	)
-set(includes
-	)
+set(includes)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

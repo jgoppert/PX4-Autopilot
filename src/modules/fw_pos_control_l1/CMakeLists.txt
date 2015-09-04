@@ -38,8 +38,7 @@ set(max_optimization -Os)
 set(extra_cxxflags
 	-Wno-float-equal
 	)
-set(extra_cflags
-	)
+set(extra_cflags)
 set(srcs
 	fw_pos_control_l1_main.cpp
 	fw_pos_control_l1_params.c
@@ -48,6 +47,5 @@ set(srcs
 	mtecs/limitoverride.cpp
 	mtecs/mTecs_params.c
 	)
-set(includes
-	)
+set(includes)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

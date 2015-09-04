@@ -38,11 +38,9 @@ set(max_optimization)
 set(extra_cxxflags
 	-Wno-pmf-conversions
 	)
-set(extra_cflags
-	)
+set(extra_cflags)
 set(srcs
 	pwm_input.cpp
 	)
-set(includes
-	)
+set(includes)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

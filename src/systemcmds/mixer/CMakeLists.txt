@@ -38,11 +38,9 @@ set(max_optimization -Os)
 set(extra_cxxflags
 	-Wframe-larger-than=2048
 	)
-set(extra_cflags
-	)
+set(extra_cflags)
 set(srcs
 	mixer.cpp
 	)
-set(includes
-	)
+set(includes)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

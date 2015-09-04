@@ -39,14 +39,12 @@ set(extra_cxxflags
 	-Weffc++
 	-Wframe-larger-than=3400
 	)
-set(extra_cflags
-	)
+set(extra_cflags)
 set(srcs
 	ekf_att_pos_estimator_main.cpp
 	ekf_att_pos_estimator_params.c
 	estimator_22states.cpp
 	estimator_utilities.cpp
 	)
-set(includes
-	)
+set(includes)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

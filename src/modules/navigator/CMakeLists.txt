@@ -38,8 +38,7 @@ set(max_optimization -Os)
 set(extra_cxxflags
 	-Wno-sign-compare
 	)
-set(extra_cflags
-	)
+set(extra_cflags)
 set(srcs
 	navigator_main.cpp
 	navigator_params.c

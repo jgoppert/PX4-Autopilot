@@ -35,8 +35,7 @@ set(main flow_position_estimator)
 set(priority)
 set(stack_size)
 set(max_optimization)
-set(extra_cxxflags
-	)
+set(extra_cxxflags)
 set(extra_cflags
 	-Wno-float-equal
 	)
@@ -44,6 +43,5 @@ set(srcs
 	flow_position_estimator_main.c
 	flow_position_estimator_params.c
 	)
-set(includes
-	)
+set(includes)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

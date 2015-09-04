@@ -38,14 +38,12 @@ set(max_optimization)
 set(extra_cxxflags
 	-Wframe-larger-than=1200
 	)
-set(extra_cflags
-	)
+set(extra_cflags)
 set(srcs
 	mc_pos_control_main.cpp
 	mc_pos_control_start_nuttx.cpp
 	mc_pos_control.cpp
 	mc_pos_control_params.c
 	)
-set(includes
-	)
+set(includes)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

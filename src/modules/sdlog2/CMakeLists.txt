@@ -35,8 +35,7 @@ set(main sdlog2)
 set(priority "SCHED_PRIORITY_MAX-30")
 set(stack_size 1200)
 set(max_optimization -Os)
-set(extra_cxxflags
-	)
+set(extra_cxxflags)
 set(extra_cflags
 	-Wframe-larger-than=1400
 	)
@@ -44,6 +43,5 @@ set(srcs
 	sdlog2.c
 	logbuffer.c
 	)
-set(includes
-	)
+set(includes)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

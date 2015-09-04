@@ -35,15 +35,12 @@ set(main vcdevtest)
 set(priority)
 set(stack_size)
 set(max_optimization)
-set(extra_cxxflags
-	)
-set(extra_cflags
-	)
+set(extra_cxxflags)
+set(extra_cflags)
 set(srcs
 	vcdevtest_main.cpp
 	vcdevtest_start_posix.cpp
 	vcdevtest_example.cpp
 	)
-set(includes
-	)
+set(includes)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

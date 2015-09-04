@@ -35,10 +35,8 @@ set(main muorb_test)
 set(priority)
 set(stack_size)
 set(max_optimization)
-set(extra_cxxflags
-	)
-set(extra_cflags
-	)
+set(extra_cxxflags)
+set(extra_cflags)
 set(srcs
 	muorb_test_start_qurt.cpp
 	muorb_test_example.cpp

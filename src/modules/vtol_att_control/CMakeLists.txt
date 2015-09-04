@@ -38,8 +38,7 @@ set(max_optimization)
 set(extra_cxxflags
 	-Wno-write-strings
 	)
-set(extra_cflags
-	)
+set(extra_cflags)
 set(srcs
 	vtol_att_control_main.cpp
 	vtol_att_control_params.c
@@ -50,6 +49,5 @@ set(srcs
 	standard_params.c
 	standard.cpp
 	)
-set(includes
-	)
+set(includes)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

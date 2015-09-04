@@ -35,16 +35,13 @@ set(main ll40ls)
 set(priority)
 set(stack_size)
 set(max_optimization -Os)
-set(extra_cxxflags
-	)
-set(extra_cflags
-	)
+set(extra_cxxflags)
+set(extra_cflags)
 set(srcs
 	ll40ls.cpp
 	LidarLite.cpp
 	LidarLiteI2C.cpp
 	LidarLitePWM.cpp
 	)
-set(includes
-	)
+set(includes)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 
