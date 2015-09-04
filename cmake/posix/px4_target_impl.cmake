@@ -70,16 +70,12 @@ macro(px4_target_validate_config)
 	endif()
 endmacro()
 
-macro(px4_target_set_modules)
-	# Include the target config file
-	include(${TARGET_NAME})
-endmacro()
-
 macro(px4_target_firmware)
 	set(installed_targets)
 	add_executable(main ./src/platforms/posix/main.cpp)
 	target_link_libraries(main ${module_list} ${EXE_LINK_LIBS} ${module_list} ${EXE_LINK_LIBS})
 	list(APPEND installed_targets main)
+	add_dependencies(main posix_apps)
 endmacro()
 
 macro(px4_target_rules)

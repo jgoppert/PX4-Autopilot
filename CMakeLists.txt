@@ -152,7 +152,12 @@ px4_target_rules()
 #=============================================================================
 #		messages
 #
-px4_common_generate_messages(msg_files_out, msg_multi_files_out)
+set(msg_files_out)
+set(msg_multi_files_out)
+px4_common_generate_messages(
+	msg_files_out
+	msg_multi_files_out
+	)
 add_custom_target(msg_files DEPENDS ${msg_files_out})
 add_custom_target(msg_files_multi DEPENDS ${msg_multi_files_out})
 
@@ -167,6 +172,14 @@ add_custom_target(msg_files_multi DEPENDS ${msg_multi_files_out})
 #
 include_directories(${PX4_VERSIONING_DIR})
 set(MAX_OPTIMIZATION -Os)
+set(WARNINGS)
+set(OPTIMIZATION_FLAGS)
+set(C_WARNINGS)
+set(C_FLAGS)
+set(CXX_WARNINGS)
+set(CXX_FLAGS)
+set(LD_FLAGS)
+set(VISIBILITY_FLAGS)
 px4_common_set_flags(
 	WARNINGS
 	OPTIMIZATION_FLAGS
@@ -180,8 +193,26 @@ px4_common_set_flags(
 set(EXE_LINK_FLAGS)
 set(EXE_LINK_LIBS)
 
-px4_common_set_modules(module_directories)
-px4_target_set_modules()
+##############################################################################
+#	Common Module Directories
+#
+# These are the common project module directories
+#
+#=============================================================================
+set(module_directories)
+px4_common_add_modules(module_directories)
+#message(STATUS "module_directories ${module_directories}")
+
+##############################################################################
+#	Target Module Directories
+#
+# These are the target specific project module directories
+#
+#=============================================================================
+# Include the target config file
+include(${TARGET_NAME})
+message("Included ${TARGET_NAME}")
+message(STATUS "module_directories ${module_directories}")
 
 #=============================================================================
 #		os/board specific flags
@@ -231,8 +262,11 @@ join(OUT CMAKE_EXE_LINKER_FLAGS
 #=============================================================================
 #		add required modules to build
 #
+set(module_list)
 px4_common_modules(module_list)
 foreach(module ${module_list})
+	message(STATUS "Adding ${module}")
+	add_library(${module} STATIC EXCLUDE_FROM_ALL ${SRCS})
 	add_dependencies(${module} platform_common)
 endforeach()
 

@@ -39,7 +39,7 @@
 # Defined macros:
 #
 # 	px4_common_set_flags
-#	px4_common_set_modules
+#	px4_common_add_modules
 #	px4_common_generate_messages
 #	px4_common_modules
 #	px4_common_git_submodules
@@ -184,12 +184,12 @@ function(px4_common_set_flags WARNINGS OPTIMIZATION_FLAGS C_WARNINGS C_FLAGS CXX
 		)
 endfunction()
 
-function(px4_common_set_modules module_directories)
-	message(STATUS "Running px4_common_set_modules")
+function(px4_common_add_modules module_dirs)
+	message(STATUS "Running px4_common_add_modules")
 	#=============================================================================
 	#		Common Modules
 	#
-	set(module_directories
+	set(${module_dirs}
 		./src/drivers/led
 		./src/drivers/device
 		./src/platforms/common
@@ -258,6 +258,7 @@ function(px4_common_generate_messages OUT_MSG_FILES OUT_MSG_MULTI_FILES)
 		COMMENT "Generating uORB topic multi headers for ${OS}"
 		VERBATIM
 		)
+	set(${OUT_MSG_MULTI_FILES} ${MSG_MULTI_FILES_OUT} PARENT_SCOPE)
 endfunction()
 
 #=============================================================================
@@ -271,7 +272,7 @@ endfunction()
 #	out_module_list
 #
 function(px4_common_modules out_module_list)
-	set(${out_module_list} PARENT_SCOPE)
+	set(module_list)
 	message(STATUS "Running px4_common_modules")
 	file(REMOVE ${CMAKE_BINARY_DIR}/builtin_commands)
 	file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/builtin_commands)
@@ -299,11 +300,14 @@ function(px4_common_modules out_module_list)
 		if ("${module_stack}" STREQUAL "")
 			set(module_stack 1024)
 		endif()
-		list(APPEND ${out_module_list} ${module} PARENT_SCOPE)
-		#message(STATUS "module: ${module}\n\tstack: ${module_stack}\n\tmain: ${module_main}")
+		list(APPEND module_list ${module} PARENT_SCOPE)
+		message(STATUS "out_module_list ${${out_module_list}}")
+		message(STATUS "module: ${module}\n\tstack: ${module_stack}\n\tmain: ${module_main}")
 		if(NOT "${module_main}" STREQUAL "")
 			file(WRITE "${CMAKE_BINARY_DIR}/builtin_commands/COMMAND.${module}.${module_priority}.${module_stack}.${module_main}")
 		endif()
 	endforeach()
+	set(${out_module_list} ${module_list} PARENT_SCOPE)
+	message(STATUS "module_list ${module_list}")
 endfunction()
 
