@@ -37,6 +37,8 @@
  * @author Mark Charlebois <charlebm@gmail.com>
  */
 
+#include "qurt_commands_proto.h"
+
 const char *get_commands()
 {
 	static const char *commands = "hello start";

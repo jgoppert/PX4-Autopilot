@@ -40,6 +40,7 @@ for f in builtins:
 	apps.append(f.split(".")[-1].split("_main")[0])
 
 print("""
+#include <iostream>
 #include <string>
 #include <map>
 

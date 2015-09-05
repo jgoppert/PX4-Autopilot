@@ -1,0 +1,145 @@
+# this is a list of all modules that we need to implement
+# and keeps track of the current status of porting to cmake
+
+# ./src/platforms/posix/tests/hrt_test/module.mk
+#./src/platforms/posix/tests/wqueue/module.mk
+#./src/platforms/posix/tests/hello/module.mk
+#./src/platforms/posix/tests/muorb/module.mk
+#./src/platforms/posix/tests/vcdev_test/module.mk
+# DONE ./src/platforms/posix/work_queue/module.mk
+# DONE ./src/platforms/posix/px4_layer/module.mk
+# DONE ./src/platforms/posix/drivers/adcsim/module.mk
+# DONE ./src/platforms/posix/drivers/gpssim/module.mk
+# DONE ./src/platforms/posix/drivers/tonealrmsim/module.mk
+# DONE ./src/platforms/posix/drivers/accelsim/module.mk
+# DONE ./src/platforms/posix/drivers/airspeedsim/module.mk
+# DONE ./src/platforms/posix/drivers/barosim/module.mk
+# DONE ./src/platforms/posix/drivers/gyrosim/module.mk
+#./src/platforms/qurt/tests/hello/module.mk
+#./src/platforms/qurt/tests/muorb/module.mk
+#./src/platforms/qurt/px4_layer/module.mk
+# DONE ./src/platforms/common/module.mk
+# DONE ./src/platforms/nuttx/px4_layer/module.mk
+# DONE ./src/platforms/nuttx/module.mk
+#./src/lib/external_lgpl/module.mk
+#./src/lib/geo/module.mk
+#./src/lib/launchdetection/module.mk
+# DONE ./src/lib/mathlib/math/filter/module.mk
+#./src/lib/mathlib/module.mk
+#./src/lib/rc/module.mk
+#./src/lib/geo_lookup/module.mk
+#./src/lib/ecl/module.mk
+# DONE ./src/lib/conversion/module.mk
+#./src/modules/navigator/module.mk
+#./src/modules/segway/module.mk
+#./src/modules/fw_pos_control_l1/module.mk
+#./src/modules/uavcan/module.mk
+#./src/modules/position_estimator_inav/module.mk
+#./src/modules/px4iofirmware/module.mk
+# DONE ./src/modules/gpio_led/module.mk
+#./src/modules/dataman/module.mk
+#./src/modules/fixedwing_backside/module.mk
+# DONE ./src/modules/uORB/module.mk
+#./src/modules/land_detector/module.mk
+#./src/modules/muorb/krait/module.mk
+#./src/modules/muorb/adsp/module.mk
+# DONE ./src/modules/simulator/module.mk
+#./src/modules/ekf_att_pos_estimator/module.mk
+#./src/modules/mc_pos_control/module.mk
+#./src/modules/attitude_estimator_ekf/module.mk
+#./src/modules/sensors/module.mk
+#./src/modules/vtol_att_control/module.mk
+#./src/modules/fw_att_control/module.mk
+#./src/modules/unit_test/module.mk
+#./src/modules/mc_att_control_multiplatform/module.mk
+#./src/modules/commander/commander_tests/module.mk
+#./src/modules/commander/module.mk
+#./src/modules/mavlink/mavlink_tests/module.mk
+#./src/modules/mavlink/module.mk
+#./src/modules/mc_att_control/module.mk
+#./src/modules/bottle_drop/module.mk
+# DONE ./src/modules/systemlib/mixer/module.mk
+# DONE ./src/modules/systemlib/module.mk
+#./src/modules/mc_pos_control_multiplatform/module.mk
+#./src/modules/sdlog2/module.mk
+#./src/modules/controllib/module.mk
+#./src/modules/attitude_estimator_q/module.mk
+# DONE ./src/examples/px4_simple_app/module.mk
+#./src/examples/fixedwing_control/module.mk
+#./src/examples/rover_steering_control/module.mk
+#./src/examples/px4_mavlink_debug/module.mk
+#./src/examples/px4_daemon_app/module.mk
+#./src/examples/flow_position_estimator/module.mk
+#./src/examples/matlab_csv_serial/module.mk
+#./src/examples/subscriber/module.mk
+#./src/examples/hwtest/module.mk
+#./src/examples/publisher/module.mk
+#./src/drivers/roboclaw/module.mk
+# DONE ./src/drivers/device/module.mk
+#./src/drivers/px4io/module.mk
+# DONE ./src/drivers/boards/px4fmu-v2/module.mk
+#./src/drivers/boards/px4-stm32f4discovery/module.mk
+#./src/drivers/boards/px4io-v2/module.mk
+#./src/drivers/boards/px4io-v1/module.mk
+#./src/drivers/boards/px4fmu-v1/module.mk
+#./src/drivers/boards/aerocore/module.mk
+#./src/drivers/mpu6000/module.mk
+#./src/drivers/gimbal/module.mk
+#./src/drivers/camera_trigger/module.mk
+#./src/drivers/pwm_input/module.mk
+#./src/drivers/pwm_out_sim/module.mk
+#./src/drivers/pca9685/module.mk
+#./src/drivers/mkblctrl/module.mk
+#./src/drivers/sf0x/module.mk
+#./src/drivers/hott/hott_telemetry/module.mk
+#./src/drivers/hott/module.mk
+#./src/drivers/hott/hott_sensors/module.mk
+#./src/drivers/ms5611/module.mk
+#./src/drivers/led/module.mk
+#./src/drivers/irlock/module.mk
+#./src/drivers/bma180/module.mk
+#./src/drivers/l3gd20/module.mk
+#./src/drivers/blinkm/module.mk
+#./src/drivers/md25/module.mk
+#./src/drivers/lsm303d/module.mk
+#./src/drivers/pca8574/module.mk
+#./src/drivers/mb12xx/module.mk
+#./src/drivers/trone/module.mk
+#./src/drivers/airspeed/module.mk
+#./src/drivers/rgbled/module.mk
+#./src/drivers/frsky_telemetry/module.mk
+#./src/drivers/meas_airspeed/module.mk
+#./src/drivers/px4flow/module.mk
+#./src/drivers/mpu9250/module.mk
+#./src/drivers/gps/module.mk
+#./src/drivers/ets_airspeed/module.mk
+#./src/drivers/ll40ls/module.mk
+#./src/drivers/ardrone_interface/module.mk
+#./src/drivers/hmc5883/module.mk
+#./src/drivers/px4fmu/module.mk
+#./src/drivers/stm32/tone_alarm/module.mk
+#./src/drivers/stm32/adc/module.mk
+#./src/drivers/stm32/module.mk
+#./src/drivers/oreoled/module.mk
+#./src/drivers/batt_smbus/module.mk
+#./src/systemcmds/mtd/module.mk
+#./src/systemcmds/ver/module.mk
+#./src/systemcmds/mixer/module.mk
+#./src/systemcmds/tests/module.mk
+#./src/systemcmds/nshterm/module.mk
+#./src/systemcmds/config/module.mk
+#./src/systemcmds/top/module.mk
+#./src/systemcmds/bl_update/module.mk
+#./src/systemcmds/reboot/module.mk
+#./src/systemcmds/i2c/module.mk
+#./src/systemcmds/param/module.mk
+#./src/systemcmds/reflect/module.mk
+#./src/systemcmds/usb_connected/module.mk
+#./src/systemcmds/motor_test/module.mk
+#./src/systemcmds/esc_calib/module.mk
+# DONE ./src/systemcmds/perf/module.mk
+#./src/systemcmds/topic_listener/module.mk
+#./src/systemcmds/dumpfile/module.mk
+#./src/systemcmds/pwm/module.mk
+#./makefiles/module.mk
+

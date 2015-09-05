@@ -59,7 +59,7 @@
 #include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
 #include <lib/mathlib/mathlib.h>
-#inlcude "mc_att_control_base.h"
+#include "mc_att_control_base.h"
 
 
 

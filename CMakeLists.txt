@@ -1,332 +1,243 @@
-cmake_minimum_required(VERSION 2.8.3)
-project(px4)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-add_definitions(-D__PX4_ROS)
-add_definitions(-D__EXPORT=)
-add_definitions(-DMAVLINK_DIALECT=common)
+############################################################################
+#
+# Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in
+#    the documentation and/or other materials provided with the
+#    distribution.
+# 3. Neither the name PX4 nor the names of its contributors may be
+#    used to endorse or promote products derived from this software
+#    without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+# OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+# AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+############################################################################
 
-## Find catkin macros and libraries
-## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
-## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  rospy
-  std_msgs
-  geometry_msgs
-  message_generation
-  cmake_modules
-  gazebo_msgs
-  sensor_msgs
-  mav_msgs
-  libmavconn
-  tf
-)
-find_package(Eigen REQUIRED)
+cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
+project(px4 CXX C ASM)
 
-## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
-
-
-## Uncomment this if the package has a setup.py. This macro ensures
-## modules and global scripts declared therein get installed
-## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
-# catkin_python_setup()
-
-################################################
-## Declare ROS messages, services and actions ##
-################################################
-
-## To declare and build messages, services or actions from within this
-## package, follow these steps:
-## * Let MSG_DEP_SET be the set of packages whose message types you use in
-##   your messages/services/actions (e.g. std_msgs, actionlib_msgs, ...).
-## * In the file package.xml:
-##   * add a build_depend and a run_depend tag for each package in MSG_DEP_SET
-##   * If MSG_DEP_SET isn't empty the following dependencies might have been
-##     pulled in transitively but can be declared for certainty nonetheless:
-##     * add a build_depend tag for "message_generation"
-##     * add a run_depend tag for "message_runtime"
-## * In this file (CMakeLists.txt):
-##   * add "message_generation" and every package in MSG_DEP_SET to
-##     find_package(catkin REQUIRED COMPONENTS ...)
-##   * add "message_runtime" and every package in MSG_DEP_SET to
-##     catkin_package(CATKIN_DEPENDS ...)
-##   * uncomment the add_*_files sections below as needed
-##     and list every .msg/.srv/.action file to be processed
-##   * uncomment the generate_messages entry below
-##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
-
-## Generate messages in the 'msg' folder
-add_message_files(
-  FILES
-  rc_channels.msg
-  vehicle_attitude.msg
-  vehicle_attitude_setpoint.msg
-  manual_control_setpoint.msg
-  actuator_controls.msg
-  actuator_controls_0.msg
-  actuator_controls_virtual_mc.msg
-  vehicle_rates_setpoint.msg
-  mc_virtual_rates_setpoint.msg
-  vehicle_attitude.msg
-  vehicle_control_mode.msg
-  actuator_armed.msg
-  parameter_update.msg
-  vehicle_status.msg
-  vehicle_local_position.msg
-  position_setpoint.msg
-  position_setpoint_triplet.msg
-  vehicle_local_position_setpoint.msg
-  vehicle_global_velocity_setpoint.msg
-  offboard_control_mode.msg
-  vehicle_force_setpoint.msg
-  distance_sensor.msg
-)
-
-## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
-
-## Generate actions in the 'action' folder
-# add_action_files(
-#   FILES
-#   Action1.action
-#   Action2.action
-# )
-
-## Generate added messages and services with any dependencies listed here
-generate_messages(
-  DEPENDENCIES
-  std_msgs
-  gazebo_msgs
-)
-
-###################################
-## catkin specific configuration ##
-###################################
-## The catkin_package macro generates cmake config files for your package
-## Declare things to be passed to dependent projects
-## INCLUDE_DIRS: uncomment this if you package contains header files
-## LIBRARIES: libraries you create in this project that dependent projects also need
-## CATKIN_DEPENDS: catkin_packages dependent projects also need
-## DEPENDS: system dependencies of this project that dependent projects also need
-catkin_package(
-  INCLUDE_DIRS src/include
-  LIBRARIES px4
-  CATKIN_DEPENDS message_runtime roscpp rospy std_msgs libmavconn
-  DEPENDS system_lib
-)
-
-###########
-## Build ##
-###########
-
-## Specify additional locations of header files
-## Your package locations should be listed before other locations
-include_directories(
-  ${catkin_INCLUDE_DIRS}
-  src/platforms
-  src/platforms/ros/px4_messages
-  src/include
-  src/modules
-  src/
-  src/lib
-  ${EIGEN_INCLUDE_DIRS}
-  integrationtests
-)
-
-## generate multiplatform wrapper headers
-## note that the message header files are generated as in any ROS project with generate_messages()
-set(MULTIPLATFORM_HEADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/platforms/ros/px4_messages)
-set(MULTIPLATFORM_TEMPLATE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/msg/templates/px4/ros)
-set(TOPICHEADER_TEMP_DIR ${CMAKE_BINARY_DIR}/topics_temporary)
-set(MULTIPLATFORM_PREFIX px4_)
-add_custom_target(multiplatform_message_headers ALL ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Tools/px_generate_uorb_topic_headers.py
-	-d ${CMAKE_CURRENT_SOURCE_DIR}/msg -o ${MULTIPLATFORM_HEADER_DIR} -e ${MULTIPLATFORM_TEMPLATE_DIR}
-	-t ${TOPICHEADER_TEMP_DIR} -p ${MULTIPLATFORM_PREFIX})
-
-## Declare a cpp library
-add_library(px4
-  src/platforms/ros/px4_ros_impl.cpp
-  src/platforms/ros/perf_counter.cpp
-  src/platforms/ros/geo.cpp
-  src/lib/mathlib/math/Limits.cpp
-  src/modules/systemlib/circuit_breaker.cpp
-)
-add_dependencies(px4 ${PROJECT_NAME}_generate_messages_cpp multiplatform_message_headers)
-
-target_link_libraries(px4
-  ${catkin_LIBRARIES}
-)
-
-## Declare a test publisher
-add_executable(publisher
-	src/examples/publisher/publisher_main.cpp
-	src/examples/publisher/publisher_example.cpp)
-add_dependencies(publisher ${PROJECT_NAME}_generate_messages_cpp multiplatform_message_headers)
-target_link_libraries(publisher
-  ${catkin_LIBRARIES}
-  px4
-)
-
-## Declare a test subscriber
-add_executable(subscriber
-	src/examples/subscriber/subscriber_main.cpp
-	src/examples/subscriber/subscriber_example.cpp)
-add_dependencies(subscriber ${PROJECT_NAME}_generate_messages_cpp multiplatform_message_headers)
-target_link_libraries(subscriber
-  ${catkin_LIBRARIES}
-  px4
-)
-
-## MC Attitude Control
-add_executable(mc_att_control
-	src/modules/mc_att_control_multiplatform/mc_att_control_main.cpp
-	src/modules/mc_att_control_multiplatform/mc_att_control.cpp
-	src/modules/mc_att_control_multiplatform/mc_att_control_base.cpp)
-add_dependencies(mc_att_control ${PROJECT_NAME}_generate_messages_cpp_cpp)
-target_link_libraries(mc_att_control
-  ${catkin_LIBRARIES}
-  px4
-)
-
-## MC Position Control
-add_executable(mc_pos_control
-	src/modules/mc_pos_control_multiplatform/mc_pos_control_main.cpp
-	src/modules/mc_pos_control_multiplatform/mc_pos_control.cpp)
-add_dependencies(mc_pos_control ${PROJECT_NAME}_generate_messages_cpp_cpp)
-target_link_libraries(mc_pos_control
-  ${catkin_LIBRARIES}
-  px4
-)
-
-## Attitude Estimator dummy
-add_executable(attitude_estimator
-	src/platforms/ros/nodes/attitude_estimator/attitude_estimator.cpp)
-add_dependencies(attitude_estimator ${PROJECT_NAME}_generate_messages_cpp_cpp)
-target_link_libraries(attitude_estimator
-  ${catkin_LIBRARIES}
-  px4
-)
-
-## Position Estimator dummy
-add_executable(position_estimator
-	src/platforms/ros/nodes/position_estimator/position_estimator.cpp)
-add_dependencies(position_estimator ${PROJECT_NAME}_generate_messages_cpp_cpp)
-target_link_libraries(position_estimator
-  ${catkin_LIBRARIES}
-  px4
-)
-
-## Manual input
-add_executable(manual_input
-	src/platforms/ros/nodes/manual_input/manual_input.cpp)
-add_dependencies(manual_input ${PROJECT_NAME}_generate_messages_cpp_cpp)
-target_link_libraries(manual_input
-  ${catkin_LIBRARIES}
-  px4
-)
-
-## Multicopter Mixer dummy
-add_executable(mc_mixer
-  src/platforms/ros/nodes/mc_mixer/mc_mixer.cpp)
-add_dependencies(mc_mixer ${PROJECT_NAME}_generate_messages_cpp_cpp)
-target_link_libraries(mc_mixer
-  ${catkin_LIBRARIES}
-  px4
-)
-
-## Commander dummy
-add_executable(commander
-	src/platforms/ros/nodes/commander/commander.cpp)
-add_dependencies(commander ${PROJECT_NAME}_generate_messages_cpp_cpp)
-target_link_libraries(commander
-  ${catkin_LIBRARIES}
-  px4
-)
-
-## Mavlink dummy
-add_executable(mavlink
-	src/platforms/ros/nodes/mavlink/mavlink.cpp)
-add_dependencies(mavlink ${PROJECT_NAME}_generate_messages_cpp_cpp)
-target_link_libraries(mavlink
-  ${catkin_LIBRARIES}
-  px4
-)
-
-## Offboard Position Setpoint Demo
-add_executable(demo_offboard_position_setpoints
-	src/platforms/ros/nodes/demo_offboard_position_setpoints/demo_offboard_position_setpoints.cpp)
-add_dependencies(demo_offboard_position_setpoints ${PROJECT_NAME}_generate_messages_cpp_cpp)
-target_link_libraries(demo_offboard_position_setpoints
-  ${catkin_LIBRARIES}
-  px4
-)
-
-## Offboard Attitude Setpoint Demo
-add_executable(demo_offboard_attitude_setpoints
-	src/platforms/ros/nodes/demo_offboard_attitude_setpoints/demo_offboard_attitude_setpoints.cpp)
-add_dependencies(demo_offboard_attitude_setpoints ${PROJECT_NAME}_generate_messages_cpp_cpp)
-target_link_libraries(demo_offboard_attitude_setpoints
-  ${catkin_LIBRARIES}
-  px4
-)
-
-#############
-## Install ##
-#############
-
-# all install targets should use catkin DESTINATION variables
-# See http://ros.org/doc/api/catkin/html/adv_user_guide/variables.html
-
-## Mark executable scripts (Python etc.) for installation
-## in contrast to setup.py, you can choose the destination
-# install(PROGRAMS
-#   scripts/my_python_script
-#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
-
-## Mark executables and/or libraries for installation
-install(TARGETS ${PROJECT_NAME}
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-## Mark cpp header files for installation
-# install(DIRECTORY include/${PROJECT_NAME}/
-#   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-#   FILES_MATCHING PATTERN "*.h"
-#   PATTERN ".svn" EXCLUDE
-# )
-
-## Mark other files for installation (e.g. launch and bag files, etc.)
-# install(FILES
-#   # myfile1
-#   # myfile2
-#   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-# )
-
-#############
-## Testing ##
-#############
-
-## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_px4test.cpp)
-# if(TARGET ${PROJECT_NAME}-test)
-#   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
-# endif()
-
-## Add folders to be run by python nosetests
-# catkin_add_nosetests(test)
-
-if(CATKIN_ENABLE_TESTING)
-  find_package(rostest REQUIRED)
-  add_rostest(integrationtests/demo_tests/direct_tests.launch)
-  add_rostest(integrationtests/demo_tests/mavros_tests.launch)
+if (NOT ${CMAKE_VERSION} VERSION_LESS 3.0.0)
+	cmake_policy(SET CMP0046 NEW) # no non-existent targets as dependencies
 endif()
 
 
+##############################################################################
+#	Parameters
+#
+#=============================================================================
+#		Build options
+#
+set(NUTTX_BUILD_THREADS "4" CACHE STRING
+	"number of threads to use when building NuttX")
+set(OS "posix" CACHE STRING "desired operating system")
+set_property(CACHE OS PROPERTY STRINGS nuttx posix qurt)
+
+set(BOARD "sitl" CACHE STRING "target board")
+set_property(CACHE BOARD PROPERTY STRINGS px4fmu-v2 sitl)
+
+set(LABEL "simple" CACHE STRING "module set label")
+set_property(CACHE LABEL PROPERTY STRINGS simple default)
+
+set(PYTHONPATH "${CMAKE_SOURCE_DIR}/Tools/genmsg/src:${CMAKE_SOURCE_DIR}/Tools/gencpp/src:$ENV{PYTHONPATH}" CACHE INTERNAL "PYTHONPATH")
+
+if(NOT CMAKE_BUILD_TYPE)
+	set(CMAKE_BUILD_TYPE Debug "Choose type type of build" FORCE)
+	set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS Release Debug RelWithDebInfo MinSizeRel)
+endif()
+
+# Include the target specific build rules
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake
+		${CMAKE_SOURCE_DIR}/cmake/common
+		${CMAKE_SOURCE_DIR}/cmake/${OS})
+
+#=============================================================================
+#		Constants
+set(VERSION_MAJOR 0)
+set(VERSION_MINOR 1)
+set(VERSION_PATCH 2)
+set(PACKAGE_CONTACT "px4users@googlegroups.com")
+
+#=============================================================================
+#		Computed parameters
+#
+set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
+set(MSG_OUT_PATH ${CMAKE_BINARY_DIR}/src/modules/uORB/topics)
+set(TARGET_NAME "${OS}-${BOARD}-${LABEL}")
+string(TOUPPER ${BOARD} BOARD_UPPER)
+string(REPLACE "-" "_" BOARD_CONFIG ${BOARD_UPPER})
+
+##############################################################################
+#	CMake Packages/ Modules
+#
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+enable_testing()
+include(CMakeParseArguments)
+include(px4_utils)
+
+# Include common PX4 rules
+include(px4_common)
+
+# Include the PX4 rules for the specific target
+include(px4_target_impl)
+
+#=============================================================================
+#		Generate git header
+#
+set(PX4_VERSIONING_DIR ${CMAKE_BINARY_DIR}/versioning)
+add_custom_target(make_git_versioning_dir ALL
+                COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_VERSIONING_DIR})
+
+execute_process(COMMAND git log -1 --pretty=format:%H
+		OUTPUT_VARIABLE GIT_DESC)
+#set(GIT_DESC "1234567890123456789012345678901234567890")
+string(SUBSTRING ${GIT_DESC} 1 16 GIT_SHORT_DESC)
+
+configure_file("${CMAKE_SOURCE_DIR}/src/include/build_git_version.h.in" "${PX4_VERSIONING_DIR}/build_git_version.h" @ONLY)
+
+#=============================================================================
+#		Config validation
+#
+px4_target_validate_config()
+
+##############################################################################
+#	GIT
+#
+px4_common_git_submodules()
+
+##############################################################################
+#	Programs
+#
+find_package(PythonInterp REQUIRED)
+
+##############################################################################
+#	Target specific rules
+#
+px4_target_rules()
+
+##############################################################################
+#	Code Generation
+#
+# Source code generation is conducted here.
+#
+#=============================================================================
+#		messages
+#
+px4_common_generate_messages()
+
+##############################################################################
+#	Build Flags
+# 
+# These are the project build flags.
+#
+#=============================================================================
+#		generic flags
+#
+include_directories(${PX4_VERSIONING_DIR})
+px4_common_set_flags()
+px4_common_set_modules()
+px4_target_set_modules()
+
+#=============================================================================
+#		os/board specific flags
+#
+px4_target_set_flags()
+
+#=============================================================================
+#		set cmake flags
+#
+join(OUT CMAKE_C_FLAGS
+	LIST
+		${CMAKE_C_FLAGS}
+		${C_FLAGS}
+		${WARNINGS}
+		${C_WARNINGS}
+		${MAX_OPTIMIZATION}
+		${OPTIMIZATION_FLAGS}
+		${VISIBILITY_FLAGS}
+	GLUE " ")
+
+join(OUT CMAKE_CXX_FLAGS
+	LIST
+		${CMAKE_CXX_FLAGS}
+		${CXX_FLAGS}
+		${WARNINGS}
+		${CXX_WARNINGS}
+		${MAX_OPTIMIZATION}
+		${OPTIMIZATION_FLAGS}
+		${VISIBILITY_FLAGS}
+	GLUE " ")
+
+join(OUT CMAKE_EXE_LINKER_FLAGS
+	LIST ${CMAKE_EXE_LINKER_FLAGS} ${LD_FLAGS} ${EXE_LINK_FLAGS}
+	GLUE " ")
+
+##############################################################################
+#	Modules
+#
+# Modules are archives that are linked later by main.
+# Each module is a process that runs on PX4.
+# Interprocess communication is conducted using uORB.
+#
+# Note that not all modules are used on every board 
+# configuration.
+#
+
+#=============================================================================
+#		add required modules to build
+#
+px4_common_modules()
+
+##############################################################################
+#	Firmware configurations
+#
+# Defines arch, OS, and modules for each build.
+# The main program is the entry point of the os at boot
+# and acts as the user command line interface.
+#
+
+#=============================================================================
+#	Build
+
+px4_target_firmware()
+
+#=============================================================================
+#	Install
+install(TARGETS ${installed_targets}
+	RUNTIME DESTINATION bin
+	LIBRARY DESTINATION lib
+	ARCHIVE DESTINATION lib/static
+	)
+
+##############################################################################
+#	Testing
+#
+px4_target_testing()
+
+##############################################################################
+#	Packaging
+#
+# Important to having packaging at end of cmake file.
+#
+set(CPACK_PACKAGE_VERSION ${VERSION})
+set(CPACK_PACKAGE_CONTACT ${PACKAGE_CONTACT})
+include(CPack)
+
+# vim: set noet fenc=utf-8 ff=unix sts=4 sw=4 ts=4 :
