@@ -35,15 +35,12 @@ set(main fixedwing_backside)
 set(priority)
 set(stack_size)
 set(max_optimization)
-set(extra_cxxflags
-	)
-set(extra_cflags
-	)
+set(extra_cxxflags)
+set(extra_cflags)
 set(srcs
 	fixedwing_backside_main.cpp
 	fixedwing.cpp
 	params.c
 	)
-set(includes
-	)
+set(includes)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

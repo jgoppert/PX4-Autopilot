@@ -35,10 +35,8 @@ set(main)
 set(priority)
 set(stack_size)
 set(max_optimization)
-set(extra_cxxflags
-	)
-set(extra_cflags
-	)
+set(extra_cxxflags)
+set(extra_cflags)
 set(srcs
 	mixer.cpp
 	mixer_group.cpp
@@ -46,6 +44,5 @@ set(srcs
 	mixer_simple.cpp
 	mixer_load.c
 	)
-set(includes
-	)
+set(includes)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

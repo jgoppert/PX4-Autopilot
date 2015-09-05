@@ -35,13 +35,10 @@ set(main px4_mavlink_debug)
 set(priority)
 set(stack_size 2000)
 set(max_optimization)
-set(extra_cxxflags
-	)
-set(extra_cflags
-	)
+set(extra_cxxflags)
+set(extra_cflags)
 set(srcs
 	px4_mavlink_debug.c
 	)
-set(includes
-	)
+set(includes)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

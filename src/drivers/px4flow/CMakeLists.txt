@@ -38,11 +38,9 @@ set(max_optimization -Os)
 set(extra_cxxflags
 	-Wno-attributes
 	)
-set(extra_cflags
-	)
+set(extra_cflags)
 set(srcs
 	px4flow.cpp
 	)
-set(includes
-	)
+set(includes)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

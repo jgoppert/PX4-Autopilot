@@ -35,13 +35,10 @@ set(main px4_daemon_app)
 set(priority)
 set(stack_size 1200)
 set(max_optimization)
-set(extra_cxxflags
-	)
-set(extra_cflags
-	)
+set(extra_cxxflags)
+set(extra_cflags)
 set(srcs
 	px4_daemon_app.c
 	)
-set(includes
-	)
+set(includes)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

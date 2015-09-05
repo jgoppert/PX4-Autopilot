@@ -35,10 +35,8 @@ set(main mkblctrl)
 set(priority)
 set(stack_size)
 set(max_optimization -Os)
-set(extra_cxxflags
-	)
-set(extra_cflags
-	)
+set(extra_cxxflags)
+set(extra_cflags)
 set(srcs
 	mkblctrl.cpp
 	mkblctrl_params.c

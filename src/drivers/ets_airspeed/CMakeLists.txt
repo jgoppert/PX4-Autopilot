@@ -35,13 +35,10 @@ set(main ets_airspeed)
 set(priority)
 set(stack_size 1200)
 set(max_optimization -Os)
-set(extra_cxxflags
-	)
-set(extra_cflags
-	)
+set(extra_cxxflags)
+set(extra_cflags)
 set(srcs
 	ets_airspeed.cpp
 	)
-set(includes
-	)
+set(includes)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

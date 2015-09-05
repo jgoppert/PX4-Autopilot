@@ -38,8 +38,7 @@ set(max_optimization -O0)
 set(extra_cxxflags
 	-Wframe-larger-than=6000
 	)
-set(extra_cflags
-	)
+set(extra_cflags)
 set(srcs
 	test_adc.c
 	test_bson.c
@@ -69,6 +68,5 @@ set(srcs
 	test_mount.c
 	test_eigen.cpp
 	)
-set(includes
-	)
+set(includes)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

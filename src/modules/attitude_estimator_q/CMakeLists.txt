@@ -35,14 +35,11 @@ set(main attitude_estimator_q)
 set(priority)
 set(stack_size 1200)
 set(max_optimization)
-set(extra_cxxflags
-	)
-set(extra_cflags
-	)
+set(extra_cxxflags)
+set(extra_cflags)
 set(srcs
 	attitude_estimator_q_main.cpp
 	attitude_estimator_q_params.c
 	)
-set(includes
-	)
+set(includes)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

@@ -35,15 +35,12 @@ set(main hello)
 set(priority)
 set(stack_size)
 set(max_optimization)
-set(extra_cxxflags
-	)
-set(extra_cflags
-	)
+set(extra_cxxflags)
+set(extra_cflags)
 set(srcs
 	hello_main.cpp
 	hello_start_posix.cpp
 	hello_example.cpp
 	)
-set(includes
-	)
+set(includes)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

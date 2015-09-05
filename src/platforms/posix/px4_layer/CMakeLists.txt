@@ -35,10 +35,8 @@ set(main)
 set(priority)
 set(stack_size)
 set(max_optimization -Os)
-set(extra_cxxflags
-	)
-set(extra_cflags
-	)
+set(extra_cxxflags)
+set(extra_cflags)
 set(srcs
 	px4_posix_impl.cpp
 	px4_posix_tasks.cpp
@@ -46,6 +44,5 @@ set(srcs
 	drv_hrt.c
 	px4_log.c
 	)
-set(includes
-	)
+set(includes)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

@@ -35,8 +35,7 @@ set(main position_estimator_inav)
 set(priority)
 set(stack_size 1200)
 set(max_optimization)
-set(extra_cxxflags
-	)
+set(extra_cxxflags)
 set(extra_cflags
 	-Wframe-larger-than=3800
 	)
@@ -45,6 +44,5 @@ set(srcs
 	position_estimator_inav_params.c
 	inertial_filter.c
 	)
-set(includes
-	)
+set(includes)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 
