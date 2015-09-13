@@ -72,11 +72,11 @@
 #include <uORB/topics/navigation_capabilities.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/camera_trigger.h>
+#include <uORB/topics/collision_sensor.h>
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_pwm_output.h>
 #include <systemlib/err.h>
 #include <mavlink/mavlink_log.h>
-
 #include "mavlink_messages.h"
 #include "mavlink_main.h"
 
@@ -2435,6 +2435,69 @@ protected:
 	}
 };
 
+class MavlinkStreamCollisionSensor : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamCollisionSensor::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "COLLISION_SENSOR";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_COLLISION_SENSOR;
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamCollisionSensor(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return _collision_sensor_sub->is_published() ? (MAVLINK_MSG_ID_COLLISION_SENSOR_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+	}
+
+private:
+	MavlinkOrbSubscription *_collision_sensor_sub;
+	uint64_t _coll_sensor_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamCollisionSensor(MavlinkStreamCollisionSensor &);
+	MavlinkStreamCollisionSensor& operator = (const MavlinkStreamCollisionSensor &);
+
+protected:
+	explicit MavlinkStreamCollisionSensor(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_collision_sensor_sub(_mavlink->add_orb_subscription(ORB_ID(collision_sensor))),
+		_coll_sensor_time(0)
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct collision_sensor_s coll_sensor;
+
+		if (_collision_sensor_sub->update(&_coll_sensor_time, &coll_sensor)) {
+
+			mavlink_collision_sensor_t msg;
+
+			msg.timestamp = coll_sensor.timestamp;
+			for(int i = 0; i<16; i++) {
+				msg.collision_cm[i] = coll_sensor.collision_cm[i];
+			}
+			msg.sensor_count = coll_sensor.sensor_count;
+			msg.covariance = coll_sensor.covariance;
+
+
+			_mavlink->send_message(MAVLINK_MSG_ID_COLLISION_SENSOR, &msg);
+		}
+	}
+};
+
 const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamHeartbeat::new_instance, &MavlinkStreamHeartbeat::get_name_static),
 	new StreamListItem(&MavlinkStreamStatustext::new_instance, &MavlinkStreamStatustext::get_name_static),
@@ -2471,5 +2534,6 @@ const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamCameraTrigger::new_instance, &MavlinkStreamCameraTrigger::get_name_static),
 	new StreamListItem(&MavlinkStreamDistanceSensor::new_instance, &MavlinkStreamDistanceSensor::get_name_static),
 	new StreamListItem(&MavlinkStreamVtolState::new_instance, &MavlinkStreamVtolState::get_name_static),
+	new StreamListItem(&MavlinkStreamCollisionSensor::new_instance, &MavlinkStreamCollisionSensor::get_name_static),
 	nullptr
 };
