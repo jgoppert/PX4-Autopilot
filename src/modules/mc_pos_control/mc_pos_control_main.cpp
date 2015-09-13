@@ -76,6 +76,7 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/collision_sensor.h>
 
 #include <systemlib/systemlib.h>
 #include <mathlib/mathlib.h>
@@ -126,6 +127,7 @@ private:
 	int		_mavlink_fd;			/**< mavlink fd */
 
 	int		_vehicle_status_sub;		/**< vehicle status subscription */
+	int		_collision_sensor_sub;
 	int		_att_sub;			/**< vehicle attitude subscription */
 	int		_att_sp_sub;			/**< vehicle attitude setpoint */
 	int		_control_mode_sub;		/**< vehicle control mode subscription */
@@ -142,6 +144,7 @@ private:
 	orb_advert_t	_global_vel_sp_pub;		/**< vehicle global velocity setpoint publication */
 
 	struct vehicle_status_s 			_vehicle_status; 	/**< vehicle status */
+	struct collision_sensor_s 			_collision_sensor;
 	struct vehicle_attitude_s			_att;			/**< vehicle attitude */
 	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
 	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
@@ -328,6 +331,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_mode_auto(false)
 {
 	memset(&_vehicle_status, 0, sizeof(_vehicle_status));
+	memset(&_collision_sensor, 0, sizeof(_collision_sensor));
 	memset(&_att, 0, sizeof(_att));
 	memset(&_att_sp, 0, sizeof(_att_sp));
 	memset(&_manual, 0, sizeof(_manual));
@@ -491,6 +495,12 @@ MulticopterPositionControl::poll_subscriptions()
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
+	}
+
+	orb_check(_collision_sensor_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(collision_sensor), _collision_sensor_sub, &_collision_sensor);
 	}
 
 	orb_check(_att_sub, &updated);
@@ -896,7 +906,16 @@ void MulticopterPositionControl::control_auto(float dt)
 		/* difference between current and desired position setpoints, 1 = max speed */
 		math::Vector<3> d_pos_m = (pos_sp_s - pos_sp_old_s).edivide(_params.pos_p);
 		float d_pos_m_len = d_pos_m.length();
-		if (d_pos_m_len > dt) {
+		bool no_collision = true;
+		if (_collision_sensor.timestamp > 0) {
+			for (int i = 0; i < _collision_sensor.sensor_count; i++) {
+				if (_collision_sensor.collision_cm[i] < 200) {
+					no_collision = false;
+				}
+			}
+		}
+		
+		if (d_pos_m_len > dt && no_collision) {
 			pos_sp_s = pos_sp_old_s + (d_pos_m / d_pos_m_len * dt).emult(_params.pos_p);
 		}
 
@@ -923,6 +942,7 @@ MulticopterPositionControl::task_main()
 	 * do subscriptions
 	 */
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	_collision_sensor_sub = orb_subscribe(ORB_ID(collision_sensor));
 	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
@@ -933,7 +953,7 @@ MulticopterPositionControl::task_main()
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	_local_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
 	_global_vel_sp_sub = orb_subscribe(ORB_ID(vehicle_global_velocity_setpoint));
-
+	
 
 	parameters_update(true);
 

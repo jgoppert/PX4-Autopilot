@@ -109,6 +109,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_cmd_pub(nullptr),
 	_flow_pub(nullptr),
 	_distance_sensor_pub(nullptr),
+	_collision_sensor_pub(nullptr),
 	_offboard_control_mode_pub(nullptr),
 	_actuator_controls_pub(nullptr),
 	_global_vel_sp_pub(nullptr),
@@ -220,6 +221,11 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	case MAVLINK_MSG_ID_DISTANCE_SENSOR:
 		handle_message_distance_sensor(msg);
 		break;
+
+	case MAVLINK_MSG_ID_COLLISION_SENSOR:
+		handle_message_collision_sensor(msg);
+		break;
+			
 
 	default:
 		break;
@@ -581,6 +587,35 @@ MavlinkReceiver::handle_message_distance_sensor(mavlink_message_t *msg)
 
 	} else {
 		orb_publish(ORB_ID(distance_sensor), _distance_sensor_pub, &d);
+	}
+}
+
+void
+MavlinkReceiver::handle_message_collision_sensor(mavlink_message_t *msg)
+{
+	/* distance sensor */
+	mavlink_collision_sensor_t coll_sensor;
+	mavlink_msg_collision_sensor_decode(msg, &coll_sensor);
+
+	struct collision_sensor_s col;
+	memset(&col, 0, sizeof(col));
+
+	col.timestamp = uint64_t(coll_sensor.timestamp);
+	for(int i = 0; i<16; i++) {
+		col.collision_cm[i] = uint16_t(coll_sensor.collision_cm[i]);
+	}
+	col.sensor_count = uint8_t(coll_sensor.sensor_count);
+	col.covariance = float(coll_sensor.covariance);
+
+
+	/// TODO Add sensor rotation according to MAV_SENSOR_ORIENTATION enum
+
+	if (_collision_sensor_pub == nullptr) {
+		_collision_sensor_pub = orb_advertise_multi(ORB_ID(collision_sensor), &col,
+								     &_orb_class_instance, ORB_PRIO_HIGH);
+
+	} else {
+		orb_publish(ORB_ID(collision_sensor), _collision_sensor_pub, &col);
 	}
 }
 
