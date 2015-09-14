@@ -82,27 +82,45 @@ SubscriptionBase::SubscriptionBase(const struct orb_metadata *meta,
 				   unsigned interval, unsigned instance) :
 	_meta(meta),
 	_instance(instance),
-	_handle()
+	_handle(-1),
+	_interval()
 {
-	if (_instance > 0) {
-		_handle =  orb_subscribe_multi(
-				   getMeta(), instance);
 
-	} else {
-		_handle =  orb_subscribe(getMeta());
+	subscribe();
+}
+
+bool SubscriptionBase::subscribe()
+{
+	if (OK == orb_exists(_meta, _instance)) {
+		if (_instance > 0) {
+			_handle =  orb_subscribe_multi(
+					   _meta, _instance);
+
+		} else {
+			_handle =  orb_subscribe(_meta);
+		}
+
+		if (_handle < 0) {
+			warnx("sub failed");
+
+		} else {
+			orb_priority(_handle, (int32_t*)&_priority);
+			orb_set_interval(_handle, _interval);
+			return true;
+		}
 	}
 
-	if (_handle < 0) { warnx("sub failed"); }
-
-	orb_set_interval(getHandle(), interval);
+	return false;
 }
 
 bool SubscriptionBase::updated()
 {
 	bool isUpdated = false;
-	int ret = orb_check(_handle, &isUpdated);
+	if (_handle >= 0 || subscribe()) {
 
-	if (ret != OK) { warnx("orb check failed"); }
+		int ret = orb_check(_handle, &isUpdated);
+		if (ret != OK) { warnx("orb check failed"); }
+	}
 
 	return isUpdated;
 }

@@ -454,7 +454,7 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 
 	if (_distance_sensor_pub == nullptr) {
 		_distance_sensor_pub = orb_advertise_multi(ORB_ID(distance_sensor), &d,
-								     &_orb_class_instance, ORB_PRIO_HIGH);
+								     &_orb_class_instance, ORB_PRIO_DEFAULT); // XXX prio ok?
 	} else {
 		orb_publish(ORB_ID(distance_sensor), _distance_sensor_pub, &d);
 	}
@@ -568,7 +568,7 @@ MavlinkReceiver::handle_message_distance_sensor(mavlink_message_t *msg)
 
 	if (_distance_sensor_pub == nullptr) {
 		_distance_sensor_pub = orb_advertise_multi(ORB_ID(distance_sensor), &d,
-								     &_orb_class_instance, ORB_PRIO_HIGH);
+								     &_orb_class_instance, ORB_PRIO_DEFAULT); // XXX prio ok?
 
 	} else {
 		orb_publish(ORB_ID(distance_sensor), _distance_sensor_pub, &d);

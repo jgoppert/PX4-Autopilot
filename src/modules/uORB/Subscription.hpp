@@ -87,13 +87,18 @@ public:
 // accessors
 	const struct orb_metadata *getMeta() { return _meta; }
 	int getHandle() { return _handle; }
+	int getPriority() { return _priority; }
+	int getInstance() { return _instance; }
 protected:
 // accessors
 	void setHandle(int handle) { _handle = handle; }
+	bool subscribe();
 // attributes
 	const struct orb_metadata *_meta;
 	int _instance;
 	int _handle;
+	int _priority;
+	int _interval;
 private:
 	// disallow copy
 	SubscriptionBase(const SubscriptionBase &other);

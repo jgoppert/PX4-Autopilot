@@ -45,7 +45,7 @@
 
 /* Device limits */
 #define LL40LS_MIN_DISTANCE (0.00f)
-#define LL40LS_MAX_DISTANCE (60.00f)
+#define LL40LS_MAX_DISTANCE (40.00f)
 
 // normal conversion wait time
 #define LL40LS_CONVERSION_INTERVAL 50*1000UL /* 50ms */
