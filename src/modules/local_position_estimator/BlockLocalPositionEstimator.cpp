@@ -715,9 +715,9 @@ void BlockLocalPositionEstimator::predict()
 	A(X_z, X_vz) = 1;
 	// derivative of velocity is accelerometer
 	// 	bias + acceleration
-	//_A(X_vx, X_bx) = 1;
-	//_A(X_vy, X_by) = 1;
-	//_A(X_vz, X_bz) = 1;
+	A(X_vx, X_bx) = 1;
+	A(X_vy, X_by) = 1;
+	A(X_vz, X_bz) = 1;
 
 	// input matrix
 	math::Matrix<n_x, n_u>  B; // input matrix
