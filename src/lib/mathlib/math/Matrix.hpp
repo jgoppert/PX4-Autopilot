@@ -308,11 +308,11 @@ public:
 		arm_mat_mult_f32(&arm_mat, &m.arm_mat, &res.arm_mat);
 		return res;
 #else
-		Eigen::Matrix<float, M, N, Eigen::RowMajor> Me = Eigen::Map<Eigen::Matrix<float, M, N, Eigen::RowMajor> >
+		Eigen::Matrix<float, M, N> Me = Eigen::Map<Eigen::Matrix<float, M, N> >
 				(this->arm_mat.pData);
-		Eigen::Matrix<float, N, P, Eigen::RowMajor> Him = Eigen::Map<Eigen::Matrix<float, N, P, Eigen::RowMajor> >
+		Eigen::Matrix<float, N, P> Him = Eigen::Map<Eigen::Matrix<float, N, P> >
 				(m.arm_mat.pData);
-		Eigen::Matrix<float, M, P, Eigen::RowMajor> Product = Me * Him;
+		Eigen::Matrix<float, M, P> Product = Me * Him;
 		Matrix<M, P> res(Product.data());
 		return res;
 #endif
@@ -327,10 +327,9 @@ public:
 		arm_mat_trans_f32(&this->arm_mat, &res.arm_mat);
 		return res;
 #else
-		Eigen::Matrix<float, N, M, Eigen::RowMajor> Me = Eigen::Map<Eigen::Matrix<float, N, M, Eigen::RowMajor> >
+		Eigen::Matrix<float, M, N> Me = Eigen::Map<Eigen::Matrix<float, M, N> >
 				(this->arm_mat.pData);
-		Me.transposeInPlace();
-		Matrix<N, M> res(Me.data());
+		Matrix<N, M> res(Me.transpose().data());
 		return res;
 #endif
 	}
@@ -344,9 +343,9 @@ public:
 		arm_mat_inverse_f32(&this->arm_mat, &res.arm_mat);
 		return res;
 #else
-		Eigen::Matrix<float, M, N, Eigen::RowMajor> Me = Eigen::Map<Eigen::Matrix<float, M, N, Eigen::RowMajor> >
+		Eigen::Matrix<float, M, N> Me = Eigen::Map<Eigen::Matrix<float, M, N> >
 				(this->arm_mat.pData);
-		Eigen::Matrix<float, M, N, Eigen::RowMajor> MyInverse = Me.inverse(); //not sure if A = A.inverse() is a good idea
+		Eigen::Matrix<float, M, N> MyInverse = Me.inverse(); //not sure if A = A.inverse() is a good idea
 		Matrix<M, N> res(MyInverse.data());
 		return res;
 #endif
@@ -413,7 +412,7 @@ public:
 		arm_mat_mult_f32(&this->arm_mat, &v.arm_col, &res.arm_col);
 #else
 		//probably nicer if this could go into a function like "eigen_mat_mult" or so
-		Eigen::Matrix<float, M, N, Eigen::RowMajor> Me = Eigen::Map<Eigen::Matrix<float, M, N, Eigen::RowMajor> >
+		Eigen::Matrix<float, M, N> Me = Eigen::Map<Eigen::Matrix<float, M, N> >
 				(this->arm_mat.pData);
 		Eigen::VectorXf Vec = Eigen::Map<Eigen::VectorXf>(v.arm_col.pData, N);
 		Eigen::VectorXf Product = Me * Vec;
