@@ -108,6 +108,9 @@ nuttx_sim_simple:
 posix_sitl_simple:
 	$(call cmake-build,$@)
 
+posix_sitl_lpe:
+	$(call cmake-build,$@)
+
 ros_sitl_simple:
 	$(call cmake-build,$@)
 

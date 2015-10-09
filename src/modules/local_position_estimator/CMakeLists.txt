@@ -32,6 +32,8 @@
 ############################################################################
 if(${OS} STREQUAL "nuttx")
 	list(APPEND MODULE_CFLAGS -Wframe-larger-than=6500)
+elseif(${OS} STREQUAL "posix")
+	list(APPEND MODULE_CFLAGS -Wno-error)
 endif()
 px4_add_module(
 	MODULE modules__local_position_estimator

@@ -40,7 +40,6 @@
  * Local position estimator
  */
 
-#include <nuttx/config.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,7 +50,6 @@
 #include <drivers/drv_hrt.h>
 #include <math.h>
 #include <fcntl.h>
-#include <nuttx/sched.h>
 
 #include "BlockLocalPositionEstimator.hpp"
 

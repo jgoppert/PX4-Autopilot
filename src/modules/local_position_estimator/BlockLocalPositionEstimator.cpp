@@ -1,7 +1,6 @@
 #include "BlockLocalPositionEstimator.hpp"
 #include <mavlink/mavlink_log.h>
 #include <fcntl.h>
-#include <nuttx/math.h>
 #include <systemlib/err.h>
 
 static const int 		MIN_FLOW_QUALITY = 100;
@@ -11,6 +10,8 @@ static const uint32_t 		VISION_POSITION_TIMEOUT = 500000;
 static const uint32_t 		MOCAP_TIMEOUT = 200000;
 
 static const uint32_t 		XY_SRC_TIMEOUT = 2000000;
+
+using namespace std;
 
 BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// this block has no parent, and has name LPE
