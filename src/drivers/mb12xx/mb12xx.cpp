@@ -71,7 +71,6 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/collision_sensor.h>
-#include <uORB/topics/distance_sensor.h>
 
 #include <board_config.h>
 
@@ -144,7 +143,6 @@ private:
 	int				_class_instance;
 	int				_orb_class_instance;
 	orb_advert_t 		_collision_sensor_topic;
-	orb_advert_t		_distance_sensor_topic;
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
@@ -226,7 +224,6 @@ MB12XX::MB12XX(int bus, uint8_t min_address, uint8_t max_address, bool collision
 	_class_instance(-1),
 	_orb_class_instance(-1),
 	_collision_sensor_topic(nullptr),
-	_distance_sensor_topic(nullptr),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mb12xx_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "mb12xx_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "mb12xx_buffer_overflows")),
@@ -236,7 +233,7 @@ MB12XX::MB12XX(int bus, uint8_t min_address, uint8_t max_address, bool collision
 	_data()
 {
 	/* enable debug() calls */
-	_debug_enabled = true;
+	_debug_enabled = false;
 
 	/* work_cancel in the dtor will explode if we don't do this... */
 	memset(&_work, 0, sizeof(_work));
