@@ -130,6 +130,9 @@ px4fmu-v1_default:
 px4fmu-v2_default:
 	$(call cmake-build,nuttx_px4fmu-v2_default)
 
+px4fmu-v2_segway:
+	$(call cmake-build,nuttx_px4fmu-v2_segway)
+
 px4fmu-v4_default:
 	$(call cmake-build,nuttx_px4fmu-v4_default)
 
@@ -146,6 +149,9 @@ posix_sitl_default:
 	$(call cmake-build,$@)
 
 posix_sitl_lpe:
+	$(call cmake-build,$@)
+
+posix_sitl_segway:
 	$(call cmake-build,$@)
 
 ros_sitl_default:

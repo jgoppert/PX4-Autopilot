@@ -36,9 +36,10 @@ px4_add_module(
 	COMPILE_FLAGS
 		-Os
 	SRCS
-		roboclaw_main.cpp
+		roboclaw.cpp
 		RoboClaw.cpp
+		RoboClawDevice.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :
