@@ -836,7 +836,6 @@ void BlockLocalPositionEstimator::predict()
 
 void BlockLocalPositionEstimator::correctFlow()
 {
-
 	// flow measurement matrix and noise matrix
 	Matrix<float, n_y_flow, n_x> C;
 	C.setZero();
@@ -850,59 +849,46 @@ void BlockLocalPositionEstimator::correctFlow()
 	R(Y_flow_y, Y_flow_y) =
 		_flow_xy_stddev.get() * _flow_xy_stddev.get();
 
-	float flow_speed[3] = {0.0f, 0.0f, 0.0f};
-	float global_speed[3] = {0.0f, 0.0f, 0.0f};
-
-	/* calc dt between flow timestamps */
-	/* ignore first flow msg */
+	// calc dt between flow timestamps
+	// ignore first flow msg
 	if (_time_last_flow == 0) {
 		_time_last_flow = _sub_flow.get().timestamp;
 		return;
 	}
 
 	float dt = (_sub_flow.get().timestamp - _time_last_flow) * 1.0e-6f ;
+
+	// check dt is sane
+	if (dt > 1.0f || dt < 0) { return; }
+
 	_time_last_flow = _sub_flow.get().timestamp;
 
-	// calculate velocity over ground
-	if (_sub_flow.get().integration_timespan > 0) {
-		flow_speed[0] = (_sub_flow.get().pixel_flow_x_integral /
-				 (_sub_flow.get().integration_timespan / 1e6f) -
-				 _sub_att.get().pitchspeed) *		// Body rotation correction TODO check this
-				_x(X_z);
-		flow_speed[1] = (_sub_flow.get().pixel_flow_y_integral /
-				 (_sub_flow.get().integration_timespan / 1e6f) -
-				 _sub_att.get().rollspeed) *		// Body rotation correction
-				_x(X_z);
+	// angular rotation in x, y axis
+	float flow_x_rad = _sub_flow.get().pixel_flow_x_integral;
+	float flow_y_rad = _sub_flow.get().pixel_flow_y_integral;
 
-	} else {
-		flow_speed[0] = 0;
-		flow_speed[1] = 0;
-	}
+	// TODO account for pitch and gyro rotation
+	// TODO account for frame where flow is mounted pos. and trans.
+	float d = _sub_flow.get().ground_distance_m;
 
-	flow_speed[2] = 0.0f;
+	// compute velocities in camera frame using ground distance
+	// assume camera frame is body frame
+	float dt_flow = _sub_flow.get().integration_timespan/1.0e6;
+	Vector3f delta_b(flow_x_rad*d, flow_y_rad*d, 0);
+
+	// rotation of flow from body to nav frame
+	Matrix3f R_nb(_sub_att.get().R);
+	Vector3f delta_n = R_nb * delta_b;
+
+	// flow integration
+	_flowX += delta_n(1);
+	_flowY += delta_n(0);
 
 	/* update filtered flow */
-	_pub_filtered_flow.get().sumx += flow_speed[0] * dt;
-	_pub_filtered_flow.get().sumy += flow_speed[1] * dt;
-	_pub_filtered_flow.get().vx = flow_speed[0];
-	_pub_filtered_flow.get().vy = flow_speed[1];
-
-	// TODO add yaw rotation correction (with distance to vehicle zero)
-
-	// convert to globalframe velocity
-	for (uint8_t i = 0; i < 3; i++) {
-		float sum = 0.0f;
-
-		for (uint8_t j = 0; j < 3; j++) {
-			sum += flow_speed[j] * PX4_R(_sub_att.get().R, i, j);
-		}
-
-		global_speed[i] = sum;
-	}
-
-	// flow integral
-	_flowX += global_speed[0] * dt;
-	_flowY += global_speed[1] * dt;
+	_pub_filtered_flow.get().sumx = _flowX;
+	_pub_filtered_flow.get().sumy = _flowY;
+	_pub_filtered_flow.get().vx = delta_n(0)/dt_flow;
+	_pub_filtered_flow.get().vy = delta_n(1)/dt_flow;
 
 	// measurement
 	Vector<float, 2> y;
@@ -945,10 +931,9 @@ void BlockLocalPositionEstimator::correctFlow()
 			_P * C.transpose() * S_I;
 		_x += K * r;
 		_P -= K * C * _P;
+	} else {
 		// reset flow integral to current estimate of position
 		// if a fault occurred
-
-	} else {
 		_flowX = _x(X_x);
 		_flowY = _x(X_y);
 	}
