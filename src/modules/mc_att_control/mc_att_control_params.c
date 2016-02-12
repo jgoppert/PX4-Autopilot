@@ -40,6 +40,28 @@
  */
 
 /**
+ * Roll time constant
+ *
+ * Reduce if the system is too twitchy, increase if the response is too slow and sluggish.
+ *
+ * @min 0.15
+ * @max 0.25
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_ROLL_TC, 0.2f);
+
+/**
+ * Pitch time constant
+ *
+ * Reduce if the system is too twitchy, increase if the response is too slow and sluggish.
+ *
+ * @min 0.15
+ * @max 0.25
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_PITCH_TC, 0.2f);
+
+/**
  * Roll P gain
  *
  * Roll proportional gain, i.e. desired angular speed in rad/s for error 1 rad.
@@ -229,16 +251,29 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_MAX, 220.0f);
 /**
  * Max yaw rate
  *
- * Limit for yaw rate, has effect for large rotations in autonomous mode,
- * to avoid large control output and mixer saturation. A value of significantly
- * over 60 degrees per second can already lead to mixer saturation.
+ * A value of significantly over 120 degrees per second can already lead to mixer saturation.
  *
  * @unit deg/s
  * @min 0.0
  * @max 360.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_YAWRATE_MAX, 60.0f);
+PARAM_DEFINE_FLOAT(MC_YAWRATE_MAX, 120.0f);
+
+/**
+ * Max yaw rate in auto mode
+ *
+ * Limit for yaw rate, has effect for large rotations in autonomous mode,
+ * to avoid large control output and mixer saturation. A value of significantly
+ * over 60 degrees per second can already lead to mixer saturation.
+ * A value of 30 degrees / second is recommended to avoid very audible twitches.
+ *
+ * @unit deg/s
+ * @min 0.0
+ * @max 120.0
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_YAWRAUTO_MAX, 45.0f);
 
 /**
  * Max acro roll rate
@@ -271,13 +306,13 @@ PARAM_DEFINE_FLOAT(MC_ACRO_Y_MAX, 360.0f);
 
 /**
  * Threshold for Rattitude mode
- * 
+ *
  * Manual input needed in order to override attitude control rate setpoints
  * and instead pass manual stick inputs as rate setpoints
- * 
- * @unit 
+ *
+ * @unit
  * @min 0.0
  * @max 1.0
  * @group Multicopter Attitude Control
  */
- PARAM_DEFINE_FLOAT(MC_RATT_TH, 1.0f);
+PARAM_DEFINE_FLOAT(MC_RATT_TH, 1.0f);

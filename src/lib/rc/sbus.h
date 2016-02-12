@@ -46,6 +46,9 @@
 
 __BEGIN_DECLS
 
+#define SBUS_FRAME_SIZE			25
+#define SBUS_BUFFER_SIZE		(SBUS_FRAME_SIZE + SBUS_FRAME_SIZE / 2)
+
 __EXPORT int	sbus_init(const char *device, bool singlewire);
 
 /**
@@ -65,10 +68,18 @@ __EXPORT int	sbus_init(const char *device, bool singlewire);
  * provides a degree of protection. Of course, it would be better
  * if we didn't drop bytes...
  */
+__EXPORT int	sbus_config(int sbus_fd, bool singlewire);
 __EXPORT bool	sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_failsafe,
 			   bool *sbus_frame_drop,
 			   uint16_t max_channels);
+__EXPORT bool	sbus_parse(uint64_t now, uint8_t *frame, unsigned len, uint16_t *values,
+			   uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop, unsigned *frame_drops, uint16_t max_channels);
 __EXPORT void	sbus1_output(int sbus_fd, uint16_t *values, uint16_t num_values);
 __EXPORT void	sbus2_output(int sbus_fd, uint16_t *values, uint16_t num_values);
+
+/**
+ * The number of incomplete frames we encountered
+ */
+__EXPORT unsigned	sbus_dropped_frames(void);
 
 __END_DECLS

@@ -79,6 +79,11 @@ __BEGIN_DECLS
 #define PWM_LOWEST_MIN 90
 
 /**
+ * Default value for a shutdown motor
+ */
+#define PWM_MOTOR_OFF	900
+
+/**
  * Default minimum PWM in us
  */
 #define PWM_DEFAULT_MIN 1000
@@ -101,7 +106,7 @@ __BEGIN_DECLS
 /**
  * Lowest PWM allowed as the maximum PWM
  */
-#define PWM_LOWEST_MAX 950
+#define PWM_LOWEST_MAX 200
 
 /**
  * Do not output a channel with this value

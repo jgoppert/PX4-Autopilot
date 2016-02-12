@@ -53,10 +53,13 @@
 using namespace device;
 
 pthread_mutex_t filemutex = PTHREAD_MUTEX_INITIALIZER;
+px4_sem_t lockstep_sem;
+bool sim_lockstep = false;
+bool sim_delay = false;
 
 extern "C" {
 
-#define PX4_MAX_FD 200
+#define PX4_MAX_FD 300
 	static device::file_t *filemap[PX4_MAX_FD] = {};
 
 	int px4_errno;
@@ -124,7 +127,22 @@ extern "C" {
 				ret = dev->open(filemap[i]);
 
 			} else {
-				PX4_WARN("exceeded maximum number of file descriptors!");
+
+				const unsigned NAMELEN = 32;
+				char thread_name[NAMELEN] = {};
+
+#ifndef __PX4_QURT
+				int nret = pthread_getname_np(pthread_self(), thread_name, NAMELEN);
+
+				if (nret || thread_name[0] == 0) {
+					PX4_WARN("failed getting thread name");
+				}
+
+				PX4_BACKTRACE();
+#endif
+
+				PX4_WARN("%s: exceeded maximum number of file descriptors, accessing %s",
+					 thread_name, path);
 				ret = -ENOENT;
 			}
 
@@ -245,10 +263,18 @@ extern "C" {
 
 		const unsigned NAMELEN = 32;
 		char thread_name[NAMELEN] = {};
+
+#ifndef __PX4_QURT
 		int nret = pthread_getname_np(pthread_self(), thread_name, NAMELEN);
 
 		if (nret || thread_name[0] == 0) {
 			PX4_WARN("failed getting thread name");
+		}
+
+#endif
+
+		while (sim_delay) {
+			usleep(100);
 		}
 
 		PX4_DEBUG("Called px4_poll timeout = %d", timeout);
@@ -377,6 +403,28 @@ extern "C" {
 	void px4_show_files()
 	{
 		VDev::showFiles();
+	}
+
+	void px4_enable_sim_lockstep()
+	{
+		px4_sem_init(&lockstep_sem, 0, 0);
+		sim_lockstep = true;
+		sim_delay = false;
+	}
+
+	void px4_sim_start_delay()
+	{
+		sim_delay = true;
+	}
+
+	void px4_sim_stop_delay()
+	{
+		sim_delay = false;
+	}
+
+	bool px4_sim_delay_enabled()
+	{
+		return sim_delay;
 	}
 
 	const char *px4_get_device_names(unsigned int *handle)

@@ -65,7 +65,6 @@
 #include <mathlib/mathlib.h>
 
 #include <px4_adc.h>
-//#include <nuttx/analog/adc.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_accel.h>
@@ -123,7 +122,7 @@ using namespace DriverFramework;
 
 
 #define BATT_V_LOWPASS			0.001f
-#define BATT_V_IGNORE_THRESHOLD		2.5f
+#define BATT_V_IGNORE_THRESHOLD		2.1f
 
 /**
  * HACK - true temperature is much less than indicated temperature in baro,
@@ -186,7 +185,7 @@ private:
 	switch_pos_t	get_rc_sw2pos_position(uint8_t func, float on_th, bool on_inv);
 
 	/**
-	 * Update paramters from RC channels if the functionality is activated and the
+	 * Update parameters from RC channels if the functionality is activated and the
 	 * input has changed since the last update
 	 *
 	 * @param
@@ -199,7 +198,7 @@ private:
 	void		rc_poll();
 
 	/* XXX should not be here - should be own driver */
-	int 		_fd_adc;			/**< ADC driver handle */
+	DevHandle 	_h_adc;				/**< ADC driver handle */
 	hrt_abstime	_last_adc;			/**< last time we took input from the ADC */
 
 	bool 		_task_should_exit;		/**< if true, sensor task should exit */
@@ -278,6 +277,7 @@ private:
 		int rc_map_loiter_sw;
 		int rc_map_acro_sw;
 		int rc_map_offboard_sw;
+		int rc_map_kill_sw;
 
 		int rc_map_flaps;
 
@@ -298,6 +298,7 @@ private:
 		float rc_loiter_th;
 		float rc_acro_th;
 		float rc_offboard_th;
+		float rc_killswitch_th;
 		bool rc_assist_inv;
 		bool rc_auto_inv;
 		bool rc_rattitude_inv;
@@ -306,6 +307,7 @@ private:
 		bool rc_loiter_inv;
 		bool rc_acro_inv;
 		bool rc_offboard_inv;
+		bool rc_killswitch_inv;
 
 		float battery_voltage_scaling;
 		float battery_current_scaling;
@@ -337,6 +339,7 @@ private:
 		param_t rc_map_loiter_sw;
 		param_t rc_map_acro_sw;
 		param_t rc_map_offboard_sw;
+		param_t rc_map_kill_sw;
 
 		param_t rc_map_flaps;
 
@@ -347,7 +350,7 @@ private:
 		param_t rc_map_aux5;
 
 		param_t rc_map_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];
-		param_t rc_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];	/**< param handles for the paramters which are bound
+		param_t rc_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];	/**< param handles for the parameters which are bound
 							  to a RC channel, equivalent float values in the
 							  _parameters struct are not existing
 							  because these parameters are never read. */
@@ -361,6 +364,7 @@ private:
 		param_t rc_loiter_th;
 		param_t rc_acro_th;
 		param_t rc_offboard_th;
+		param_t rc_killswitch_th;
 
 		param_t battery_voltage_scaling;
 		param_t battery_current_scaling;
@@ -489,7 +493,7 @@ Sensors	*g_sensors = nullptr;
 }
 
 Sensors::Sensors() :
-	_fd_adc(-1),
+	_h_adc(),
 	_last_adc(0),
 
 	_task_should_exit(true),
@@ -590,6 +594,7 @@ Sensors::Sensors() :
 	_parameter_handles.rc_map_loiter_sw = param_find("RC_MAP_LOITER_SW");
 	_parameter_handles.rc_map_acro_sw = param_find("RC_MAP_ACRO_SW");
 	_parameter_handles.rc_map_offboard_sw = param_find("RC_MAP_OFFB_SW");
+	_parameter_handles.rc_map_kill_sw = param_find("RC_MAP_KILL_SW");
 
 	_parameter_handles.rc_map_aux1 = param_find("RC_MAP_AUX1");
 	_parameter_handles.rc_map_aux2 = param_find("RC_MAP_AUX2");
@@ -615,6 +620,7 @@ Sensors::Sensors() :
 	_parameter_handles.rc_loiter_th = param_find("RC_LOITER_TH");
 	_parameter_handles.rc_acro_th = param_find("RC_ACRO_TH");
 	_parameter_handles.rc_offboard_th = param_find("RC_OFFB_TH");
+	_parameter_handles.rc_killswitch_th = param_find("RC_KILLSWITCH_TH");
 
 	/* Differential pressure offset */
 	_parameter_handles.diff_pres_offset_pa = param_find("SENS_DPRES_OFF");
@@ -655,6 +661,8 @@ Sensors::Sensors() :
 	(void)param_find("PWM_AUX_MAX");
 	(void)param_find("PWM_AUX_DISARMED");
 	(void)param_find("TRIG_MODE");
+	(void)param_find("UAVCAN_ENABLE");
+	(void)param_find("LPE_ENABLED");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -774,6 +782,10 @@ Sensors::parameters_update()
 		warnx("%s", paramerr);
 	}
 
+	if (param_get(_parameter_handles.rc_map_kill_sw, &(_parameters.rc_map_kill_sw)) != OK) {
+		warnx("%s", paramerr);
+	}
+
 	if (param_get(_parameter_handles.rc_map_flaps, &(_parameters.rc_map_flaps)) != OK) {
 		warnx("%s", paramerr);
 	}
@@ -813,6 +825,9 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.rc_offboard_th, &(_parameters.rc_offboard_th));
 	_parameters.rc_offboard_inv = (_parameters.rc_offboard_th < 0);
 	_parameters.rc_offboard_th = fabs(_parameters.rc_offboard_th);
+	param_get(_parameter_handles.rc_killswitch_th, &(_parameters.rc_killswitch_th));
+	_parameters.rc_killswitch_inv = (_parameters.rc_killswitch_th < 0);
+	_parameters.rc_killswitch_th = fabs(_parameters.rc_killswitch_th);
 
 	/* update RC function mappings */
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_THROTTLE] = _parameters.rc_map_throttle - 1;
@@ -827,6 +842,7 @@ Sensors::parameters_update()
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_LOITER] = _parameters.rc_map_loiter_sw - 1;
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_ACRO] = _parameters.rc_map_acro_sw - 1;
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_OFFBOARD] = _parameters.rc_map_offboard_sw - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_KILLSWITCH] = _parameters.rc_map_kill_sw - 1;
 
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_FLAPS] = _parameters.rc_map_flaps - 1;
 
@@ -850,12 +866,13 @@ Sensors::parameters_update()
 
 	} else if (_parameters.battery_voltage_scaling < 0.0f) {
 		/* apply scaling according to defaults if set to default */
-
-#if defined (CONFIG_ARCH_BOARD_PX4FMU_V2) || defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
+#if defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
+		_parameters.battery_voltage_scaling = 0.011f;
+#elif defined (CONFIG_ARCH_BOARD_PX4FMU_V2)
 		_parameters.battery_voltage_scaling = 0.0082f;
-#elif CONFIG_ARCH_BOARD_AEROCORE
+#elif defined (CONFIG_ARCH_BOARD_AEROCORE)
 		_parameters.battery_voltage_scaling = 0.0063f;
-#elif CONFIG_ARCH_BOARD_PX4FMU_V1
+#elif defined (CONFIG_ARCH_BOARD_PX4FMU_V1)
 		_parameters.battery_voltage_scaling = 0.00459340659f;
 #else
 		/* ensure a missing default trips a low voltage lockdown */
@@ -866,6 +883,23 @@ Sensors::parameters_update()
 	/* scaling of ADC ticks to battery current */
 	if (param_get(_parameter_handles.battery_current_scaling, &(_parameters.battery_current_scaling)) != OK) {
 		warnx("%s", paramerr);
+
+	} else if (_parameters.battery_current_scaling < 0.0f) {
+		/* apply scaling according to defaults if set to default */
+#if defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
+		/* current scaling for ACSP4 */
+		_parameters.battery_current_scaling = 0.029296875f;
+#elif defined (CONFIG_ARCH_BOARD_PX4FMU_V2)
+		/* current scaling for 3DR power brick */
+		_parameters.battery_current_scaling = 0.0124f;
+#elif defined (CONFIG_ARCH_BOARD_AEROCORE)
+		_parameters.battery_current_scaling = 0.0124f;
+#elif defined (CONFIG_ARCH_BOARD_PX4FMU_V1)
+		_parameters.battery_current_scaling = 0.0124f;
+#else
+		/* ensure a missing default leads to an unrealistic current value */
+		_parameters.battery_voltage_scaling = 0.00001f;
+#endif
 	}
 
 	param_get(_parameter_handles.board_rotation, &(_parameters.board_rotation));
@@ -1025,11 +1059,10 @@ int
 Sensors::adc_init()
 {
 
-	DevHandle h_adc;
-	DevMgr::getHandle(ADC0_DEVICE_PATH, h_adc);
+	DevMgr::getHandle(ADC0_DEVICE_PATH, _h_adc);
 
-	if (!h_adc.isValid()) {
-		warnx("FATAL: no ADC found: %s (%d)", ADC0_DEVICE_PATH, h_adc.getError());
+	if (!_h_adc.isValid()) {
+		warnx("FATAL: no ADC found: %s (%d)", ADC0_DEVICE_PATH, _h_adc.getError());
 		return ERROR;
 	}
 
@@ -1292,8 +1325,8 @@ Sensors::parameter_update_poll(bool forced)
 					continue;
 				}
 
-				int id = h.ioctl(DEVIOCGDEVICEID, 0);
-				PX4_WARN("sensors: device ID: %s: %d, %u", str, id, (unsigned)id);
+				//int id = h.ioctl(DEVIOCGDEVICEID, 0);
+				//PX4_WARN("sensors: device ID: %s: %d, %u", str, id, (unsigned)id);
 
 				/* if the calibration is for this device, apply it */
 				if (device_id == h.ioctl(DEVIOCGDEVICEID, 0)) {
@@ -1364,8 +1397,8 @@ Sensors::parameter_update_poll(bool forced)
 					continue;
 				}
 
-				int id = h.ioctl(DEVIOCGDEVICEID, 0);
-				PX4_WARN("sensors: device ID: %s: %d, %u", str, id, (unsigned)id);
+				// int id = h.ioctl(DEVIOCGDEVICEID, 0);
+				// PX4_WARN("sensors: device ID: %s: %d, %u", str, id, (unsigned)id);
 
 				/* if the calibration is for this device, apply it */
 				if (device_id == h.ioctl(DEVIOCGDEVICEID, 0)) {
@@ -1445,8 +1478,8 @@ Sensors::parameter_update_poll(bool forced)
 					continue;
 				}
 
-				int id = h.ioctl(DEVIOCGDEVICEID, 0);
-				PX4_WARN("sensors: device ID: %s: %d, %u", str, id, (unsigned)id);
+				// int id = h.ioctl(DEVIOCGDEVICEID, 0);
+				// PX4_WARN("sensors: device ID: %s: %d, %u", str, id, (unsigned)id);
 
 				/* if the calibration is for this device, apply it */
 				if (device_id == h.ioctl(DEVIOCGDEVICEID, 0)) {
@@ -1570,7 +1603,7 @@ Sensors::rc_parameter_map_poll(bool forced)
 	if (map_updated) {
 		orb_copy(ORB_ID(rc_parameter_map), _rc_parameter_map_sub, &_rc_parameter_map);
 
-		/* update paramter handles to which the RC channels are mapped */
+		/* update parameter handles to which the RC channels are mapped */
 		for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
 			if (_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_PARAM_1 + i] < 0 || !_rc_parameter_map.valid[i]) {
 				/* This RC channel is not mapped to a RC-Parameter Channel (e.g. RC_MAP_PARAM1 == 0)
@@ -1619,7 +1652,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 		/* make space for a maximum of twelve channels (to ensure reading all channels at once) */
 		struct adc_msg_s buf_adc[12];
 		/* read all channels available */
-		int ret = px4_read(_fd_adc, &buf_adc, sizeof(buf_adc));
+		int ret = _h_adc.read(&buf_adc, sizeof(buf_adc));
 
 		if (ret >= (int)sizeof(buf_adc[0])) {
 
@@ -1677,6 +1710,8 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 
 					_battery_current_timestamp = t;
 
+#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
+
 				} else if (ADC_AIRSPEED_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
 
 					/* calculate airspeed, raw is the difference from */
@@ -1705,6 +1740,8 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 							_diff_pres_pub = orb_advertise(ORB_ID(differential_pressure), &_diff_pres);
 						}
 					}
+
+#endif
 				}
 			}
 
@@ -1910,6 +1947,7 @@ Sensors::rc_poll()
 		_rc.rssi = rc_input.rssi;
 		_rc.signal_lost = signal_lost;
 		_rc.timestamp = rc_input.timestamp_last_signal;
+		_rc.frame_drop_count = rc_input.rc_lost_frame_count;
 
 		/* publish rc_channels topic even if signal is invalid, for debug */
 		if (_rc_pub != nullptr) {
@@ -1954,6 +1992,8 @@ Sensors::rc_poll()
 					     _parameters.rc_acro_inv);
 			manual.offboard_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_OFFBOARD,
 						 _parameters.rc_offboard_th, _parameters.rc_offboard_inv);
+			manual.kill_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_KILLSWITCH,
+					     _parameters.rc_killswitch_th, _parameters.rc_killswitch_inv);
 
 			/* publish manual_control_setpoint topic */
 			if (_manual_control_pub != nullptr) {
@@ -2058,10 +2098,7 @@ Sensors::task_main()
 		warnx("sensor initialization failed");
 		_sensors_task = -1;
 
-		if (_fd_adc >= 0) {
-			px4_close(_fd_adc);
-			_fd_adc = -1;
-		}
+		DevMgr::releaseHandle(_h_adc);
 
 		return;
 	}
@@ -2162,7 +2199,7 @@ Sensors::task_main()
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
-			warnx("poll error %d, %d", pret, errno);
+			warnx("sens: poll error %d, %d", pret, errno);
 			continue;
 		}
 
@@ -2178,17 +2215,23 @@ Sensors::task_main()
 		mag_poll(raw);
 		baro_poll(raw);
 
+#ifndef __PX4_POSIX
+
 		/* work out if main gyro timed out and fail over to alternate gyro */
-		if (hrt_elapsed_time(&raw.gyro_timestamp[0]) > 20 * 1000) {
+		if (raw.gyro_timestamp[0] > 0 && hrt_elapsed_time(&raw.gyro_timestamp[0]) > 20 * 1000) {
 
 			/* if the secondary failed as well, go to the tertiary */
-			if (hrt_elapsed_time(&raw.gyro_timestamp[1]) > 20 * 1000) {
+			if (_gyro_sub[2] >= 0 && (hrt_elapsed_time(&raw.gyro_timestamp[1]) > 20 * 1000)) {
 				fds[0].fd = _gyro_sub[2];
+				warnx("failing over to third gyro");
 
-			} else {
+			} else if (_gyro_sub[1] >= 0) {
 				fds[0].fd = _gyro_sub[1];
+				warnx("failing over to second gyro");
 			}
 		}
+
+#endif
 
 		/* check battery voltage */
 		adc_poll(raw);

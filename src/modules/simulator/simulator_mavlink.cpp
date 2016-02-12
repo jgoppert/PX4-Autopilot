@@ -76,21 +76,21 @@ void Simulator::pack_actuator_message(mavlink_hil_controls_t &actuator_msg)
 {
 	float out[8] = {};
 
-	const float pwm_center = (PWM_HIGHEST_MAX + PWM_LOWEST_MIN) / 2;
+	const float pwm_center = (PWM_DEFAULT_MAX + PWM_DEFAULT_MIN) / 2;
 
 	// for now we only support quadrotors
 	unsigned n = 4;
 
 	if (_vehicle_status.is_rotary_wing || _vehicle_status.is_vtol) {
 		for (unsigned i = 0; i < 8; i++) {
-			if (_actuators.output[i] > PWM_LOWEST_MIN / 2) {
+			if (_actuators.output[i] > PWM_DEFAULT_MIN / 2) {
 				if (i < n) {
 					// scale PWM out 900..2100 us to 0..1 for rotors */
-					out[i] = (_actuators.output[i] - PWM_LOWEST_MIN) / (PWM_HIGHEST_MAX - PWM_LOWEST_MIN);
+					out[i] = (_actuators.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
 
 				} else {
 					// scale PWM out 900..2100 us to -1..1 for other channels */
-					out[i] = (_actuators.output[i] - pwm_center) / ((PWM_HIGHEST_MAX - PWM_LOWEST_MIN) / 2);
+					out[i] = (_actuators.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
 				}
 
 			} else {
@@ -119,7 +119,7 @@ void Simulator::pack_actuator_message(mavlink_hil_controls_t &actuator_msg)
 	actuator_msg.throttle = out[3];
 	actuator_msg.aux1 = out[4];
 	actuator_msg.aux2 = out[5];
-	actuator_msg.aux3 = out[6];
+	actuator_msg.aux3 = _actuators.output[6] > PWM_DEFAULT_MIN / 2 ? out[6] : -1.0f;;
 	actuator_msg.aux4 = out[7];
 	actuator_msg.mode = 0; // need to put something here
 	actuator_msg.nav_mode = 0;
@@ -248,6 +248,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			uint64_t timestamp = ts.tv_sec * 1000 * 1000 + ts.tv_nsec / 1000;
 
 			perf_set(_perf_sim_delay, timestamp - sim_timestamp);
+			perf_count(_perf_sim_interval);
 
 			if (publish) {
 				publish_sensor_topics(&imu);
@@ -426,6 +427,13 @@ void Simulator::initializeSensorData()
 
 void Simulator::pollForMAVLinkMessages(bool publish)
 {
+	// set the threads name
+#ifdef __PX4_DARWIN
+	pthread_setname_np("sim_rcv");
+#else
+	pthread_setname_np(pthread_self(), "sim_rcv");
+#endif
+
 	// udp socket data
 	struct sockaddr_in _myaddr;
 	const int _port = UDP_PORT;
@@ -504,14 +512,13 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 		pret = ::poll(&fds[0], fd_count, 100);
 	}
 
-	PX4_INFO("Found initial message, pret = %d", pret);
 	_initialized = true;
 	// reset system time
 	(void)hrt_reset();
 
 	if (fds[0].revents & POLLIN) {
 		len = recvfrom(_fd, _buf, sizeof(_buf), 0, (struct sockaddr *)&_srcaddr, &_addrlen);
-		PX4_INFO("Sending initial controls message to jMAVSim.");
+		PX4_INFO("Sending initial controls message to simulator");
 		send_controls();
 	}
 
@@ -523,28 +530,40 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 	pthread_create(&sender_thread, &sender_thread_attr, Simulator::sending_trampoline, NULL);
 	pthread_attr_destroy(&sender_thread_attr);
 
+	mavlink_status_t udp_status = {};
+	mavlink_status_t serial_status = {};
 
-	// set the threads name
-#ifdef __PX4_DARWIN
-	pthread_setname_np("sim_rcv");
-#else
-	pthread_setname_np(pthread_self(), "sim_rcv");
-#endif
+	bool sim_delay = false;
+
+	const unsigned max_wait_ms = 6;
 
 	// wait for new mavlink messages to arrive
 	while (true) {
 
-		pret = ::poll(&fds[0], fd_count, 10);
+		pret = ::poll(&fds[0], fd_count, max_wait_ms);
 
 		//timed out
 		if (pret == 0) {
-			PX4_WARN("mavlink sim timeout for 10 ms");
+			if (!sim_delay) {
+				// we do not want to spam the console by default
+				// PX4_WARN("mavlink sim timeout for %d ms", max_wait_ms);
+				sim_delay = true;
+				hrt_start_delay();
+				px4_sim_start_delay();
+			}
+
 			continue;
+		}
+
+		if (sim_delay) {
+			sim_delay = false;
+			hrt_stop_delay();
+			px4_sim_stop_delay();
 		}
 
 		// this is undesirable but not much we can do
 		if (pret < 0) {
-			PX4_WARN("poll error %d, %d", pret, errno);
+			PX4_WARN("simulator mavlink: poll error %d, %d", pret, errno);
 			// sleep a bit before next try
 			usleep(100000);
 			continue;
@@ -556,10 +575,9 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 
 			if (len > 0) {
 				mavlink_message_t msg;
-				mavlink_status_t status;
 
 				for (int i = 0; i < len; i++) {
-					if (mavlink_parse_char(MAVLINK_COMM_0, _buf[i], &msg, &status)) {
+					if (mavlink_parse_char(MAVLINK_COMM_0, _buf[i], &msg, &udp_status)) {
 						// have a message, handle it
 						handle_message(&msg, publish);
 					}
@@ -573,10 +591,9 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 
 			if (len > 0) {
 				mavlink_message_t msg;
-				mavlink_status_t status;
 
 				for (int i = 0; i < len; ++i) {
-					if (mavlink_parse_char(MAVLINK_COMM_0, serial_buf[i], &msg, &status)) {
+					if (mavlink_parse_char(MAVLINK_COMM_1, serial_buf[i], &msg, &serial_status)) {
 						// have a message, handle it
 						handle_message(&msg, true);
 					}

@@ -69,13 +69,13 @@ private:
 
 	// dynamic inversion
 	BlockParamFloat _pulsesPerRev; // encoder pulses per revolution
-	BlockParamFloat _mgl; // torque due to gravity
-	BlockParamFloat _J; // back emf constant
-	BlockParamFloat _k_emf; // emf constant
-	BlockParamFloat _k_damp; // back emf constant
-	BlockParamFloat _wn_theta; // natural frequency of theta loop
-	BlockParamFloat _zeta_theta; // damping of theta loop
-	BlockParamFloat _bemf; // back emf
+	//BlockParamFloat _mgl; // torque due to gravity
+	//BlockParamFloat _J; // back emf constant
+	//BlockParamFloat _k_emf; // emf constant
+	//BlockParamFloat _k_damp; // back emf constant
+	//BlockParamFloat _wn_theta; // natural frequency of theta loop
+	//BlockParamFloat _zeta_theta; // damping of theta loop
+	//BlockParamFloat _bemf; // back emf
 
 	// sysid
 	BlockParamInt _sysIdEnable; // do sysid mode if > 0

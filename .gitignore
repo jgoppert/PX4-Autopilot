@@ -22,7 +22,10 @@ build/*
 build_*/
 core
 cscope.out
+cscope.in.out
+cscope.po.out
 Firmware.sublime-workspace
+user.sublime*
 Images/*.bin
 Images/*.px4
 mavlink/include/mavlink/v0.9/
@@ -57,3 +60,6 @@ ROMFS/*/*/rc.autostart
 rootfs/
 *.autosave
 CMakeLists.txt.user
+GPATH
+GRTAGS
+GTAGS
