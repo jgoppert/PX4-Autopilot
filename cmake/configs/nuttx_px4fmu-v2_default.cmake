@@ -80,9 +80,10 @@ set(config_module_list
 	#
 	# Too high RAM usage due to static allocations
 	# modules/attitude_estimator_ekf
-	modules/attitude_estimator_q
-	modules/ekf_att_pos_estimator
-	modules/position_estimator_inav
+	#modules/attitude_estimator_q
+	#modules/ekf_att_pos_estimator
+	#modules/position_estimator_inav
+	modules/iekf
 
 	#
 	# Vehicle Control
