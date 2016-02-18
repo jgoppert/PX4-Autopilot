@@ -5,7 +5,7 @@
 #include <matrix/integration.hpp>
 
 static const int 		MIN_FLOW_QUALITY = 100;
-static const int 		REQ_INIT_COUNT = 100;
+static const int 		REQ_INIT_COUNT = 20;
 
 static const uint32_t 		VISION_POSITION_TIMEOUT = 500000;
 static const uint32_t 		MOCAP_TIMEOUT = 200000;
@@ -13,6 +13,8 @@ static const uint32_t 		MOCAP_TIMEOUT = 200000;
 static const uint32_t 		XY_SRC_TIMEOUT = 2000000;
 
 using namespace std;
+
+namespace iekf {
 
 BlockIEKF::BlockIEKF() :
 	// this block has no parent, and has name IEKF
@@ -24,7 +26,6 @@ BlockIEKF::BlockIEKF() :
 	_sub_armed(ORB_ID(actuator_armed), 0, 0, &getSubscriptions()),
 	_sub_control_mode(ORB_ID(vehicle_control_mode),
 			  0, 0, &getSubscriptions()),
-	_sub_att(ORB_ID(vehicle_attitude), 0, 0, &getSubscriptions()),
 	_sub_att_sp(ORB_ID(vehicle_attitude_setpoint),
 		    0, 0, &getSubscriptions()),
 	_sub_flow(ORB_ID(optical_flow), 0, 0, &getSubscriptions()),
@@ -39,6 +40,8 @@ BlockIEKF::BlockIEKF() :
 	_sub_mocap(ORB_ID(att_pos_mocap), 0, 0, &getSubscriptions()),
 
 	// publications
+	_pub_ctrl(ORB_ID(control_state), -1, &getPublications()),
+	_pub_att(ORB_ID(vehicle_attitude), -1, &getPublications()),
 	_pub_lpos(ORB_ID(vehicle_local_position), -1, &getPublications()),
 	_pub_gpos(ORB_ID(vehicle_global_position), -1, &getPublications()),
 	_pub_filtered_flow(ORB_ID(filtered_bottom_flow), -1, &getPublications()),
@@ -161,6 +164,9 @@ BlockIEKF::BlockIEKF() :
 	initP();
 
 	_x.setZero();
+
+	_x(X_q0) = 1.0;
+
 	_u.setZero();
 
 	// perf counters
@@ -203,31 +209,31 @@ void BlockIEKF::update()
 	setDt(dt);
 
 	// see which updates are available
-	bool flowUpdated = _sub_flow.updated();
+	//bool flowUpdated = _sub_flow.updated();
 	bool paramsUpdated = _sub_param_update.updated();
-	bool baroUpdated = _sub_sensor.updated();
-	bool lidarUpdated = false;
-	bool sonarUpdated = false;
+	bool sensorUpdated = _sub_sensor.updated();
+	//bool lidarUpdated = false;
+	//bool sonarUpdated = false;
 
-	if (_sub_distance.updated()) {
-		if (_sub_distance.get().type == distance_sensor_s::MAV_DISTANCE_SENSOR_LASER) {
-			lidarUpdated = true;
-		}
+	//if (_sub_distance.updated()) {
+		//if (_sub_distance.get().type == distance_sensor_s::MAV_DISTANCE_SENSOR_LASER) {
+			//lidarUpdated = true;
+		//}
 
-		if (_sub_distance.get().type == distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND) {
-			sonarUpdated = true;
-		}
+		//if (_sub_distance.get().type == distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND) {
+			//sonarUpdated = true;
+		//}
 
-		if (_sub_distance.get().type == distance_sensor_s::MAV_DISTANCE_SENSOR_INFRARED) {
-			mavlink_log_info(_mavlink_fd, "[lpe] no support to short-range infrared sensors ");
-			warnx("[lpe] short-range infrared detected. Ignored... ");
-		}
-	}
+		//if (_sub_distance.get().type == distance_sensor_s::MAV_DISTANCE_SENSOR_INFRARED) {
+			//mavlink_log_info(_mavlink_fd, "[iekf] no support to short-range infrared sensors ");
+			//warnx("[iekf] short-range infrared detected. Ignored... ");
+		//}
+	//}
 
 	bool gpsUpdated = _sub_gps.updated();
 	bool homeUpdated = _sub_home.updated();
-	bool visionUpdated = _sub_vision_pos.updated();
-	bool mocapUpdated = _sub_mocap.updated();
+	//bool visionUpdated = _sub_vision_pos.updated();
+	//bool mocapUpdated = _sub_mocap.updated();
 
 	// get new data
 	updateSubscriptions();
@@ -246,8 +252,8 @@ void BlockIEKF::update()
 	if ((hrt_absolute_time() - _time_last_vision_p > VISION_POSITION_TIMEOUT) && _visionInitialized) {
 		if (!_visionTimeout) {
 			_visionTimeout = true;
-			mavlink_log_info(_mavlink_fd, "[lpe] vision position timeout ");
-			warnx("[lpe] vision position timeout ");
+			mavlink_log_info(_mavlink_fd, "[iekf] vision position timeout ");
+			warnx("[iekf] vision position timeout ");
 		}
 
 	} else {
@@ -257,8 +263,8 @@ void BlockIEKF::update()
 	if ((hrt_absolute_time() - _time_last_mocap > MOCAP_TIMEOUT) && _mocapInitialized) {
 		if (!_mocapTimeout) {
 			_mocapTimeout = true;
-			mavlink_log_info(_mavlink_fd, "[lpe] mocap timeout ");
-			warnx("[lpe] mocap timeout ");
+			mavlink_log_info(_mavlink_fd, "[iekf] mocap timeout ");
+			warnx("[iekf] mocap timeout ");
 		}
 
 	} else {
@@ -300,8 +306,8 @@ void BlockIEKF::update()
 			_x(i) = 0;
 		}
 
-		mavlink_log_info(_mavlink_fd, "[lpe] reinit x");
-		warnx("[lpe] reinit x");
+		mavlink_log_info(_mavlink_fd, "[iekf] reinit x");
+		warnx("[iekf] reinit x");
 	}
 
 	// reinitialize P if necessary
@@ -319,13 +325,15 @@ void BlockIEKF::update()
 	}
 
 	if (reinit_P) {
-		mavlink_log_info(_mavlink_fd, "[lpe] reinit P");
-		warnx("[lpe] reinit P");
+		mavlink_log_info(_mavlink_fd, "[iekf] reinit P");
+		warnx("[iekf] reinit P");
 		initP();
 	}
 
 	// do prediction
-	predict();
+	if (sensorUpdated) {
+		predict();
+	}
 
 	// sensor corrections/ initializations
 	if (gpsUpdated) {
@@ -333,72 +341,72 @@ void BlockIEKF::update()
 			initGps();
 
 		} else {
-			correctGps();
+			//correctGps();
 		}
 	}
 
-	if (baroUpdated) {
+	if (sensorUpdated) {
 		if (!_baroInitialized) {
 			initBaro();
 
 		} else {
-			correctBaro();
+			//correctBaro();
 		}
 	}
 
-	if (lidarUpdated) {
-		if (!_lidarInitialized) {
-			initLidar();
+	//if (lidarUpdated) {
+		//if (!_lidarInitialized) {
+			//initLidar();
 
-		} else {
-			correctLidar();
-		}
-	}
+		//} else {
+			//correctLidar();
+		//}
+	//}
 
-	if (sonarUpdated) {
-		if (!_sonarInitialized) {
-			initSonar();
+	//if (sonarUpdated) {
+		//if (!_sonarInitialized) {
+			//initSonar();
 
-		} else {
-			correctSonar();
-		}
-	}
+		//} else {
+			//correctSonar();
+		//}
+	//}
 
-	if (flowUpdated) {
-		if (!_flowInitialized) {
-			initFlow();
+	//if (flowUpdated) {
+		//if (!_flowInitialized) {
+			//initFlow();
 
-		} else {
-			perf_begin(_loop_perf);// TODO
-			correctFlow();
-			//perf_count(_interval_perf);
-			perf_end(_loop_perf);
-		}
-	}
+		//} else {
+			//perf_begin(_loop_perf);// TODO
+			//correctFlow();
+			////perf_count(_interval_perf);
+			//perf_end(_loop_perf);
+		//}
+	//}
 
-	if (_no_vision.get() != CBRK_NO_VISION_KEY) { // check if no vision circuit breaker is set
-		if (visionUpdated) {
-			if (!_visionInitialized) {
-				initVision();
+	//if (_no_vision.get() != CBRK_NO_VISION_KEY) { // check if no vision circuit breaker is set
+		//if (visionUpdated) {
+			//if (!_visionInitialized) {
+				//initVision();
 
-			} else {
-				correctVision();
-			}
-		}
-	}
+			//} else {
+				//correctVision();
+			//}
+		//}
+	//}
 
-	if (mocapUpdated) {
-		if (!_mocapInitialized) {
-			initmocap();
+	//if (mocapUpdated) {
+		//if (!_mocapInitialized) {
+			//initmocap();
 
-		} else {
-			correctmocap();
-		}
-	}
+		//} else {
+			//correctmocap();
+		//}
+	//}
 
 	_xyTimeout = (hrt_absolute_time() - _time_last_xy > XY_SRC_TIMEOUT);
 
-	if (!_xyTimeout && _altHomeInitialized) {
+	if (_canEstimateXY && _altHomeInitialized) {
 		// update all publications if possible
 		publishLocalPos();
 		publishEstimatorStatus();
@@ -419,8 +427,8 @@ void BlockIEKF::updateHome()
 	double lon = _sub_home.get().lon;
 	float alt = _sub_home.get().alt;
 
-	mavlink_log_info(_mavlink_fd, "[lpe] home: lat %5.0f, lon %5.0f, alt %5.0f", lat, lon, double(alt));
-	warnx("[lpe] home: lat %5.0f, lon %5.0f, alt %5.0f", lat, lon, double(alt));
+	mavlink_log_info(_mavlink_fd, "[iekf] home: lat %5.0f, lon %5.0f, alt %5.0f", lat, lon, double(alt));
+	warnx("[iekf] home: lat %5.0f, lon %5.0f, alt %5.0f", lat, lon, double(alt));
 	map_projection_init(&_map_ref, lat, lon);
 	float delta_alt = alt - _altHome;
 	_altHomeInitialized = true;
@@ -442,8 +450,8 @@ void BlockIEKF::initBaro()
 		if (_baroInitCount++ > REQ_INIT_COUNT) {
 			_baroAltHome /= _baroInitCount;
 			mavlink_log_info(_mavlink_fd,
-					 "[lpe] baro offs: %d m", (int)_baroAltHome);
-			warnx("[lpe] baro offs: %d m", (int)_baroAltHome);
+					 "[iekf] baro offs: %d m", (int)_baroAltHome);
+			warnx("[iekf] baro offs: %d m", (int)_baroAltHome);
 			_baroInitialized = true;
 
 			if (!_altHomeInitialized) {
@@ -457,6 +465,7 @@ void BlockIEKF::initBaro()
 
 void BlockIEKF::initGps()
 {
+	warnx("[iekf] init gps");
 	// collect gps data
 	if (!_gpsInitialized && _sub_gps.get().fix_type > 2) {
 		double lat = _sub_gps.get().lat * 1e-7;
@@ -473,10 +482,10 @@ void BlockIEKF::initGps()
 			_gpsLonHome /= _gpsInitCount;
 			_gpsAltHome /= _gpsInitCount;
 			map_projection_init(&_map_ref, lat, lon);
-			mavlink_log_info(_mavlink_fd, "[lpe] gps init: "
+			mavlink_log_info(_mavlink_fd, "[iekf] gps init: "
 					 "lat %d, lon %d, alt %d m",
 					 int(_gpsLatHome), int(_gpsLonHome), int(_gpsAltHome));
-			warnx("[lpe] gps init: lat %d, lon %d, alt %d m",
+			warnx("[iekf] gps init: lat %d, lon %d, alt %d m",
 			      int(_gpsLatHome), int(_gpsLonHome), int(_gpsAltHome));
 			_gpsInitialized = true;
 
@@ -508,10 +517,10 @@ void BlockIEKF::initLidar()
 
 		if (_lidarInitCount++ > REQ_INIT_COUNT) {
 			_lidarAltHome /= _lidarInitCount;
-			mavlink_log_info(_mavlink_fd, "[lpe] lidar init: "
+			mavlink_log_info(_mavlink_fd, "[iekf] lidar init: "
 					 "alt %d cm",
 					 int(100 * _lidarAltHome));
-			warnx("[lpe] lidar init: alt %d cm",
+			warnx("[iekf] lidar init: alt %d cm",
 			      int(100 * _lidarAltHome));
 			_lidarInitialized = true;
 		}
@@ -538,10 +547,10 @@ void BlockIEKF::initSonar()
 
 		if (_sonarInitCount++ > REQ_INIT_COUNT) {
 			_sonarAltHome /= _sonarInitCount;
-			mavlink_log_info(_mavlink_fd, "[lpe] sonar init: "
+			mavlink_log_info(_mavlink_fd, "[iekf] sonar init: "
 					 "alt %d cm",
 					 int(100 * _sonarAltHome));
-			warnx("[lpe] sonar init: alt %d cm",
+			warnx("[iekf] sonar init: alt %d cm",
 			      int(100 * _sonarAltHome));
 			_sonarInitialized = true;
 		}
@@ -561,17 +570,17 @@ void BlockIEKF::initFlow()
 
 			if (_flowMeanQual < MIN_FLOW_QUALITY) {
 				// retry initialisation till we have better flow data
-				warnx("[lpe] flow quality bad, retrying init : %d",
+				warnx("[iekf] flow quality bad, retrying init : %d",
 				      int(_flowMeanQual));
 				_flowMeanQual = 0;
 				_flowInitCount = 0;
 				return;
 			}
 
-			mavlink_log_info(_mavlink_fd, "[lpe] flow init: "
+			mavlink_log_info(_mavlink_fd, "[iekf] flow init: "
 					 "quality %d",
 					 int(_flowMeanQual));
-			warnx("[lpe] flow init: quality %d",
+			warnx("[iekf] flow init: quality %d",
 			      int(_flowMeanQual));
 			_flowInitialized = true;
 		}
@@ -591,9 +600,9 @@ void BlockIEKF::initVision()
 
 		if (_visionInitCount++ > REQ_INIT_COUNT) {
 			_visionHome /= _visionInitCount;
-			mavlink_log_info(_mavlink_fd, "[lpe] vision position init: "
+			mavlink_log_info(_mavlink_fd, "[iekf] vision position init: "
 					 "%f, %f, %f m", double(pos(0)), double(pos(1)), double(pos(2)));
-			warnx("[lpe] vision position init: "
+			warnx("[iekf] vision position init: "
 			      "%f, %f, %f m", double(pos(0)), double(pos(1)), double(pos(2)));
 			_visionInitialized = true;
 		}
@@ -613,9 +622,9 @@ void BlockIEKF::initmocap()
 
 		if (_mocapInitCount++ > REQ_INIT_COUNT) {
 			_mocapHome /= _mocapInitCount;
-			mavlink_log_info(_mavlink_fd, "[lpe] mocap init: "
+			mavlink_log_info(_mavlink_fd, "[iekf] mocap init: "
 					 "%f, %f, %f m", double(pos(0)), double(pos(1)), double(pos(2)));
-			warnx("[lpe] mocap init: "
+			warnx("[iekf] mocap init: "
 			      "%f, %f, %f m", double(pos(0)), double(pos(1)), double(pos(2)));
 			_mocapInitialized = true;
 		}
@@ -639,7 +648,7 @@ void BlockIEKF::publishLocalPos()
 		_pub_lpos.get().vx = _x(X_vx);  // north
 		_pub_lpos.get().vy = _x(X_vy);  // east
 		_pub_lpos.get().vz = _x(X_vz); 	// down
-		_pub_lpos.get().yaw = _sub_att.get().yaw;
+		_pub_lpos.get().yaw = _pub_att.get().yaw;
 		_pub_lpos.get().xy_global = _sub_home.get().timestamp != 0; // need home for reference
 		_pub_lpos.get().z_global = _baroInitialized;
 		_pub_lpos.get().ref_timestamp = _sub_home.get().timestamp;
@@ -706,7 +715,7 @@ void BlockIEKF::publishGlobalPos()
 		_pub_gpos.get().vel_n = _x(X_vx);
 		_pub_gpos.get().vel_e = _x(X_vy);
 		_pub_gpos.get().vel_d = _x(X_vz);
-		_pub_gpos.get().yaw = _sub_att.get().yaw;
+		_pub_gpos.get().yaw = _pub_att.get().yaw;
 		_pub_gpos.get().eph = sqrtf(_P(X_x, X_x) + _P(X_y, X_y));
 		_pub_gpos.get().epv = sqrtf(_P(X_z, X_z));
 		_pub_gpos.get().terrain_alt = 0;
@@ -731,56 +740,149 @@ void BlockIEKF::publishFilteredFlow()
 void BlockIEKF::initP()
 {
 	_P.setZero();
-	_P(X_x, X_x) = 1;
-	_P(X_y, X_y) = 1;
-	_P(X_z, X_z) = 1;
+	_P(X_q0, X_q0) = 1;
+	_P(X_q1, X_q1) = 1;
+	_P(X_q2, X_q2) = 1;
+	_P(X_q3, X_q3) = 1;
 	_P(X_vx, X_vx) = 1;
 	_P(X_vy, X_vy) = 1;
 	_P(X_vz, X_vz) = 1;
-	_P(X_bx, X_bx) = 1e-6;
-	_P(X_by, X_by) = 1e-6;
-	_P(X_bz, X_bz) = 1e-6;
+	_P(X_x, X_x) = 1;
+	_P(X_y, X_y) = 1;
+	_P(X_z, X_z) = 1;
+	_P(X_wbx, X_wbx) = 1e-6;
+	_P(X_wby, X_wby) = 1e-6;
+	_P(X_wbz, X_wbz) = 1e-6;
+	_P(X_abx, X_abx) = 1e-6;
+	_P(X_aby, X_aby) = 1e-6;
+	_P(X_abz, X_abz) = 1e-6;
 }
 
-Vector<float, 10> f_predict(float t, const Matrix<float, 10, 1> &x,
-		const Matrix<float, 6, 1>  &u);
+Vector<float, n_x> f_predict(float t, const Matrix<float, n_x, 1> &x,
+		const Matrix<float, n_u, 1>  &u);
 
-
-Vector<float, 10> f_predict(float t, const Matrix<float, 10, 1> &x,
-		const Matrix<float, 6, 1>  &u) {
+Vector<float, n_x> f_predict(float t, const Matrix<float, n_x, 1> &x,
+		const Matrix<float, n_u, 1>  &u) {
 
 	// parameters
-	float lambda = 1.0f;
+	float lambda = 0.0f;
 
 	// extract vectors
-	Quaternion<float> q(x.slice<4,1>(0,0));
-	Vector3f V(x.slice<3,1>(4,0));
-	Vector3f omega_b(x.slice<3,1>(7,0));
-	Vector3f omega_m(u.slice<3,1>(0,0));
+	Quaternion<float> q(x.slice<4,1>(X_q0,0));
+	Vector3f V(x.slice<3,1>(X_vx,0));
+	Vector3f omega_b(x.slice<3,1>(X_wbx,0));
+
+	Vector3f omega_m(u.slice<3,1>(U_wx,0));
+	Vector3f a_m(u.slice<3,1>(U_ax,0));
+
+	Vector3f a_g(0, 0, 9.80);
+	Dcm<float> C_nb(q);
+	Vector3f A = C_nb.T()*a_m + a_g;
 
 	// calculate dx vector
-	Vector<float, 4> dq =  q.derivative(omega_m - omega_b) + // standard q deriv
+	Vector<float, 4> dq =  q.derivative(9.8f*omega_m) + // standard q deriv
 		lambda*(1-q.norm())*q; // enforces quaternion norm
-	Vector<float, 10> dx;
+	Vector<float, n_x> dx;
 	dx.setZero();
 	dx.set(dq, 0, 0);
+	dx.set(V, X_x, 0);
+	dx.set(5.0f*A, X_vx, 0);
 	return dx;
 }
 
 void BlockIEKF::predict()
 {
+	// if can't update anything, don't propagate
+	// state or covariance
+	if (!_canEstimateXY && !_canEstimateZ) { return; }
+
 	Vector3f omega_m(&(_sub_sensor.get().gyro_rad_s[0]));
+	Vector3f a_m(&(_sub_sensor.get().accelerometer_m_s2[0]));
+	Vector3f omega_b(_x.slice<3,1>(X_wbx, 0));
 	float t0 = 0; // indepdendent of time, can always
 				  // assume start of interval is zero
 	float tf = getDt(); // final time
-	float h = 1e-6; // integration step size
-	Quaternion<float> q1 = _q;
-	Vector<float, 10> x;
-	Vector<float, 6> u;
-	u.set(omega_m, 0, 0);
-	matrix::integrate_rk4<float, 10, 6>(
-		f_predict, x, u,
-		t0, tf, h, x);
+	float h = 1e-3; // integration step size
+	Quaternion<float> q1 = _x.slice<4,1>(X_q0, 0);
+	Vector<float, n_u> u;
+	u.setZero();
+	u.set(omega_m, U_wx, 0);
+	u.set(a_m, U_ax, 0);
+
+	//warnx("[iekf] u: %10.4f %10.4f %10.4f \n"
+			//"%10.4f %10.4f %10.4f\n",
+			//double(u(0)), double(u(1)), double(u(2)),
+			//double(u(3)), double(u(4)), double(u(5))
+			//);
+
+	matrix::integrate_rk4<float, n_x, n_u>(
+		f_predict, _x, u, t0, tf, h, _x);
+
+	Vector3f omega = omega_m - omega_b;
+	//warnx("[iekf] omega_m: %10.4f %10.4f %10.4f\n", double(omega_m(0)), double(omega_m(1)), double(omega_m(2)));
+	//warnx("[iekf] q: %10.4f %10.4f %10.4f %10.4f\n", double(q1(0)), double(q1(1)), double(q1(2)), double(q1(3)));
+	Euler<float> euler(q1);
+	Dcm<float> dcm(q1);
+
+	uint64_t now = hrt_absolute_time();
+
+	// attitude pub
+	_pub_att.get().timestamp = now;
+	_pub_att.get().rollspeed = omega(0);
+	_pub_att.get().pitchspeed = omega(1);
+	_pub_att.get().yawspeed = omega(2);
+	_pub_att.get().rollacc = 0;
+	_pub_att.get().pitchacc = 0;
+	_pub_att.get().yawacc = 0;
+	_pub_att.get().rate_vibration = 0;
+	_pub_att.get().accel_vibration = 0;
+	_pub_att.get().mag_vibration = 0;
+	for (int i=0;i < 3; i++)  {
+		_pub_att.get().rate_offsets[i] = omega_b(i);
+		for (int j=0;j < 3; j++)  {
+			_pub_att.get().R[i + 3*j] = dcm(i, j);
+		}
+	}
+	for (int i=0;i < 4; i++)  {
+		_pub_att.get().q[i] = q1(i);
+	}
+	_pub_att.get().roll = euler.phi();
+	_pub_att.get().pitch = euler.theta();
+	_pub_att.get().yaw = euler.psi();
+	_pub_att.get().R_valid = true;
+	_pub_att.get().q_valid = true;
+	_pub_att.update();
+
+	// control pub
+	_pub_ctrl.get().timestamp = now;
+	_pub_ctrl.get().x_acc = 0;
+	_pub_ctrl.get().y_acc = 0;
+	_pub_ctrl.get().z_acc = 0;
+	_pub_ctrl.get().x_vel = _x(X_vx);
+	_pub_ctrl.get().y_vel = _x(X_vy);
+	_pub_ctrl.get().z_vel = _x(X_vz);
+	_pub_ctrl.get().x_pos = _x(X_x);
+	_pub_ctrl.get().y_pos = _x(X_y);
+	_pub_ctrl.get().z_pos = _x(X_z);
+	_pub_ctrl.get().airspeed = 0;
+	_pub_ctrl.get().airspeed_valid = false;
+	for (int i=0;i < 3; i++)  {
+		_pub_ctrl.get().vel_variance[i] = 0;
+		_pub_ctrl.get().pos_variance[i] = 0;
+	}
+	for (int i=0;i < 4; i++)  {
+		_pub_ctrl.get().q[i] = q1(i);
+	}
+	_pub_ctrl.get().roll_rate = omega(0);
+	_pub_ctrl.get().pitch_rate = omega(1);
+	_pub_ctrl.get().yaw_rate = omega(2);
+	_pub_ctrl.get().horz_acc_mag = 0;
+	_pub_ctrl.update();
+
+	//printf("%10.4f %10.4f %10.4f %10.4f %10.4f\n%10.4f %10.4f %10.4f %10.4f %10.4f\n%10.4f %10.4f %10.4f\n",
+			//double(_x(0)), double(_x(1)), double(_x(2)), double(_x(3)), double(_x(4)),
+			//double(_x(5)), double(_x(6)), double(_x(7)), double(_x(8)), double(_x(9)),
+			//double(_x(10)), double(_x(11)), double(_x(12)));
 }
 
 void BlockIEKF::correctFlow()
@@ -816,11 +918,11 @@ void BlockIEKF::correctFlow()
 	if (_sub_flow.get().integration_timespan > 0) {
 		flow_speed[0] = (_sub_flow.get().pixel_flow_x_integral /
 				 (_sub_flow.get().integration_timespan / 1e6f) -
-				 _sub_att.get().pitchspeed) *		// Body rotation correction TODO check this
+				 _pub_att.get().pitchspeed) *		// Body rotation correction TODO check this
 				_x(X_z);
 		flow_speed[1] = (_sub_flow.get().pixel_flow_y_integral /
 				 (_sub_flow.get().integration_timespan / 1e6f) -
-				 _sub_att.get().rollspeed) *		// Body rotation correction
+				 _pub_att.get().rollspeed) *		// Body rotation correction
 				_x(X_z);
 
 	} else {
@@ -843,7 +945,7 @@ void BlockIEKF::correctFlow()
 		float sum = 0.0f;
 
 		for (uint8_t j = 0; j < 3; j++) {
-			sum += flow_speed[j] * PX4_R(_sub_att.get().R, i, j);
+			sum += flow_speed[j] * PX4_R(_pub_att.get().R, i, j);
 		}
 
 		global_speed[i] = sum;
@@ -870,22 +972,22 @@ void BlockIEKF::correctFlow()
 
 	if (_sub_flow.get().quality < MIN_FLOW_QUALITY) {
 		if (!_flowFault) {
-			mavlink_log_info(_mavlink_fd, "[lpe] bad flow data ");
-			warnx("[lpe] bad flow data ");
+			mavlink_log_info(_mavlink_fd, "[iekf] bad flow data ");
+			warnx("[iekf] bad flow data ");
 			_flowFault = FAULT_SEVERE;
 		}
 
 	} else if (beta > _beta_max.get()) {
 		if (!_flowFault) {
-			mavlink_log_info(_mavlink_fd, "[lpe] flow fault,  beta %5.2f", double(beta));
-			warnx("[lpe] flow fault,  beta %5.2f", double(beta));
+			mavlink_log_info(_mavlink_fd, "[iekf] flow fault,  beta %5.2f", double(beta));
+			warnx("[iekf] flow fault,  beta %5.2f", double(beta));
 			_flowFault = FAULT_MINOR;
 		}
 
 	} else if (_flowFault) {
 		_flowFault = FAULT_NONE;
-		mavlink_log_info(_mavlink_fd, "[lpe] flow OK");
-		warnx("[lpe] flow OK");
+		mavlink_log_info(_mavlink_fd, "[iekf] flow OK");
+		warnx("[iekf] flow OK");
 	}
 
 	// kalman filter correction if no fault
@@ -933,8 +1035,8 @@ void BlockIEKF::correctSonar()
 	// measurement
 	Vector<float, n_y_sonar> y;
 	y(0) = (d - _sonarAltHome) *
-	       cosf(_sub_att.get().roll) *
-	       cosf(_sub_att.get().pitch);
+	       cosf(_pub_att.get().roll) *
+	       cosf(_pub_att.get().pitch);
 
 	// residual
 	Vector<float, n_y_sonar> r = y - C * _x;
@@ -949,22 +1051,22 @@ void BlockIEKF::correctSonar()
 	if (d < _sub_distance.get().min_distance ||
 	    d > _sub_distance.get().max_distance) {
 		if (!_sonarFault) {
-			mavlink_log_info(_mavlink_fd, "[lpe] sonar out of range");
-			warnx("[lpe] sonar out of range");
+			mavlink_log_info(_mavlink_fd, "[iekf] sonar out of range");
+			warnx("[iekf] sonar out of range");
 			_sonarFault = FAULT_SEVERE;
 		}
 
 	} else if (beta > _beta_max.get()) {
 		if (!_sonarFault) {
-			mavlink_log_info(_mavlink_fd, "[lpe] sonar fault,  beta %5.2f", double(beta));
-			warnx("[lpe] sonar fault,  beta %5.2f", double(beta));
+			mavlink_log_info(_mavlink_fd, "[iekf] sonar fault,  beta %5.2f", double(beta));
+			warnx("[iekf] sonar fault,  beta %5.2f", double(beta));
 			_sonarFault = FAULT_MINOR;
 		}
 
 	} else if (_sonarFault) {
 		_sonarFault = FAULT_NONE;
-		mavlink_log_info(_mavlink_fd, "[lpe] sonar OK");
-		warnx("[lpe] sonar OK");
+		mavlink_log_info(_mavlink_fd, "[iekf] sonar OK");
+		warnx("[iekf] sonar OK");
 	}
 
 	// kalman filter correction if no fault
@@ -972,7 +1074,7 @@ void BlockIEKF::correctSonar()
 		Matrix<float, n_x, n_y_sonar> K =
 			_P * C.transpose() * S_I;
 		_x += K * r;
-		_P -= K * C * _P;
+		//_P -= K * C * _P;
 	}
 
 	_time_last_sonar = _sub_distance.get().timestamp;
@@ -1004,8 +1106,8 @@ void BlockIEKF::correctBaro()
 
 	if (beta > _beta_max.get()) {
 		if (!_baroFault) {
-			mavlink_log_info(_mavlink_fd, "[lpe] baro fault, beta %5.2f", double(beta));
-			warnx("[lpe] baro fault, beta %5.2f", double(beta));
+			mavlink_log_info(_mavlink_fd, "[iekf] baro fault, beta %5.2f", double(beta));
+			warnx("[iekf] baro fault, beta %5.2f", double(beta));
 			_baroFault = FAULT_MINOR;
 		}
 
@@ -1014,15 +1116,15 @@ void BlockIEKF::correctBaro()
 
 	} else if (_baroFault) {
 		_baroFault = FAULT_NONE;
-		mavlink_log_info(_mavlink_fd, "[lpe] baro OK");
-		warnx("[lpe] baro OK");
+		mavlink_log_info(_mavlink_fd, "[iekf] baro OK");
+		warnx("[iekf] baro OK");
 	}
 
 	// kalman filter correction if no fault
 	if (_baroFault == FAULT_NONE) {
 		Matrix<float, n_x, n_y_baro> K = _P * C.transpose() * S_I;
 		_x += K * r;
-		_P -= K * C * _P;
+		//_P -= K * C * _P;
 	}
 
 	_time_last_baro = _sub_sensor.get().baro_timestamp[0];
@@ -1057,8 +1159,8 @@ void BlockIEKF::correctLidar()
 	Vector<float, n_y_lidar> y;
 	y.setZero();
 	y(0) = (d - _lidarAltHome) *
-	       cosf(_sub_att.get().roll) *
-	       cosf(_sub_att.get().pitch);
+	       cosf(_pub_att.get().roll) *
+	       cosf(_pub_att.get().pitch);
 
 	// residual
 	Matrix<float, n_y_lidar, n_y_lidar> S_I = inv<float, n_y_lidar>((C * _P * C.transpose()) + R);
@@ -1071,29 +1173,29 @@ void BlockIEKF::correctLidar()
 	if (d < _sub_distance.get().min_distance ||
 	    d > _sub_distance.get().max_distance) {
 		if (!_lidarFault) {
-			mavlink_log_info(_mavlink_fd, "[lpe] lidar out of range");
-			warnx("[lpe] lidar out of range");
+			mavlink_log_info(_mavlink_fd, "[iekf] lidar out of range");
+			warnx("[iekf] lidar out of range");
 			_lidarFault = FAULT_SEVERE;
 		}
 
 	} else if (beta > _beta_max.get()) {
 		if (!_lidarFault) {
-			mavlink_log_info(_mavlink_fd, "[lpe] lidar fault, beta %5.2f", double(beta));
-			warnx("[lpe] lidar fault, beta %5.2f", double(beta));
+			mavlink_log_info(_mavlink_fd, "[iekf] lidar fault, beta %5.2f", double(beta));
+			warnx("[iekf] lidar fault, beta %5.2f", double(beta));
 			_lidarFault = FAULT_MINOR;
 		}
 
 	} else if (_lidarFault) { // disable fault if ok
 		_lidarFault = FAULT_NONE;
-		mavlink_log_info(_mavlink_fd, "[lpe] lidar OK");
-		warnx("[lpe] lidar OK");
+		mavlink_log_info(_mavlink_fd, "[iekf] lidar OK");
+		warnx("[iekf] lidar OK");
 	}
 
 	// kalman filter correction if no fault
 	if (_lidarFault == FAULT_NONE) {
 		Matrix<float, n_x, n_y_lidar> K = _P * C.transpose() * S_I;
 		_x += K * r;
-		_P -= K * C * _P;
+		//_P -= K * C * _P;
 	}
 
 	_time_last_lidar = _sub_distance.get().timestamp;
@@ -1173,22 +1275,22 @@ void BlockIEKF::correctGps()  	// TODO : use another other metric for glitch det
 
 	if (nSat < 6 || eph > _gps_eph_max.get()) {
 		if (!_gpsFault) {
-			mavlink_log_info(_mavlink_fd, "[lpe] gps fault nSat: %d eph: %5.2f", nSat, double(eph));
-			warnx("[lpe] gps fault nSat: %d eph: %5.2f", nSat, double(eph));
+			mavlink_log_info(_mavlink_fd, "[iekf] gps fault nSat: %d eph: %5.2f", nSat, double(eph));
+			warnx("[iekf] gps fault nSat: %d eph: %5.2f", nSat, double(eph));
 			_gpsFault = FAULT_SEVERE;
 		}
 
 	} else if (beta > _beta_max.get()) {
 		if (!_gpsFault) {
-			mavlink_log_info(_mavlink_fd, "[lpe] gps fault, beta: %5.2f", double(beta));
-			warnx("[lpe] gps fault, beta: %5.2f", double(beta));
-			mavlink_log_info(_mavlink_fd, "[lpe] r: %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f",
+			mavlink_log_info(_mavlink_fd, "[iekf] gps fault, beta: %5.2f", double(beta));
+			warnx("[iekf] gps fault, beta: %5.2f", double(beta));
+			mavlink_log_info(_mavlink_fd, "[iekf] r: %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f",
 					 double(r(0)),  double(r(1)), double(r(2)),
 					 double(r(3)), double(r(4)), double(r(5)));
-			mavlink_log_info(_mavlink_fd, "[lpe] S_I: %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f",
+			mavlink_log_info(_mavlink_fd, "[iekf] S_I: %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f",
 					 double(S_I(0, 0)),  double(S_I(1, 1)), double(S_I(2, 2)),
 					 double(S_I(3, 3)),  double(S_I(4, 4)), double(S_I(5, 5)));
-			mavlink_log_info(_mavlink_fd, "[lpe] r: %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f",
+			mavlink_log_info(_mavlink_fd, "[iekf] r: %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f",
 					 double(r(0)),  double(r(1)), double(r(2)),
 					 double(r(3)), double(r(4)), double(r(5)));
 			_gpsFault = FAULT_MINOR;
@@ -1199,15 +1301,15 @@ void BlockIEKF::correctGps()  	// TODO : use another other metric for glitch det
 
 	} else if (_gpsFault) {
 		_gpsFault = FAULT_NONE;
-		mavlink_log_info(_mavlink_fd, "[lpe] GPS OK");
-		warnx("[lpe] GPS OK");
+		mavlink_log_info(_mavlink_fd, "[iekf] GPS OK");
+		warnx("[iekf] GPS OK");
 	}
 
 	// kalman filter correction if no hard fault
 	if (_gpsFault == FAULT_NONE) {
 		Matrix<float, n_x, n_y_gps> K = _P * C.transpose() * S_I;
 		_x += K * r;
-		_P -= K * C * _P;
+		//_P -= K * C * _P;
 	}
 
 	_time_last_gps = _timeStamp;
@@ -1245,8 +1347,8 @@ void BlockIEKF::correctVision()
 
 	if (beta > _beta_max.get()) {
 		if (!_visionFault) {
-			mavlink_log_info(_mavlink_fd, "[lpe] vision position fault, beta %5.2f", double(beta));
-			warnx("[lpe] vision position fault, beta %5.2f", double(beta));
+			mavlink_log_info(_mavlink_fd, "[iekf] vision position fault, beta %5.2f", double(beta));
+			warnx("[iekf] vision position fault, beta %5.2f", double(beta));
 			_visionFault = FAULT_MINOR;
 		}
 
@@ -1255,15 +1357,15 @@ void BlockIEKF::correctVision()
 
 	} else if (_visionFault) {
 		_visionFault = FAULT_NONE;
-		mavlink_log_info(_mavlink_fd, "[lpe] vision position OK");
-		warnx("[lpe] vision position OK");
+		mavlink_log_info(_mavlink_fd, "[iekf] vision position OK");
+		warnx("[iekf] vision position OK");
 	}
 
 	// kalman filter correction if no fault
 	if (_visionFault == FAULT_NONE) {
 		Matrix<float, n_x, n_y_vision> K = _P * C.transpose() * S_I;
 		_x += K * r;
-		_P -= K * C * _P;
+		//_P -= K * C * _P;
 	}
 
 	_time_last_vision_p = _sub_vision_pos.get().timestamp_boot;
@@ -1303,8 +1405,8 @@ void BlockIEKF::correctmocap()
 
 	if (beta > _beta_max.get()) {
 		if (!_mocapFault) {
-			mavlink_log_info(_mavlink_fd, "[lpe] mocap fault, beta %5.2f", double(beta));
-			warnx("[lpe] mocap fault, beta %5.2f", double(beta));
+			mavlink_log_info(_mavlink_fd, "[iekf] mocap fault, beta %5.2f", double(beta));
+			warnx("[iekf] mocap fault, beta %5.2f", double(beta));
 			_mocapFault = FAULT_MINOR;
 		}
 
@@ -1313,16 +1415,18 @@ void BlockIEKF::correctmocap()
 
 	} else if (_mocapFault) {
 		_mocapFault = FAULT_NONE;
-		mavlink_log_info(_mavlink_fd, "[lpe] mocap OK");
-		warnx("[lpe] mocap OK");
+		mavlink_log_info(_mavlink_fd, "[iekf] mocap OK");
+		warnx("[iekf] mocap OK");
 	}
 
 	// kalman filter correction if no fault
 	if (_mocapFault == FAULT_NONE) {
 		Matrix<float, n_x, n_y_mocap> K = _P * C.transpose() * S_I;
 		_x += K * r;
-		_P -= K * C * _P;
+		//_P -= K * C * _P;
 	}
 
 	_time_last_mocap = _sub_mocap.get().timestamp_boot;
 }
+ 
+} // namespace iekf

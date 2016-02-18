@@ -107,7 +107,7 @@ int iekf_main(int argc, char *argv[])
 
 		thread_should_exit = false;
 
-		deamon_task = px4_task_spawn_cmd("lp_estimator",
+		deamon_task = px4_task_spawn_cmd("iekf",
 						 SCHED_DEFAULT,
 						 SCHED_PRIORITY_MAX - 5,
 						 10240,
@@ -146,20 +146,20 @@ int iekf_main(int argc, char *argv[])
 int iekf_thread_main(int argc, char *argv[])
 {
 
-	warnx("starting");
+	warnx("[iekf] starting");
 
 	using namespace control;
 
 
 	thread_running = true;
 
-	BlockIEKF est;
+	iekf::BlockIEKF est;
 
 	while (!thread_should_exit) {
 		est.update();
 	}
 
-	warnx("exiting.");
+	warnx("[iekf] exiting.");
 
 	thread_running = false;
 

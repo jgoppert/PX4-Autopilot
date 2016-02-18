@@ -13,7 +13,6 @@ using namespace matrix;
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/sensor_combined.h>
@@ -27,6 +26,8 @@ using namespace matrix;
 
 // uORB Publications
 #include <uORB/Publication.hpp>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/control_state.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/filtered_bottom_flow.h>
@@ -51,6 +52,35 @@ enum sensor_t {
 	SENSOR_VISION,
 	SENSOR_MOCAP
 };
+
+namespace iekf {
+
+// constants
+static const uint8_t n_x = 13;
+static const uint8_t n_u = 6; // 3 accelerations
+static const uint8_t n_y_flow = 2;
+static const uint8_t n_y_sonar = 1;
+static const uint8_t n_y_baro = 1;
+static const uint8_t n_y_lidar = 1;
+static const uint8_t n_y_gps = 6;
+static const uint8_t n_y_vision = 3;
+static const uint8_t n_y_mocap = 3;
+enum {X_q0 = 0, X_q1, X_q2, X_q3,
+	X_vx, X_vy, X_vz,
+	X_x, X_y, X_z,
+	X_wbx, X_wby, X_wbz,
+	X_abx, X_aby, X_abz};
+enum {U_wx=0, U_wy, U_wz, U_ax, U_ay, U_az};
+enum {Y_baro_z = 0};
+enum {Y_lidar_z = 0};
+enum {Y_flow_x = 0, Y_flow_y};
+enum {Y_sonar_z = 0};
+enum {Y_gps_x = 0, Y_gps_y, Y_gps_z, Y_gps_vx, Y_gps_vy, Y_gps_vz};
+enum {Y_vision_x = 0, Y_vision_y, Y_vision_z, Y_vision_vx, Y_vision_vy, Y_vision_vz};
+enum {Y_mocap_x = 0, Y_mocap_y, Y_mocap_z};
+enum {POLL_FLOW, POLL_SENSORS, POLL_PARAM};
+
+
 
 class BlockIEKF : public control::SuperBlock
 {
@@ -118,27 +148,6 @@ private:
 	BlockIEKF(const BlockIEKF &);
 	BlockIEKF operator=(const BlockIEKF &);
 
-	// constants
-	static const uint8_t n_x = 9;
-	static const uint8_t n_u = 3; // 3 accelerations
-	static const uint8_t n_y_flow = 2;
-	static const uint8_t n_y_sonar = 1;
-	static const uint8_t n_y_baro = 1;
-	static const uint8_t n_y_lidar = 1;
-	static const uint8_t n_y_gps = 6;
-	static const uint8_t n_y_vision = 3;
-	static const uint8_t n_y_mocap = 3;
-	enum {X_x = 0, X_y, X_z, X_vx, X_vy, X_vz, X_bx, X_by, X_bz};
-	enum {U_ax = 0, U_ay, U_az};
-	enum {Y_baro_z = 0};
-	enum {Y_lidar_z = 0};
-	enum {Y_flow_x = 0, Y_flow_y};
-	enum {Y_sonar_z = 0};
-	enum {Y_gps_x = 0, Y_gps_y, Y_gps_z, Y_gps_vx, Y_gps_vy, Y_gps_vz};
-	enum {Y_vision_x = 0, Y_vision_y, Y_vision_z, Y_vision_vx, Y_vision_vy, Y_vision_vz};
-	enum {Y_mocap_x = 0, Y_mocap_y, Y_mocap_z};
-	enum {POLL_FLOW, POLL_SENSORS, POLL_PARAM};
-
 	// methods
 	// ----------------------------
 	void initP();
@@ -178,7 +187,6 @@ private:
 	uORB::Subscription<vehicle_status_s> _sub_status;
 	uORB::Subscription<actuator_armed_s> _sub_armed;
 	uORB::Subscription<vehicle_control_mode_s> _sub_control_mode;
-	uORB::Subscription<vehicle_attitude_s> _sub_att;
 	uORB::Subscription<vehicle_attitude_setpoint_s> _sub_att_sp;
 	uORB::Subscription<optical_flow_s> _sub_flow;
 	uORB::Subscription<sensor_combined_s> _sub_sensor;
@@ -191,6 +199,8 @@ private:
 	uORB::Subscription<att_pos_mocap_s> _sub_mocap;
 
 	// publications
+	uORB::Publication<control_state_s> _pub_ctrl;
+	uORB::Publication<vehicle_attitude_s> _pub_att;
 	uORB::Publication<vehicle_local_position_s> _pub_lpos;
 	uORB::Publication<vehicle_global_position_s> _pub_gpos;
 	uORB::Publication<filtered_bottom_flow_s> _pub_filtered_flow;
@@ -314,3 +324,5 @@ private:
 	Vector3f _omega_b;
 	Vector3f _a_s;
 };
+
+}; // namespace iekf
