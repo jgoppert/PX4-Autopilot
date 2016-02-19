@@ -182,7 +182,6 @@ private:
 	uORB::Subscription<vehicle_control_mode_s> _sub_control_mode;
 	uORB::Subscription<vehicle_attitude_s> _sub_att;
 	uORB::Subscription<vehicle_attitude_setpoint_s> _sub_att_sp;
-	uORB::Subscription<vehicle_rates_setpoint_s> _sub_rates_sp;
 	uORB::Subscription<optical_flow_s> _sub_flow;
 	uORB::Subscription<sensor_combined_s> _sub_sensor;
 	uORB::Subscription<parameter_update_s> _sub_param_update;
@@ -244,6 +243,10 @@ private:
 	BlockParamFloat  _pn_v_noise_power;
 	BlockParamFloat  _pn_b_noise_power;
 
+	// flow gyro
+	BlockHighPass _flow_gyro_x_high_pass;
+	BlockHighPass _flow_gyro_y_high_pass;
+
 	// misc
 	struct pollfd _polls[3];
 	uint64_t _timeStamp;
@@ -290,7 +293,6 @@ private:
 	// flow integration
 	float _flowX;
 	float _flowY;
-	float _flowGyroBias[3];
 	float _flowMeanQual;
 
 	// referene lat/lon
@@ -312,6 +314,7 @@ private:
 	fault_t _visionFault;
 	fault_t _mocapFault;
 
+	// timeouts
 	bool _baroTimeout;
 	bool _gpsTimeout;
 	bool _flowTimeout;
@@ -320,6 +323,7 @@ private:
 	bool _visionTimeout;
 	bool _mocapTimeout;
 
+	// performance counters
 	perf_counter_t _loop_perf;
 	perf_counter_t _interval_perf;
 	perf_counter_t _err_perf;

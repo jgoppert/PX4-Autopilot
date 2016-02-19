@@ -247,3 +247,13 @@ PARAM_DEFINE_FLOAT(LPE_PN_B, 1e-8f);
  * @max 1000
  */
 PARAM_DEFINE_FLOAT(LPE_BETA_MAX, 1000.0f);
+
+/**
+ * Flow gyro high pass filter cut off frequency
+ *
+ * @group Local Position Estimator
+ * @unit Hz
+ * @min 0
+ * @max 2
+ */
+PARAM_DEFINE_FLOAT(LPE_FGYRO_HP, 0.1f);
