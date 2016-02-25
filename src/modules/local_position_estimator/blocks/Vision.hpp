@@ -32,44 +32,32 @@
  ****************************************************************************/
 
 /**
- * @file Lidar.cpp
+ * @file Vision.hpp
  * @author James Goppert <james.goppert@gmail.com>
  */
 
-#include "Lidar.hpp"
+#pragma once
+#include "Sensor.hpp"
+#include <uORB/topics/vision_position_estimate.h>
 
-Lidar::Lidar(SuperBlock *parent, const char *name, float timeOut,
-	     float initPeriod, float expectedFreq) :
-	Sensor<float, n_x, n_y_lidar>(parent, name,
-				      timeOut, initPeriod, expectedFreq),
-	_sub(NULL),
-	_z_stddev(this, "Z")
+class Vision : public Sensor<float, n_x, n_y_vision>
 {
-}
+public:
+	Vision(SuperBlock *parent, const char *name, float timeOut,
+	      float initPeriod, float expectedFreq);
+	virtual int measure(Vector<float, n_y_vision> &y);
+	virtual bool updateAvailable();
+	int computeCorrectionData(
+		const Vector<float, n_x> &x,
+		const Vector<float, n_y_vision> &y,
+		Matrix<float, n_y_vision, n_x> &C,
+		Matrix<float, n_y_vision, n_y_vision> &R,
+		Vector<float, n_y_vision> &r);
+	virtual ~Vision() {};
+private:
+	uORB::Subscription<vision_position_estimate_s> _sub;
+	BlockParamFloat  _xy_stddev;
+	BlockParamFloat  _z_stddev;
+	BlockParamInt    _no_vision;
+};
 
-int Lidar::measure(Vector<float, n_y_lidar> &y)
-{
-	if (_sub==NULL) return RET_ERROR;
-	y(0) = _sub->get().current_distance;
-	return RET_OK;
-}
-
-bool Lidar::updateAvailable()
-{
-	return _sub->updated();
-}
-
-int Lidar::computeCorrectionData(
-	const Vector<float, n_x> &x,
-	const Vector<float, n_y_lidar> &y,
-	Matrix<float, n_y_lidar, n_x> &C,
-	Matrix<float, n_y_lidar, n_y_lidar> &R,
-	Vector<float, n_y_lidar> &r)
-{
-	C.setZero();
-	C(Y_lidar_z, X_z) = -1;
-	R.setZero();
-	R(Y_lidar_z, Y_lidar_z) = _z_stddev.get()*_z_stddev.get();
-	r = y - C * x;
-	return RET_OK;
-}

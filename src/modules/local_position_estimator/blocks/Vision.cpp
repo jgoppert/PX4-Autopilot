@@ -32,44 +32,51 @@
  ****************************************************************************/
 
 /**
- * @file Lidar.cpp
+ * @file Vision.cpp
  * @author James Goppert <james.goppert@gmail.com>
  */
 
-#include "Lidar.hpp"
+#include "Vision.hpp"
 
-Lidar::Lidar(SuperBlock *parent, const char *name, float timeOut,
+Vision::Vision(SuperBlock *parent, const char *name, float timeOut,
 	     float initPeriod, float expectedFreq) :
-	Sensor<float, n_x, n_y_lidar>(parent, name,
+	Sensor<float, n_x, n_y_vision>(parent, name,
 				      timeOut, initPeriod, expectedFreq),
-	_sub(NULL),
-	_z_stddev(this, "Z")
+	_sub(ORB_ID(vision_position_estimate), 0, 0, &getSubscriptions()),
+	_xy_stddev(this, "XY"),
+	_z_stddev(this, "Z"),
+	_no_vision(NULL, "NO_VISION")
 {
 }
 
-int Lidar::measure(Vector<float, n_y_lidar> &y)
+int Vision::measure(Vector<float, n_y_vision> &y)
 {
-	if (_sub==NULL) return RET_ERROR;
-	y(0) = _sub->get().current_distance;
+	y(0) = _sub.get().x;
+	y(1) = _sub.get().x;
+	y(2) = _sub.get().x;
 	return RET_OK;
 }
 
-bool Lidar::updateAvailable()
+bool Vision::updateAvailable()
 {
-	return _sub->updated();
+	return _sub.updated();
 }
 
-int Lidar::computeCorrectionData(
+int Vision::computeCorrectionData(
 	const Vector<float, n_x> &x,
-	const Vector<float, n_y_lidar> &y,
-	Matrix<float, n_y_lidar, n_x> &C,
-	Matrix<float, n_y_lidar, n_y_lidar> &R,
-	Vector<float, n_y_lidar> &r)
+	const Vector<float, n_y_vision> &y,
+	Matrix<float, n_y_vision, n_x> &C,
+	Matrix<float, n_y_vision, n_y_vision> &R,
+	Vector<float, n_y_vision> &r)
 {
 	C.setZero();
-	C(Y_lidar_z, X_z) = -1;
+	C(Y_vision_x, X_x) = 1;
+	C(Y_vision_y, X_y) = 1;
+	C(Y_vision_z, X_z) = 1;
 	R.setZero();
-	R(Y_lidar_z, Y_lidar_z) = _z_stddev.get()*_z_stddev.get();
+	R(Y_vision_x, Y_vision_x) = _xy_stddev.get()*_xy_stddev.get();
+	R(Y_vision_y, Y_vision_y) = _xy_stddev.get()*_xy_stddev.get();
+	R(Y_vision_z, Y_vision_z) = _z_stddev.get()*_z_stddev.get();
 	r = y - C * x;
 	return RET_OK;
 }

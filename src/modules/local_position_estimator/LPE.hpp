@@ -48,6 +48,7 @@ using namespace Eigen;
 
 #include "blocks/Sensor.hpp"
 #include "blocks/Lidar.hpp"
+#include "blocks/Vision.hpp"
 
 // uORB Subscriptions
 #include <uORB/Subscription.hpp>
@@ -132,6 +133,7 @@ class LPE : public control::SuperBlock
 public:
 
 	Lidar _lidar;
+	Vision _vision;
 
 	LPE();
 	void update();

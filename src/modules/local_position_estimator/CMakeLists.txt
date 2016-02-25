@@ -49,6 +49,7 @@ px4_add_module(
 		local_position_estimator_main.cpp
 		LPE.cpp
 		blocks/Lidar.cpp
+		blocks/Vision.cpp
 		params.c
 	DEPENDS
 		platforms__common
