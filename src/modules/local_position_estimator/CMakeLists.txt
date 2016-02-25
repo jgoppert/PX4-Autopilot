@@ -51,6 +51,7 @@ px4_add_module(
 		blocks/Lidar.cpp
 		blocks/Vision.cpp
 		blocks/Flow.cpp
+		blocks/Baro.cpp
 		params.c
 	DEPENDS
 		platforms__common

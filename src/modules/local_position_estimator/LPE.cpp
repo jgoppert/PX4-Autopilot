@@ -20,6 +20,7 @@ LPE::LPE() :
 	_lidar(this, "LDR", 1.0f, 1.0f, 10.0f),
 	_vision(this, "VIS", 1.0f, 1.0f, 10.0f),
 	_flow(this, "FLW", 1.0f, 1.0f, 10.0f),
+	_baro(this, "BAR", 1.0f, 1.0f, 100.0f),
 
 	// subscriptions, set rate, add to list
 	// TODO topic speed limiting?
