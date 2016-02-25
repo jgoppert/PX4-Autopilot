@@ -47,7 +47,8 @@ px4_add_module(
 	COMPILE_FLAGS ${MODULE_CFLAGS}
 	SRCS
 		local_position_estimator_main.cpp
-		BlockLocalPositionEstimator.cpp
+		LPE.cpp
+		blocks/Lidar.cpp
 		params.c
 	DEPENDS
 		platforms__common

@@ -1,4 +1,4 @@
-#include "BlockLocalPositionEstimator.hpp"
+#include "LPE.hpp"
 #include <mavlink/mavlink_log.h>
 #include <fcntl.h>
 #include <systemlib/err.h>
@@ -14,12 +14,10 @@ static const uint32_t 		MOCAP_TIMEOUT = 200000;		// 0.2 s
 
 static const uint32_t 		EST_SRC_TIMEOUT = 1000000;
 
-
-using namespace std;
-
-BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
+LPE::LPE() :
 	// this block has no parent, and has name LPE
 	SuperBlock(NULL, "LPE"),
+	_lidar(this, "LDR", 1.0f),
 
 	// subscriptions, set rate, add to list
 	// TODO topic speed limiting?
@@ -167,14 +165,14 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_x(), _u(), _P()
 {
 	// setup event triggering based on new flow messages to integrate
-	_polls[POLL_FLOW].fd = _sub_flow.getHandle();
-	_polls[POLL_FLOW].events = POLLIN;
+	_polls[poll_flow].fd = _sub_flow.getHandle();
+	_polls[poll_flow].events = POLLIN;
 
-	_polls[POLL_PARAM].fd = _sub_param_update.getHandle();
-	_polls[POLL_PARAM].events = POLLIN;
+	_polls[poll_param].fd = _sub_param_update.getHandle();
+	_polls[poll_param].events = POLLIN;
 
-	_polls[POLL_SENSORS].fd = _sub_sensor.getHandle();
-	_polls[POLL_SENSORS].events = POLLIN;
+	_polls[poll_sensors].fd = _sub_sensor.getHandle();
+	_polls[poll_sensors].events = POLLIN;
 
 	//subscribe to all distance sensors
 	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
@@ -202,11 +200,11 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	updateParams();
 }
 
-BlockLocalPositionEstimator::~BlockLocalPositionEstimator()
+LPE::~LPE()
 {
 }
 
-void BlockLocalPositionEstimator::update()
+void LPE::update()
 {
 
 	// wait for a sensor update, check for exit condition every 100 ms
@@ -430,7 +428,7 @@ void BlockLocalPositionEstimator::update()
 
 }
 
-void BlockLocalPositionEstimator::checkTimeouts()
+void LPE::checkTimeouts()
 {
 
 	if ((_timeStamp - _time_last_baro > BARO_TIMEOUT) && _baroInitialized) {
@@ -511,7 +509,7 @@ void BlockLocalPositionEstimator::checkTimeouts()
 	}
 }
 
-void BlockLocalPositionEstimator::updateHome()
+void LPE::updateHome()
 {
 	double lat = _sub_home.get().lat;
 	double lon = _sub_home.get().lon;
@@ -531,7 +529,7 @@ void BlockLocalPositionEstimator::updateHome()
 	_mocapHome(2) += delta_alt;
 }
 
-void BlockLocalPositionEstimator::initBaro()
+void LPE::initBaro()
 {
 	// collect baro data
 	if (!_baroInitialized &&
@@ -555,7 +553,7 @@ void BlockLocalPositionEstimator::initBaro()
 }
 
 
-void BlockLocalPositionEstimator::initGps()
+void LPE::initGps()
 {
 	// collect gps data
 	if (!_gpsInitialized && _sub_gps.get().fix_type > 2) {
@@ -588,7 +586,7 @@ void BlockLocalPositionEstimator::initGps()
 	}
 }
 
-void BlockLocalPositionEstimator::initLidar()
+void LPE::initLidar()
 {
 
 	// collect lidar data
@@ -622,7 +620,7 @@ void BlockLocalPositionEstimator::initLidar()
 	}
 }
 
-void BlockLocalPositionEstimator::initSonar()
+void LPE::initSonar()
 {
 
 	// collect sonar data
@@ -656,7 +654,7 @@ void BlockLocalPositionEstimator::initSonar()
 	}
 }
 
-void BlockLocalPositionEstimator::initFlow()
+void LPE::initFlow()
 {
 	bool rangefinder_available = false;
 
@@ -690,7 +688,7 @@ void BlockLocalPositionEstimator::initFlow()
 	}
 }
 
-void BlockLocalPositionEstimator::initVision()
+void LPE::initVision()
 {
 	// collect vision position data
 	if (!_visionInitialized) {
@@ -717,7 +715,7 @@ void BlockLocalPositionEstimator::initVision()
 	}
 }
 
-void BlockLocalPositionEstimator::initMocap()
+void LPE::initMocap()
 {
 	// collect mocap data
 	if (!_mocapInitialized) {
@@ -744,7 +742,7 @@ void BlockLocalPositionEstimator::initMocap()
 	}
 }
 
-void BlockLocalPositionEstimator::publishLocalPos()
+void LPE::publishLocalPos()
 {
 	// publish local position
 	if (isfinite(_x(X_x)) && isfinite(_x(X_y)) && isfinite(_x(X_z)) &&
@@ -779,7 +777,7 @@ void BlockLocalPositionEstimator::publishLocalPos()
 	}
 }
 
-void BlockLocalPositionEstimator::publishEstimatorStatus()
+void LPE::publishEstimatorStatus()
 {
 	if (isfinite(_x(X_x)) && isfinite(_x(X_y)) && isfinite(_x(X_z)) &&
 	    isfinite(_x(X_vx)) && isfinite(_x(X_vy))
@@ -813,7 +811,7 @@ void BlockLocalPositionEstimator::publishEstimatorStatus()
 	}
 }
 
-void BlockLocalPositionEstimator::publishGlobalPos()
+void LPE::publishGlobalPos()
 {
 	// publish global position
 	double lat = 0;
@@ -843,7 +841,7 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 	}
 }
 
-void BlockLocalPositionEstimator::publishFilteredFlow()
+void LPE::publishFilteredFlow()
 {
 	// publish filtered flow
 	if (isfinite(_pub_filtered_flow.get().sumx) &&
@@ -854,7 +852,7 @@ void BlockLocalPositionEstimator::publishFilteredFlow()
 	}
 }
 
-void BlockLocalPositionEstimator::initP()
+void LPE::initP()
 {
 	_P.setZero();
 	_P(X_x, X_x) = 1;
@@ -868,7 +866,7 @@ void BlockLocalPositionEstimator::initP()
 	_P(X_bz, X_bz) = 1e-6;
 }
 
-void BlockLocalPositionEstimator::predict()
+void LPE::predict()
 {
 	// if can't update anything, don't propagate
 	// state or covariance
@@ -961,7 +959,7 @@ void BlockLocalPositionEstimator::predict()
 	       B * R * B.transpose() + Q) * getDt();
 }
 
-void BlockLocalPositionEstimator::correctFlow()
+void LPE::correctFlow()
 {
 
 	// flow measurement matrix and noise matrix
@@ -1079,7 +1077,7 @@ void BlockLocalPositionEstimator::correctFlow()
 
 }
 
-void BlockLocalPositionEstimator::correctSonar()
+void LPE::correctSonar()
 {
 
 	if (_sub_sonar->get().timestamp == 0) { return; }
@@ -1155,7 +1153,7 @@ void BlockLocalPositionEstimator::correctSonar()
 
 }
 
-void BlockLocalPositionEstimator::correctBaro()
+void LPE::correctBaro()
 {
 
 	Vector<float, n_y_baro> y;
@@ -1204,7 +1202,7 @@ void BlockLocalPositionEstimator::correctBaro()
 	_time_last_baro = _sub_sensor.get().baro_timestamp[0];
 }
 
-void BlockLocalPositionEstimator::correctLidar()
+void LPE::correctLidar()
 {
 
 	if (_sub_lidar->get().timestamp == 0) { return; }
@@ -1273,7 +1271,7 @@ void BlockLocalPositionEstimator::correctLidar()
 	_time_last_lidar = _sub_lidar->get().timestamp;
 }
 
-void BlockLocalPositionEstimator::correctGps()  	// TODO : use another other metric for glitch detection
+void LPE::correctGps()  	// TODO : use another other metric for glitch detection
 {
 
 	// gps measurement in local frame
@@ -1387,7 +1385,7 @@ void BlockLocalPositionEstimator::correctGps()  	// TODO : use another other met
 	_time_last_gps = _timeStamp;
 }
 
-void BlockLocalPositionEstimator::correctVision()
+void LPE::correctVision()
 {
 
 	Vector<float, 3> y;
@@ -1443,7 +1441,7 @@ void BlockLocalPositionEstimator::correctVision()
 	_time_last_vision_p = _sub_vision_pos.get().timestamp_boot;
 }
 
-void BlockLocalPositionEstimator::correctMocap()
+void LPE::correctMocap()
 {
 
 	Vector<float, n_y_mocap> y;
