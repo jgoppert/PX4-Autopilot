@@ -52,8 +52,8 @@ Vision::Vision(SuperBlock *parent, const char *name, float timeOut,
 int Vision::measure(Vector<float, n_y_vision> &y)
 {
 	y(0) = _sub.get().x;
-	y(1) = _sub.get().x;
-	y(2) = _sub.get().x;
+	y(1) = _sub.get().y;
+	y(2) = _sub.get().z;
 	return RET_OK;
 }
 
