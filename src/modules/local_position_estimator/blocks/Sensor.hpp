@@ -42,7 +42,8 @@ using namespace control;
 using namespace matrix;
 
 template<class Type, size_t N>
-class Sensor : public control::SuperBlock {
+class Sensor : public control::SuperBlock
+{
 private:
 	fault_t _fault;
 	uint32_t _initCount;
@@ -51,14 +52,14 @@ private:
 	float _timeOut;
 	uint32_t _initPeriod;
 	uint32_t _expectedFreq;
-    Vector<Type, N> _y0;
+	Vector<Type, N> _y0;
 public:
 	/**
 	 * Constructor
 	 * @timeout Time in seconds for timeout.
 	 */
-	Sensor(SuperBlock * parent, const char * name, float timeOut,
-			float initPeriod, float expectedFreq) :
+	Sensor(SuperBlock *parent, const char *name, float timeOut,
+	       float initPeriod, float expectedFreq) :
 		SuperBlock(parent, name),
 		_fault(FAULT_NONE),
 		_initCount(0),
@@ -76,33 +77,40 @@ public:
 	 * @y - measurement
 	 * @return - valid measurement returns RET_OK
 	 */
-    virtual int measure(Vector<Type, N> & y) = 0;
+	virtual int measure(Vector<Type, N> &y) = 0;
 
 	/**
 	 * Responsible for initializing measurement
 	 */
-	virtual int init() {
-		if (_initialized) return RET_ERROR;
+	virtual int init()
+	{
+		if (_initialized) { return RET_ERROR; }
+
 		Vector<Type, N> y;
 		int ret = measure(y);
+
 		if (ret == RET_OK) {
 			_y0 += y;
+
 		} else {
 			_initCount = 0;
 			y.setZero();
 		}
-		if (_initCount > _initPeriod*_expectedFreq) {
+
+		if (_initCount > _initPeriod * _expectedFreq) {
 			_y0 = _y0 / _initCount;
 			_initialized = true;
 		}
+
 		return RET_OK;
 	}
 
 	/**
 	 * Calculate if timed out
 	 */
-	bool timedOut() {
-		return (hrt_absolute_time() - _timeStamp) > _timeOut*1.0e6f;
+	bool timedOut()
+	{
+		return (hrt_absolute_time() - _timeStamp) > _timeOut * 1.0e6f;
 	}
 	virtual ~Sensor() {};
 };

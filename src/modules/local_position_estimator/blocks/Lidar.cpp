@@ -38,14 +38,15 @@
 
 #include "Lidar.hpp"
 
-Lidar::Lidar(SuperBlock * parent, const char * name, float timeOut,
-		float initPeriod, float expectedFreq) :
+Lidar::Lidar(SuperBlock *parent, const char *name, float timeOut,
+	     float initPeriod, float expectedFreq) :
 	Sensor<float, 1>(parent, name, timeOut, initPeriod, expectedFreq),
 	_sub(NULL),
 	_lidar_z_stddev(this, "Z")
 {
 }
 
-int Lidar::measure(Vector<float, 1> & y) {
+int Lidar::measure(Vector<float, 1> &y)
+{
 	return RET_OK;
 }
