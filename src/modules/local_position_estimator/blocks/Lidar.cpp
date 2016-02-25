@@ -43,18 +43,20 @@ Lidar::Lidar(SuperBlock *parent, const char *name, float timeOut,
 	Sensor<float, n_x, n_y_lidar>(parent, name,
 				      timeOut, initPeriod, expectedFreq),
 	_sub(NULL),
-	_lidar_z_stddev(this, "Z")
+	_z_stddev(this, "Z")
 {
 }
 
 int Lidar::measure(Vector<float, 1> &y)
 {
+	if (_sub==NULL) return RET_ERROR;
+	y(0) = _sub->get().current_distance;
 	return RET_OK;
 }
 
 bool Lidar::updateAvailable()
 {
-	return true;
+	return _sub->updated();
 }
 
 int Lidar::computeCorrectionData(
@@ -64,6 +66,10 @@ int Lidar::computeCorrectionData(
 	Matrix<float, n_y_lidar, n_y_lidar> &R,
 	Vector<float, n_y_lidar> &r)
 {
+	C.setZero();
+	C(Y_lidar_z, X_z) = -1;
+	R.setZero();
+	R(Y_lidar_z, Y_lidar_z) = _z_stddev.get()*_z_stddev.get();
 	r = y - C * x;
 	return RET_OK;
 }

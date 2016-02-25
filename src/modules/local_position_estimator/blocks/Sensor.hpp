@@ -147,8 +147,29 @@ public:
 		return (hrt_absolute_time() - _timeStamp) > _timeOut * 1.0e6f;
 	}
 
-	virtual int correct()
+	virtual int correct(Vector<float, M> &x, Matrix<float, M, M> &P)
 	{
+		Vector<float, N> y;
+		int ret = measure(y);
+
+		if (ret != RET_OK) { return ret; }
+
+		Matrix<float, N, M> C;
+		Matrix<float, N, N> R;
+		float beta = 0;
+		Vector<float, N> r;
+		ret = computeCorrectionData(x, y, C, R, r);
+
+		if (ret != RET_OK) { return ret; }
+
+		Vector<float, M> dx;
+		Matrix<float, M, M> dP;
+		ret = kalman_correct(P, C, R, r, dx, dP, beta);
+
+		if (ret != RET_OK) { return ret; }
+
+		x += dx;
+		P += dP;
 		return RET_OK;
 	}
 
@@ -163,30 +184,9 @@ public:
 				return init();
 
 			} else  {
-				Vector<float, N> y;
-				int ret = measure(y);
-
-				if (ret != RET_OK) { return ret; }
-
-				Matrix<float, N, M> C;
-				Matrix<float, N, N> R;
-				float beta = 0;
-				Vector<float, N> r;
-				ret = computeCorrectionData(x, y, C, R, r);
-
-				if (ret != RET_OK) { return ret; }
-
-				Vector<float, M> dx;
-				Matrix<float, M, M> dP;
-				ret = kalman_correct(P, C, R, r, dx, dP, beta);
-
-				if (ret != RET_OK) { return ret; }
-
-				x += dx;
-				P += dP;
+				return correct(x, P);
 			}
 		}
-
 		return RET_OK;
 	}
 

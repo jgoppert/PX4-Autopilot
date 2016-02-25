@@ -56,6 +56,6 @@ public:
 	virtual ~Lidar() {};
 private:
 	uORB::Subscription<distance_sensor_s> *_sub;
-	BlockParamFloat  _lidar_z_stddev;
+	BlockParamFloat  _z_stddev;
 };
 
