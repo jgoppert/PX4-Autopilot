@@ -37,15 +37,15 @@
  */
 
 #pragma once
-#include "Measurement.hpp"
+#include "Sensor.hpp"
 #include <uORB/topics/distance_sensor.h>
 
-class Lidar : public Measurement<float, 1> {
+class Lidar : public Sensor<float, 1> {
 public:
 	enum {Y_z = 0, n_y};
-	Lidar(SuperBlock * parent, const char * name, float timeOut);
-	virtual void correct();
-	virtual void init();
+	Lidar(SuperBlock * parent, const char * name, float timeOut,
+			float initPeriod, float expectedFreq);
+    virtual int measure(Vector<float, 1> & y);
 	virtual ~Lidar() {};
 private:
 	uORB::Subscription<distance_sensor_s> *_sub;

@@ -46,7 +46,7 @@ using namespace matrix;
 using namespace Eigen;
 #endif
 
-#include "blocks/Measurement.hpp"
+#include "blocks/Sensor.hpp"
 #include "blocks/Lidar.hpp"
 
 // uORB Subscriptions
@@ -132,18 +132,6 @@ class LPE : public control::SuperBlock
 public:
 
 	Lidar _lidar;
-
-	// constants
-	enum {X_x = 0, X_y, X_z, X_vx, X_vy, X_vz, X_bx, X_by, X_bz, n_x};
-	enum {U_ax = 0, U_ay, U_az, n_u};
-	enum {Y_baro_z = 0, n_y_baro};
-	enum {Y_lidar_z = 0, n_y_lidar};
-	enum {Y_flow_x = 0, Y_flow_y, n_y_flow};
-	enum {Y_sonar_z = 0, n_y_sonar};
-	enum {Y_gps_x = 0, Y_gps_y, Y_gps_z, Y_gps_vx, Y_gps_vy, Y_gps_vz, n_y_gps};
-	enum {Y_vision_x = 0, Y_vision_y, Y_vision_z, n_y_vision};
-	enum {Y_mocap_x = 0, Y_mocap_y, Y_mocap_z, n_y_mocap};
-	enum {poll_flow, poll_sensors, poll_param};
 
 	LPE();
 	void update();

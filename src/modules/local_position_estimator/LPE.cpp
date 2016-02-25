@@ -17,7 +17,7 @@ static const uint32_t 		EST_SRC_TIMEOUT = 1000000;
 LPE::LPE() :
 	// this block has no parent, and has name LPE
 	SuperBlock(NULL, "LPE"),
-	_lidar(this, "LDR", 1.0f),
+	_lidar(this, "LDR", 1.0f, 1.0f, 10.0f),
 
 	// subscriptions, set rate, add to list
 	// TODO topic speed limiting?
