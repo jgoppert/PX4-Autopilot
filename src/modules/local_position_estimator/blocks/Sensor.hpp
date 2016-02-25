@@ -34,6 +34,7 @@
 #pragma once
 
 #include <matrix/matrix/Matrix.hpp>
+#include <matrix/matrix/filter.hpp>
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
 #include "../constants.hpp"
@@ -41,7 +42,7 @@
 using namespace control;
 using namespace matrix;
 
-template<class Type, size_t N>
+template<class Type, size_t M, size_t N>
 class Sensor : public control::SuperBlock
 {
 private:
@@ -54,6 +55,46 @@ private:
 	uint32_t _expectedFreq;
 	Vector<Type, N> _y0;
 public:
+
+	//---------------------------------------------
+	// User must define these functions
+	//---------------------------------------------
+
+	/**
+	 * Perform a measurement
+	 * @y - measurement
+	 * @return - valid measurement returns RET_OK
+	 */
+	virtual int measure(Vector<Type, N> &y) = 0;
+
+	/**
+	 * Returns is there is an update waiting
+	 * ser must define
+	 * @return - true if update waiting
+	 */
+	virtual bool updateAvailable() = 0;
+
+	/**
+	 * Compute correction data
+	 * Input:
+	 * @x - state
+	 * @y - measurement
+	 * Output:
+	 * @C - measurement matrix
+	 * @R - measurement noise covariance matrix
+	 * @r - residual
+	 */
+	virtual int computeCorrectionData(
+		const Vector<Type, M> &x,
+		const Vector<Type, N> &y,
+		Matrix<Type, N, M> &C,
+		Matrix<Type, N, N> &R,
+		Vector<Type, N> &r) = 0;
+
+	//---------------------------------------------
+	// Other functions
+	//---------------------------------------------
+
 	/**
 	 * Constructor
 	 * @timeout Time in seconds for timeout.
@@ -71,13 +112,6 @@ public:
 		_y0()
 	{
 	}
-
-	/**
-	 * Perform a measurement - user must define
-	 * @y - measurement
-	 * @return - valid measurement returns RET_OK
-	 */
-	virtual int measure(Vector<Type, N> &y) = 0;
 
 	/**
 	 * Responsible for initializing measurement
@@ -112,6 +146,50 @@ public:
 	{
 		return (hrt_absolute_time() - _timeStamp) > _timeOut * 1.0e6f;
 	}
+
+	virtual int correct()
+	{
+		return RET_OK;
+	}
+
+	/**
+	 * Main user interface
+	 * @return - returns RET_OK if ok
+	 */
+	virtual int update(Vector<float, M> &x, Matrix<float, M, M> &P)
+	{
+		if (updateAvailable()) {
+			if (!_initialized) {
+				return init();
+
+			} else  {
+				Vector<float, N> y;
+				int ret = measure(y);
+
+				if (ret != RET_OK) { return ret; }
+
+				Matrix<float, N, M> C;
+				Matrix<float, N, N> R;
+				float beta = 0;
+				Vector<float, N> r;
+				ret = computeCorrectionData(x, y, C, R, r);
+
+				if (ret != RET_OK) { return ret; }
+
+				Vector<float, M> dx;
+				Matrix<float, M, M> dP;
+				ret = kalman_correct(P, C, R, r, dx, dP, beta);
+
+				if (ret != RET_OK) { return ret; }
+
+				x += dx;
+				P += dP;
+			}
+		}
+
+		return RET_OK;
+	}
+
 	virtual ~Sensor() {};
 };
 

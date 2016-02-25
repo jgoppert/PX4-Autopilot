@@ -258,6 +258,9 @@ void LPE::update()
 
 	if (_sub_sonar != NULL)	{ sonarUpdated = _sub_sonar->updated(); }
 
+	// new blocks
+	_lidar.update(_x, _P);
+
 	// get new data
 	updateSubscriptions();
 

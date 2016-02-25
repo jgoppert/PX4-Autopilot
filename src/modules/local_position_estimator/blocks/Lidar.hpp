@@ -40,13 +40,19 @@
 #include "Sensor.hpp"
 #include <uORB/topics/distance_sensor.h>
 
-class Lidar : public Sensor<float, 1>
+class Lidar : public Sensor<float, n_x, n_y_lidar>
 {
 public:
-	enum {Y_z = 0, n_y};
 	Lidar(SuperBlock *parent, const char *name, float timeOut,
 	      float initPeriod, float expectedFreq);
 	virtual int measure(Vector<float, 1> &y);
+	virtual bool updateAvailable();
+	int computeCorrectionData(
+		const Vector<float, n_x> &x,
+		const Vector<float, n_y_lidar> &y,
+		Matrix<float, n_y_lidar, n_x> &C,
+		Matrix<float, n_y_lidar, n_y_lidar> &R,
+		Vector<float, n_y_lidar> &r);
 	virtual ~Lidar() {};
 private:
 	uORB::Subscription<distance_sensor_s> *_sub;

@@ -40,7 +40,8 @@
 
 Lidar::Lidar(SuperBlock *parent, const char *name, float timeOut,
 	     float initPeriod, float expectedFreq) :
-	Sensor<float, 1>(parent, name, timeOut, initPeriod, expectedFreq),
+	Sensor<float, n_x, n_y_lidar>(parent, name,
+				      timeOut, initPeriod, expectedFreq),
 	_sub(NULL),
 	_lidar_z_stddev(this, "Z")
 {
@@ -48,5 +49,21 @@ Lidar::Lidar(SuperBlock *parent, const char *name, float timeOut,
 
 int Lidar::measure(Vector<float, 1> &y)
 {
+	return RET_OK;
+}
+
+bool Lidar::updateAvailable()
+{
+	return true;
+}
+
+int Lidar::computeCorrectionData(
+	const Vector<float, n_x> &x,
+	const Vector<float, n_y_lidar> &y,
+	Matrix<float, n_y_lidar, n_x> &C,
+	Matrix<float, n_y_lidar, n_y_lidar> &R,
+	Vector<float, n_y_lidar> &r)
+{
+	r = y - C * x;
 	return RET_OK;
 }
