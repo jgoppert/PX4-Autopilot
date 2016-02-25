@@ -49,6 +49,7 @@ using namespace Eigen;
 #include "blocks/Sensor.hpp"
 #include "blocks/Lidar.hpp"
 #include "blocks/Vision.hpp"
+#include "blocks/Flow.hpp"
 
 // uORB Subscriptions
 #include <uORB/Subscription.hpp>
@@ -134,6 +135,7 @@ public:
 
 	Lidar _lidar;
 	Vision _vision;
+	Flow _flow;
 
 	LPE();
 	void update();

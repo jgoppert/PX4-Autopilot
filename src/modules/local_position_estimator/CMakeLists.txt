@@ -50,6 +50,7 @@ px4_add_module(
 		LPE.cpp
 		blocks/Lidar.cpp
 		blocks/Vision.cpp
+		blocks/Flow.cpp
 		params.c
 	DEPENDS
 		platforms__common
