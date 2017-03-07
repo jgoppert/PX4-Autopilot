@@ -30,11 +30,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+if(${OS} STREQUAL "nuttx")
+	list(APPEND MODULE_CFLAGS -Wframe-larger-than=5000)
+endif()
 px4_add_module(
 	MODULE modules__segway
 	MAIN segway
+	COMPILE_FLAGS
+		${MODULE_CFLAGS}
 	SRCS
 		segway_main.cpp
+		BlockEncoderPositionEstimator.cpp
 		BlockSegwayController.cpp
 		params.c
 	DEPENDS

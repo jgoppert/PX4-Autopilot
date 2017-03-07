@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,15 +30,20 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE drivers__roboclaw
-	MAIN roboclaw
-	COMPILE_FLAGS
-	SRCS
-		roboclaw.cpp
-		RoboClaw.cpp
-		RoboClawDevice.cpp
-	DEPENDS
-		platforms__common
-	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+
+#
+# segway controller
+#
+
+MODULE_COMMAND	= segway
+
+SRCS		= BlockEncoderPositionEstimator.cpp \
+		  BlockSegwayController.cpp \
+		  segway_main.cpp \
+		  params.c
+
+MODULE_STACKSIZE = 1200
+
+EXTRACFLAGS = -Wno-float-equal -Wframe-larger-than=3700
+
+EXTRACXXFLAGS = -Wframe-larger-than=3700 -Weffc++
