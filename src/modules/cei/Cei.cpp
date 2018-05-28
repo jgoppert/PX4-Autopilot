@@ -1,4 +1,4 @@
-#include "BlockLocalPositionEstimator.hpp"
+#include "Cei.hpp"
 #include <drivers/drv_hrt.h>
 #include <systemlib/mavlink_log.h>
 #include <fcntl.h>
@@ -17,11 +17,11 @@ static const uint32_t		EST_STDDEV_TZ_VALID = 2.0;	// 2.0 m
 static const float P_MAX = 1.0e6f;	// max allowed value in state covariance
 static const float LAND_RATE = 10.0f;	// rate of land detector correction
 
-static const char *msg_label = "[lpe] ";	// rate of land detector correction
+static const char *msg_label = "[cei] ";	// rate of land detector correction
 
-BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
-	// this block has no parent, and has name LPE
-	SuperBlock(nullptr, "LPE"),
+Cei::Cei() :
+	// this block has no parent, and has name CEI
+	SuperBlock(nullptr, "CEI"),
 	ModuleParams(nullptr),
 	// subscriptions, set rate, add to list
 	_sub_armed(ORB_ID(actuator_armed), 1000 / 2, 0, &getSubscriptions()),
@@ -168,7 +168,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	}
 
 	// print fusion settings to console
-	printf("[lpe] fuse gps: %d, flow: %d, vis_pos: %d, "
+	printf("[cei] fuse gps: %d, flow: %d, vis_pos: %d, "
 	       "landing_target: %d, land: %d, pub_agl_z: %d, flow_gyro: %d, "
 	       "baro: %d\n",
 	       (_fusion.get() & FUSE_GPS) != 0,
@@ -181,15 +181,15 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	       (_fusion.get() & FUSE_BARO) != 0);
 }
 
-Vector<float, BlockLocalPositionEstimator::n_x> BlockLocalPositionEstimator::dynamics(
+Vector<float, Cei::n_x> Cei::dynamics(
 	float t,
-	const Vector<float, BlockLocalPositionEstimator::n_x> &x,
-	const Vector<float, BlockLocalPositionEstimator::n_u> &u)
+	const Vector<float, Cei::n_x> &x,
+	const Vector<float, Cei::n_u> &u)
 {
 	return _A * x + _B * u;
 }
 
-void BlockLocalPositionEstimator::update()
+void Cei::update()
 {
 	// wait for a sensor update, check for exit condition every 100 ms
 	int ret = px4_poll(_polls, 3, 100);
@@ -353,7 +353,7 @@ void BlockLocalPositionEstimator::update()
 	// check timeouts
 	checkTimeouts();
 
-	// if we have no lat, lon initialize projection to LPE_LAT, LPE_LON parameters
+	// if we have no lat, lon initialize projection to CEI_LAT, CEI_LON parameters
 	if (!_map_ref.init_done && (_estimatorInitialized & EST_XY) && _fake_origin.get()) {
 		map_projection_init(&_map_ref,
 				    _init_origin_lat.get(),
@@ -362,7 +362,7 @@ void BlockLocalPositionEstimator::update()
 		// set timestamp when origin was set to current time
 		_time_origin = _timeStamp;
 
-		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] global origin init (parameter) : lat %6.2f lon %6.2f alt %5.1f m",
+		mavlink_and_console_log_info(&mavlink_log_pub, "[cei] global origin init (parameter) : lat %6.2f lon %6.2f alt %5.1f m",
 					     double(_init_origin_lat.get()), double(_init_origin_lon.get()), double(_altOrigin));
 	}
 
@@ -533,7 +533,7 @@ void BlockLocalPositionEstimator::update()
 	}
 }
 
-void BlockLocalPositionEstimator::checkTimeouts()
+void Cei::checkTimeouts()
 {
 	baroCheckTimeout();
 	gpsCheckTimeout();
@@ -546,7 +546,7 @@ void BlockLocalPositionEstimator::checkTimeouts()
 	landingTargetCheckTimeout();
 }
 
-bool BlockLocalPositionEstimator::landed()
+bool Cei::landed()
 {
 	if (!(_fusion.get() & FUSE_LAND)) {
 		return false;
@@ -557,7 +557,7 @@ bool BlockLocalPositionEstimator::landed()
 	return _sub_land.get().landed || disarmed_not_falling;
 }
 
-void BlockLocalPositionEstimator::publishLocalPos()
+void Cei::publishLocalPos()
 {
 	const Vector<float, n_x> &xLP = _xLowPass.getState();
 
@@ -629,7 +629,7 @@ void BlockLocalPositionEstimator::publishLocalPos()
 	}
 }
 
-void BlockLocalPositionEstimator::publishEstimatorStatus()
+void Cei::publishEstimatorStatus()
 {
 	_pub_est_status.get().timestamp = _timeStamp;
 
@@ -648,7 +648,7 @@ void BlockLocalPositionEstimator::publishEstimatorStatus()
 	_pub_est_status.update();
 }
 
-void BlockLocalPositionEstimator::publishGlobalPos()
+void Cei::publishGlobalPos()
 {
 	// publish global position
 	double lat = 0;
@@ -695,7 +695,7 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 	}
 }
 
-void BlockLocalPositionEstimator::initP()
+void Cei::initP()
 {
 	_P.setZero();
 	// initialize to twice valid condition
@@ -713,7 +713,7 @@ void BlockLocalPositionEstimator::initP()
 	_P(X_tz, X_tz) = 2 * EST_STDDEV_TZ_VALID * EST_STDDEV_TZ_VALID;
 }
 
-void BlockLocalPositionEstimator::initSS()
+void Cei::initSS()
 {
 	initP();
 
@@ -735,7 +735,7 @@ void BlockLocalPositionEstimator::initSS()
 	updateSSParams();
 }
 
-void BlockLocalPositionEstimator::updateSSStates()
+void Cei::updateSSStates()
 {
 	// derivative of velocity is accelerometer acceleration
 	// (in input matrix) - bias (in body frame)
@@ -752,7 +752,7 @@ void BlockLocalPositionEstimator::updateSSStates()
 	_A(X_vz, X_bz) = -_R_att(2, 2);
 }
 
-void BlockLocalPositionEstimator::updateSSParams()
+void Cei::updateSSParams()
 {
 	// input noise covariance matrix
 	_R.setZero();
@@ -786,7 +786,7 @@ void BlockLocalPositionEstimator::updateSSParams()
 	_Q(X_tz, X_tz) = pn_t_noise_density * pn_t_noise_density;
 }
 
-void BlockLocalPositionEstimator::predict()
+void Cei::predict()
 {
 	// get acceleration
 	matrix::Quatf q(&_sub_att.get().q[0]);
@@ -873,7 +873,7 @@ void BlockLocalPositionEstimator::predict()
 	_aglLowPass.update(agl());
 }
 
-int BlockLocalPositionEstimator::getDelayPeriods(float delay, uint8_t *periods)
+int Cei::getDelayPeriods(float delay, uint8_t *periods)
 {
 	float t_delay = 0;
 	uint8_t i_hist = 0;
