@@ -102,7 +102,7 @@ PARAM_DEFINE_INT32(SYS_RESTART_TYPE, 2);
  * @value 2 ekf2
  *
  * @min 1
- * @max 2
+ * @max 3
  * @reboot_required true
  * @group System
  */

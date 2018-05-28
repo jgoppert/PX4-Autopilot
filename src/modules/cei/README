@@ -1,0 +1,6 @@
+Common Estimator Interface:
+
+This module provides a consitent interface to estimators.
+It is being leveraged specifically with the casadi library pyecca,
+to enable comparison between estimator algorithms, however it
+is not limited to this application.
