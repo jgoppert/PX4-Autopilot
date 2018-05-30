@@ -12,26 +12,36 @@ extern "C" {
 #define casadi_int long long int
 #endif
 
-int ekf_predict(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, void* mem);
-void ekf_predict_incref(void);
-void ekf_predict_decref(void);
-casadi_int ekf_predict_n_out(void);
-casadi_int ekf_predict_n_in(void);
-const char* ekf_predict_name_in(casadi_int i);
-const char* ekf_predict_name_out(casadi_int i);
-const casadi_int* ekf_predict_sparsity_in(casadi_int i);
-const casadi_int* ekf_predict_sparsity_out(casadi_int i);
-int ekf_predict_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w);
-int ekf_correct(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, void* mem);
+int ekf_state_derivative(const casadi_real **arg, casadi_real **res, casadi_int *iw, casadi_real *w, void *mem);
+void ekf_state_derivative_incref(void);
+void ekf_state_derivative_decref(void);
+casadi_int ekf_state_derivative_n_out(void);
+casadi_int ekf_state_derivative_n_in(void);
+const char *ekf_state_derivative_name_in(casadi_int i);
+const char *ekf_state_derivative_name_out(casadi_int i);
+const casadi_int *ekf_state_derivative_sparsity_in(casadi_int i);
+const casadi_int *ekf_state_derivative_sparsity_out(casadi_int i);
+int ekf_state_derivative_work(casadi_int *sz_arg, casadi_int *sz_res, casadi_int *sz_iw, casadi_int *sz_w);
+int ekf_covariance_derivative(const casadi_real **arg, casadi_real **res, casadi_int *iw, casadi_real *w, void *mem);
+void ekf_covariance_derivative_incref(void);
+void ekf_covariance_derivative_decref(void);
+casadi_int ekf_covariance_derivative_n_out(void);
+casadi_int ekf_covariance_derivative_n_in(void);
+const char *ekf_covariance_derivative_name_in(casadi_int i);
+const char *ekf_covariance_derivative_name_out(casadi_int i);
+const casadi_int *ekf_covariance_derivative_sparsity_in(casadi_int i);
+const casadi_int *ekf_covariance_derivative_sparsity_out(casadi_int i);
+int ekf_covariance_derivative_work(casadi_int *sz_arg, casadi_int *sz_res, casadi_int *sz_iw, casadi_int *sz_w);
+int ekf_correct(const casadi_real **arg, casadi_real **res, casadi_int *iw, casadi_real *w, void *mem);
 void ekf_correct_incref(void);
 void ekf_correct_decref(void);
 casadi_int ekf_correct_n_out(void);
 casadi_int ekf_correct_n_in(void);
-const char* ekf_correct_name_in(casadi_int i);
-const char* ekf_correct_name_out(casadi_int i);
-const casadi_int* ekf_correct_sparsity_in(casadi_int i);
-const casadi_int* ekf_correct_sparsity_out(casadi_int i);
-int ekf_correct_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w);
+const char *ekf_correct_name_in(casadi_int i);
+const char *ekf_correct_name_out(casadi_int i);
+const casadi_int *ekf_correct_sparsity_in(casadi_int i);
+const casadi_int *ekf_correct_sparsity_out(casadi_int i);
+int ekf_correct_work(casadi_int *sz_arg, casadi_int *sz_res, casadi_int *sz_iw, casadi_int *sz_w);
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

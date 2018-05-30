@@ -16,90 +16,101 @@ extern "C" __EXPORT int cei_main(int argc, char *argv[]);
 class CeiModule : public ModuleBase<CeiModule>
 {
 public:
-	virtual ~CeiModule() = default;
+    virtual ~CeiModule() = default;
 
-	/** @see ModuleBase */
-	static int task_spawn(int argc, char *argv[]);
+    /** @see ModuleBase */
+    static int task_spawn(int argc, char *argv[]);
 
-	/** @see ModuleBase */
-	static CeiModule *instantiate(int argc, char *argv[]);
+    /** @see ModuleBase */
+    static CeiModule *instantiate(int argc, char *argv[]);
 
-	/** @see ModuleBase */
-	static int custom_command(int argc, char *argv[]);
+    /** @see ModuleBase */
+    static int custom_command(int argc, char *argv[]);
 
-	/** @see ModuleBase */
-	static int print_usage(const char *reason = nullptr);
+    /** @see ModuleBase */
+    static int print_usage(const char *reason = nullptr);
 
-	/** @see ModuleBase::run() */
-	void run() override;
+    /** @see ModuleBase::run() */
+    void run() override;
+
+    /** @see ModuleBase::print_status() */
+    int print_status() override;
 
 private:
-	Cei _estimator;
+    Cei _estimator;
 };
 
 int CeiModule::print_usage(const char *reason)
 {
-	if (reason) {
-		PX4_WARN("%s\n", reason);
-	}
+    if (reason) {
+        PX4_WARN("%s\n", reason);
+    }
 
-	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
+    PRINT_MODULE_DESCRIPTION(
+        R"DESCR_STR(
 ### Description
-Attitude and position estimator using an Extended Kalman Filter.
+Casadi based attitude and position estimator.
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("cei", "estimator");
-	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+    PRINT_MODULE_USAGE_NAME("cei", "estimator");
+    PRINT_MODULE_USAGE_COMMAND("start");
+    PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
-	return 0;
+    return 0;
+}
+
+int CeiModule::print_status() {
+    int ret = ModuleBase::print_status();
+    if (ret == OK) {
+        _estimator.status();
+    }
+    return ret;
 }
 
 int CeiModule::custom_command(int argc, char *argv[])
 {
-	return print_usage("unknown command");
+    return print_usage("unknown command");
 }
 
 
 int CeiModule::task_spawn(int argc, char *argv[])
 {
-		_task_id = px4_task_spawn_cmd("cei",
-						 SCHED_DEFAULT,
-						 SCHED_PRIORITY_ESTIMATOR,
-						 7900,
-						 (px4_main_t)&run_trampoline,
-						 (char *const *)argv);
+        _task_id = px4_task_spawn_cmd("cei",
+                         SCHED_DEFAULT,
+                         SCHED_PRIORITY_ESTIMATOR,
+                         7900,
+                         (px4_main_t)&run_trampoline,
+                         (char *const *)argv);
 
-	if (_task_id < 0) {
-		_task_id = -1;
-		return -errno;
-	}
+    if (_task_id < 0) {
+        _task_id = -1;
+        return -errno;
+    }
 
-	return 0;
+    return 0;
 }
 
 CeiModule *CeiModule::instantiate(int argc, char *argv[])
 {
-	CeiModule *instance = new CeiModule();
+    CeiModule *instance = new CeiModule();
 
-	if (instance == nullptr) {
-		PX4_ERR("alloc failed");
-	}
+    if (instance == nullptr) {
+        PX4_ERR("alloc failed");
+    }
 
-	return instance;
+    return instance;
 }
 
 void CeiModule::run()
 {
-	while (!should_exit()) {
-		_estimator.update();
-	}
+    while (!should_exit()) {
+        _estimator.update();
+    }
 }
 
 
 int cei_main(int argc, char *argv[])
 {
-	return CeiModule::main(argc, argv);
+    return CeiModule::main(argc, argv);
 }
