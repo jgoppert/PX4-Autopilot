@@ -40,7 +40,8 @@ fi
 # CEI
 if param compare SYS_MC_EST_GROUP 3
 then
-	# cei start
+	usleep 100000
+	cei start
 fi
 
 #---------------------------------------

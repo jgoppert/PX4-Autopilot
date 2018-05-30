@@ -16,38 +16,37 @@ extern "C" __EXPORT int cei_main(int argc, char *argv[]);
 class CeiModule : public ModuleBase<CeiModule>
 {
 public:
-    virtual ~CeiModule() = default;
 
-    /** @see ModuleBase */
-    static int task_spawn(int argc, char *argv[]);
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
 
-    /** @see ModuleBase */
-    static CeiModule *instantiate(int argc, char *argv[]);
+	/** @see ModuleBase */
+	static CeiModule *instantiate(int argc, char *argv[]);
 
-    /** @see ModuleBase */
-    static int custom_command(int argc, char *argv[]);
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
 
-    /** @see ModuleBase */
-    static int print_usage(const char *reason = nullptr);
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
 
-    /** @see ModuleBase::run() */
-    void run() override;
+	/** @see ModuleBase::run() */
+	void run() override;
 
-    /** @see ModuleBase::print_status() */
-    int print_status() override;
+	/** @see ModuleBase::print_status() */
+	int print_status() override;
 
 private:
-    Cei _estimator;
+	Cei _estimator;
 };
 
 int CeiModule::print_usage(const char *reason)
 {
-    if (reason) {
-        PX4_WARN("%s\n", reason);
-    }
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
 
-    PRINT_MODULE_DESCRIPTION(
-        R"DESCR_STR(
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
 ### Description
 Casadi based attitude and position estimator.
 
