@@ -31,23 +31,19 @@
 #
 ############################################################################
 
-# add each estimator in a separate directory
-add_subdirectory(ekf)
-add_definitions(-DCEI_EST="ekf")
 
-px4_add_module(
-	MODULE modules__cei
-	MAIN cei
-	COMPILE_FLAGS
-	STACK_MAIN 5700
-	STACK_MAX 13000
-	SRCS
-		cei_main.cpp
-		Cei.cpp
-                casadi/mem.h
-	DEPENDS
-		cei_ekf
-		controllib
-		git_ecl
-		ecl_geo
-	)
+px4_add_library(cei_ekf
+        casadi_ekf.c
+        )
+
+target_compile_options(cei_ekf PRIVATE
+        -Wno-missing-prototypes
+        -Wno-missing-declarations
+        -Wno-float-equal
+        -Wno-shadow
+        -Wno-unused-result
+        -Wno-maybe-uninitialized
+        )
+
+target_compile_definitions(cei_ekf
+    PUBLIC -Dcasadi_int=int -Dcasadi_real=float)

@@ -1,24 +1,19 @@
 #include "Cei.hpp"
-#include "casadi_ekf.h"
+#include "ekf/casadi_ekf.h"
 #include <cstdlib>
 #include <drivers/drv_hrt.h>
 #include <string.h>
-
-
-/* Typedefs */
-typedef void (*signal_t)(void);
-typedef int (*getint_t)(void);
-typedef int (*work_t)(int *sz_arg, int *sz_res, int *sz_iw, int *sz_w);
-typedef const int *(*sparsity_t)(int ind);
-typedef int (*eval_t)(const double **arg, double **res, int *iw, double *w, void *mem);
+#include <assert.h>
 
 
 Cei::Cei() :
 	SuperBlock(nullptr, "CEI"),
 	ModuleParams(nullptr),
 	_perf_elapsed(),
-	_perf_interval(),
-	_perf_count(),
+
+	_correct(ekf_correct_functions()),
+	_predict_covariance(ekf_covariance_derivative_functions()),
+	_predict_state(ekf_state_derivative_functions()),
 
 	// subscriptions
 	_sub_param_update(ORB_ID(parameter_update), 1000 / 2, 0, &getSubscriptions()),
@@ -38,8 +33,6 @@ Cei::Cei() :
 {
 	// counters
 	_perf_elapsed = perf_alloc(PC_ELAPSED, "cei_elapsed");
-	_perf_interval = perf_alloc(PC_INTERVAL, "cei_interval");
-	_perf_count = perf_alloc(PC_COUNT, "cei_count");
 
 	_polls[POLL_PARAM].fd = _sub_param_update.getHandle();
 	_polls[POLL_PARAM].events = POLLIN;
@@ -64,16 +57,12 @@ Cei::Cei() :
 
 Cei::~Cei()
 {
-	perf_free(_perf_count);
 	perf_free(_perf_elapsed);
-	perf_free(_perf_interval);
 }
 
 void Cei::update()
 {
 	perf_begin(_perf_elapsed);
-	perf_count(_perf_count);
-	perf_count(_perf_interval);
 
 	// wait for a sensor update, check for exit condition every 100 ms
 	int ret = px4_poll(_polls, n_poll, 100);
@@ -108,19 +97,12 @@ void Cei::update()
 	if (true) {
 		{
 			/* ekf_state_derivative:(x[6],u[3])->(dx[6]) */
-			int sz_arg = 0, sz_res = 0, sz_iw = 0, sz_w = 0;
-			ekf_state_derivative_work(&sz_arg, &sz_res, &sz_iw, &sz_w);
-			const float *arg[sz_arg];
-			float *res[sz_res];
-			int iw[sz_iw];
-			float w[sz_w];
 			const float u[3] = {0, 0, 0};
 			float dx[6] = {0};
-			arg[0] = _x;
-			arg[1] = u;
-			res[0] = dx;
-			void *mem = 0;
-			ekf_state_derivative(arg, res, iw, w, mem);
+			_predict_state.arg(0, _x);
+			_predict_state.arg(1, u);
+			_predict_state.res(0, dx);
+			_predict_state.eval();
 
 			if (array_finite(dx, 6)) {
 				for (int i = 0; i < 6; i++) {
@@ -131,24 +113,18 @@ void Cei::update()
 				PX4_WARN("non finite state prediction");
 			}
 		}
-		/* ekf_covariance_derivative:(x[6],u[3],PU[6x6,21nz],sigma_w[6])->(dPU[6x6,21nz]) */
 		{
-			int sz_arg = 0, sz_res = 0, sz_iw = 0, sz_w = 0;
-			ekf_covariance_derivative_work(&sz_arg, &sz_res, &sz_iw, &sz_w);
-			const float *arg[sz_arg];
-			float *res[sz_res];
-			int iw[sz_iw];
-			float w[sz_w];
+			/* ekf_covariance_derivative:(x[6],u[3],PU[6x6,21nz],sigma_w[6])->(dPU[6x6,21nz]) */
 			const float u[3] = {0, 0, 0};
 			float dPU[21] = {0};
+
 			const float sigma_w[6] = {1, 1, 1, 1, 1, 1};
-			arg[0] = _x;
-			arg[1] = u;
-			arg[2] = _PU;
-			arg[3] = sigma_w;
-			res[0] = dPU;
-			void *mem = 0;
-			ekf_covariance_derivative(arg, res, iw, w, mem);
+			_predict_covariance.arg(0, _x);
+			_predict_covariance.arg(1, u);
+			_predict_covariance.arg(2, _PU);
+			_predict_covariance.arg(3, sigma_w);
+			_predict_covariance.res(0, dPU);
+			_predict_covariance.eval();
 
 			if (array_finite(dPU, 21)) {
 				for (int i = 0; i < 21; i++) {
@@ -175,24 +151,17 @@ void Cei::update()
 	// correct mag
 	if (_sub_mag.updated()) {
 		/* ekf_correct:(x[6],y[3],PU[6x6,21nz],sigma_v[3])->(x1[6],P1[6x6,21nz]) */
-		int sz_arg = 0, sz_res = 0, sz_iw = 0, sz_w = 0;
-		ekf_correct_work(&sz_arg, &sz_res, &sz_iw, &sz_w);
-		const float *arg[sz_arg];
-		float *res[sz_res];
-		int iw[sz_iw];
-		float w[sz_w];
 		const float y[3] = {1, 1, 1};
 		float x1[6] = {0};
 		float P1[21] = {0};
 		const float sigma_v[3] = {1, 1, 1};
-		arg[0] = _x;
-		arg[1] = y;
-		arg[2] = _PU;
-		arg[3] = sigma_v;
-		res[0] = x1;
-		res[1] = P1;
-		void *mem = 0;
-		ekf_correct(arg, res, iw, w, mem);
+		_correct.arg(0, _x);
+		_correct.arg(1, y);
+		_correct.arg(2, _PU);
+		_correct.arg(3, sigma_v);
+		_correct.res(0, x1);
+		_correct.res(1, P1);
+		_correct.eval();
 		bool correct = true;
 
 		if (!array_finite(P1, 21)) {
@@ -266,7 +235,6 @@ void Cei::update()
 		lpos.z_reset_counter = 0;
 		lpos.z_valid = true;
 		_pub_lpos.update();
-		PX4_INFO("updating lpos");
 	}
 
 	// publish vehicle_attitude
@@ -390,6 +358,4 @@ void Cei::status()
 	}
 
 	perf_print_counter(_perf_elapsed);
-	perf_print_counter(_perf_interval);
-	perf_print_counter(_perf_count);
 }
