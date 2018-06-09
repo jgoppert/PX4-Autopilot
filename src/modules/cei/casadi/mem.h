@@ -150,7 +150,7 @@ inline void casadi_init(casadi_mem *mem, casadi_functions *f)
 	if (f->work) {
 		flag = f->work(&mem->sz_arg, &mem->sz_res, &mem->sz_iw, &mem->sz_w);
 		assert(flag == 0);
-		(void)flag;
+        (void)flag; // added to silence warning for PX4
 	}
 
 	/* TODO: Check out a memory object */
@@ -283,7 +283,7 @@ inline casadi_mem *casadi_alloc(casadi_functions *f)
 	/* Dynamically allocate arrays */
 	flag = casadi_alloc_arrays(mem);
 	assert(flag == 0);
-	(void)flag;
+    (void)flag; // added to silence warning for PX4
 
 	/* Initialize allocated arrays */
 	casadi_init_arrays(mem);

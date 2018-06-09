@@ -32,8 +32,8 @@
 ############################################################################
 
 # add each estimator in a separate directory
+# include the subdirectory that you want to build
 add_subdirectory(ekf)
-add_definitions(-DCEI_EST="ekf")
 
 px4_add_module(
 	MODULE modules__cei
@@ -44,7 +44,7 @@ px4_add_module(
 	SRCS
 		cei_main.cpp
 		Cei.cpp
-                casadi/mem.h
+		casadi/mem.h
 	DEPENDS
 		cei_ekf
 		controllib
