@@ -20,18 +20,18 @@ PARAM_DEFINE_FLOAT(CEI_ATT_W, 0.0f);
  * @max 1.0
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(CEI_MAG_W, 0.1f);
+PARAM_DEFINE_FLOAT(CEI_MAG_W, 0.002f);
 
 /**
  * Accel Noise Std. Dev.
  *
  * @group CEI
- * @unit m/s^2
+ * @unit radians
  * @min 0.01
  * @max 1.0
  * @decimal 3
  */
-PARAM_DEFINE_FLOAT(CEI_ACC_W, 0.1f);
+PARAM_DEFINE_FLOAT(CEI_ACC_W, 0.005f);
 
 /**
  * Magnetic Declination
