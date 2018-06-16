@@ -208,7 +208,7 @@ void Cei::update()
 	}
 
 	// publish local position
-	if (true) {
+	if (false) {
 		vehicle_local_position_s &lpos = _pub_lpos.get();
 		lpos.ax = 0.1;
 		lpos.ay = 0.1;
@@ -274,7 +274,7 @@ void Cei::update()
 	}
 
 	// publish estimator status
-	if (true) {
+	if (false) {
 		estimator_status_s &est = _pub_est.get();
 		est.beta_test_ratio = 0;
 		est.control_mode_flags = 0;
@@ -316,7 +316,7 @@ void Cei::update()
 	}
 
 	// innovations
-	if (true) {
+	if (false) {
 		ekf2_innovations_s &innov = _pub_innov.get();
 		innov.airspeed_innov = 0;
 		innov.airspeed_innov_var = 1;
