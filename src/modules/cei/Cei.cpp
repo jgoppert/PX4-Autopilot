@@ -1,5 +1,5 @@
 #include "Cei.hpp"
-#include "ekf/casadi_ekf.h"
+#include "att_lgpekf/casadi_att_lgpekf.h"
 #include <cstdlib>
 #include <drivers/drv_hrt.h>
 #include <string.h>
@@ -11,9 +11,15 @@ Cei::Cei() :
 	ModuleParams(nullptr),
 	_perf_elapsed(),
 
-	_correct(ekf_correct_functions()),
-	_predict_covariance(ekf_covariance_derivative_functions()),
-	_predict_state(ekf_state_derivative_functions()),
+	_mrp_shadow(mrp_shadow_functions()),
+	_mrp_to_quat(mrp_to_quat_functions()),
+	_quat_to_euler(quat_to_euler_functions()),
+	_predict_W(predict_W_functions()),
+	_x_predict(x_predict_functions()),
+	_correct_accel(correct_accel_functions()),
+	_correct_mag(correct_mag_functions()),
+	_init(init_functions()),
+
 
 	// subscriptions
 	_sub_param_update(ORB_ID(parameter_update), 1000 / 2, 0, &getSubscriptions()),
@@ -40,18 +46,17 @@ Cei::Cei() :
 	_polls[POLL_SENSORS].fd = _sub_sensor.getHandle();
 	_polls[POLL_SENSORS].events = POLLIN;
 
-	std::memset(_x, 0, sizeof _x);
-	std::memset(_PU, 0, sizeof _PU);
+	std::memset(_x, 0, sizeof(_x));
+	std::memset(_W, 1, sizeof(_W));
 
 	for (int i = 0; i < 6; i++) {
 		_x[i] = 0;
-		_PU[_lu_index(i)] = 0.1;
 	}
 
-	// cross covariance/ positoin and velocity
-	_PU[6] = 1;
-	_PU[11] = 1;
-	_PU[17] = 1;
+	for (int i = 0; i < 21; i++) {
+		_W[i] = 0.1;
+	}
+
 	status();
 }
 
@@ -93,95 +98,93 @@ void Cei::update()
 		_sub_param_update.update();
 	}
 
+	// parameters
+	const float *omega_b = _sub_sensor.get().gyro_rad;
+	const float w_att = 0.1;
+	const float decl = 0.1;
+	const float w_mag = 0.1;
+
 	// predict
 	if (true) {
-		{
-			/* ekf_state_derivative:(x[6],u[3])->(dx[6]) */
-			const float u[3] = {0, 0, 0};
-			float dx[6] = {0};
-			_predict_state.arg(0, _x);
-			_predict_state.arg(1, u);
-			_predict_state.res(0, dx);
-			_predict_state.eval();
 
-			if (array_finite(dx, 6)) {
-				for (int i = 0; i < 6; i++) {
-					_x[i] += dx[i] * dt;
-				}
+		if (true) {
+
+			/* x_predict:(x0[6],omega_b[3],dt)->(x1[6]) */
+			float x1[6] = {0};
+			_x_predict.arg(0, _x);
+			_x_predict.arg(1, omega_b);
+			_x_predict.arg(2, &dt);
+			_x_predict.res(0, x1);
+			_x_predict.eval();
+
+			if (array_finite(x1, 6)) {
+				memcpy(_x, x1, sizeof(_x));
 
 			} else {
 				PX4_WARN("non finite state prediction");
 			}
 		}
-		{
-			/* ekf_covariance_derivative:(x[6],u[3],PU[6x6,21nz],sigma_w[6])->(dPU[6x6,21nz]) */
-			const float u[3] = {0, 0, 0};
-			float dPU[21] = {0};
 
-			const float sigma_w[6] = {1, 1, 1, 1, 1, 1};
-			_predict_covariance.arg(0, _x);
-			_predict_covariance.arg(1, u);
-			_predict_covariance.arg(2, _PU);
-			_predict_covariance.arg(3, sigma_w);
-			_predict_covariance.res(0, dPU);
-			_predict_covariance.eval();
+		if (true) {
+			/* predict_W:(x_h[6],W0[6x6,21nz],w_att,omega_b[3],dt)->(W1[6x6,21nz]) */
+			float W1[21] = {0};
+			_predict_W.arg(0, _x);
+			_predict_W.arg(1, _W);
+			_predict_W.arg(2, &w_att);
+			_predict_W.arg(3, omega_b);
+			_predict_W.arg(4, &dt);
+			_predict_W.res(0, W1);
+			_predict_W.eval();
 
-			if (array_finite(dPU, 21)) {
-				for (int i = 0; i < 21; i++) {
-					_PU[i] += dPU[i] * dt;
-				}
+			if (array_finite(W1, 21)) {
+				memcpy(_W, W1, sizeof(_W));
 
 			} else {
 				PX4_WARN("non finite covariance prediction");
 				PX4_WARN("x: %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f", double(_x[0]), double(_x[1]), double(_x[2]), double(_x[3]),
 					 double(_x[4]), double(_x[5]));
-				PX4_WARN("u: %10.4f %10.4f %10.4f", double(u[0]), double(u[1]), double(u[2]));
 
 				for (int i = 0; i < 21; i++) {
-					PX4_WARN("PU[%ld] = %10.4f", i, double(_PU[i]));
+					PX4_WARN("W[%ld] = %10.4f", i, double(_W[i]));
 				}
 
 				for (int i = 0; i < 21; i++) {
-					PX4_WARN("dPU[%ld] = %10.4f", i, double(dPU[i]));
+					PX4_WARN("W1[%ld] = %10.4f", i, double(W1[i]));
 				}
 			}
 		}
 	}
 
 	// correct mag
-	if (_sub_mag.updated()) {
-		/* ekf_correct:(x[6],y[3],PU[6x6,21nz],sigma_v[3])->(x1[6],P1[6x6,21nz]) */
-		const float y[3] = {1, 1, 1};
+	if (true && _sub_mag.updated()) {
+		/* correct_mag:(x_h[6],W[6x6,21nz],y_b[3],decl,w_mag)->(x_mag[6],W_mag[6x6,21nz]) */
+		const float *y_b = _sub_mag.get().magnetometer_ga;
+
 		float x1[6] = {0};
-		float P1[21] = {0};
-		const float sigma_v[3] = {1, 1, 1};
-		_correct.arg(0, _x);
-		_correct.arg(1, y);
-		_correct.arg(2, _PU);
-		_correct.arg(3, sigma_v);
-		_correct.res(0, x1);
-		_correct.res(1, P1);
-		_correct.eval();
+		float W1[21] = {0};
+		_correct_mag.arg(0, _x);
+		_correct_mag.arg(1, _W);
+		_correct_mag.arg(2, y_b);
+		_correct_mag.arg(3, &decl);
+		_correct_mag.arg(4, &w_mag);
+		_correct_mag.res(0, x1);
+		_correct_mag.res(1, W1);
+		_correct_mag.eval();
 		bool correct = true;
 
-		if (!array_finite(P1, 21)) {
+		if (!array_finite(W1, 21)) {
 			PX4_WARN("non finite correction covariance");
 			correct = false;
 		}
 
-		if (!array_finite(_x, 6)) {
+		if (!array_finite(x1, 6)) {
 			PX4_WARN("non finite correction state");
 			correct = false;
 		}
 
 		if (correct) {
-			for (int i = 0; i < 21; i++) {
-				_PU[i] = P1[i];
-			}
-
-			for (int i = 0; i < 6; i++) {
-				_x[i] = x1[i];
-			}
+			memcpy(_W, W1, sizeof _W);
+			memcpy(_x, x1, sizeof _x);
 
 		} else {
 			PX4_WARN("non finite correction");
@@ -354,7 +357,7 @@ void Cei::status()
 	PX4_INFO("v_v : %10.4f, %10.4f, %10.4f", var_d(X_vx), var_d(X_vy), var_d(X_vz)); \
 
 	for (int i = 0; i < 21; i++) {
-		PX4_INFO("P[%5d] = %10.4f", i, double(_PU[i]));
+		PX4_INFO("W[%5d] = %10.4f", i, double(_W[i]));
 	}
 
 	perf_print_counter(_perf_elapsed);

@@ -78,7 +78,7 @@ public:
 	// get variance from upper triangular P
 	const float &var(int16_t i)
 	{
-		return _PU[_lu_index(i)];
+		return _W[_lu_index(i)];
 	}
 
 	// get variance from upper triangular P
@@ -99,9 +99,14 @@ private:
 	perf_counter_t _perf_elapsed;
 
 	// casadi function interfaces
-	CasadiFunc _correct;
-	CasadiFunc _predict_covariance;
-	CasadiFunc _predict_state;
+	CasadiFunc _mrp_shadow;
+	CasadiFunc _mrp_to_quat;
+	CasadiFunc _quat_to_euler;
+	CasadiFunc _predict_W;
+	CasadiFunc _x_predict;
+	CasadiFunc _correct_accel;
+	CasadiFunc _correct_mag;
+	CasadiFunc _init;
 
 	// subscriptions
 	uORB::Subscription<parameter_update_s> _sub_param_update;
@@ -121,7 +126,7 @@ private:
 	uint64_t _timeStamp;
 
 	// private
-	float _PU[21];
+	float _W[21];
 	float _x[6];
 
 	DEFINE_PARAMETERS(

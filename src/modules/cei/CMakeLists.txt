@@ -33,7 +33,11 @@
 
 # add each estimator in a separate directory
 # include the subdirectory that you want to build
-add_subdirectory(ekf)
+
+# set the estimator you are using here
+set(CEI_EST att_lgpekf)
+
+add_subdirectory(gen/${CEI_EST})
 
 px4_add_module(
 	MODULE modules__cei
@@ -46,7 +50,7 @@ px4_add_module(
 		Cei.cpp
 		casadi/mem.h
 	DEPENDS
-		cei_ekf
+		cei_${CEI_EST}
 		controllib
 		git_ecl
 		ecl_geo
