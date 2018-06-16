@@ -274,13 +274,17 @@ void Cei::update()
 	}
 
 	// publish estimator status
-	if (false) {
+	if (true) {
 		estimator_status_s &est = _pub_est.get();
 		est.beta_test_ratio = 0;
 		est.control_mode_flags = 0;
 
 		for (int i = 0; i < 24; i++) {
-			est.covariances[i] = 0;
+			if (i < n_W) {
+				est.covariances[i] = _W(i);
+			} else {
+				est.covariances[i] = 0;
+			}
 		}
 
 		est.filter_fault_flags = 0;
@@ -299,7 +303,11 @@ void Cei::update()
 		est.solution_status_flags = 0;
 
 		for (int i = 0; i < 24; i++) {
-			est.states[i] = 0;
+			if (i < n_x) {
+				est.states[i] = _x(i);
+			} else {
+				est.states[i] = 0;
+			}
 		}
 
 		est.tas_test_ratio = 0;

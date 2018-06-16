@@ -7,7 +7,7 @@
  * @unit
  * @min 0
  * @max 1.0
- * @decimal 3
+ * @decimal 4
  */
 PARAM_DEFINE_FLOAT(CEI_ATT_W, 0.0f);
 
@@ -16,9 +16,9 @@ PARAM_DEFINE_FLOAT(CEI_ATT_W, 0.0f);
  *
  * @group CEI
  * @unit radians
- * @min 0.01
+ * @min 0.0001
  * @max 1.0
- * @decimal 2
+ * @decimal 4
  */
 PARAM_DEFINE_FLOAT(CEI_MAG_W, 0.002f);
 
@@ -27,9 +27,9 @@ PARAM_DEFINE_FLOAT(CEI_MAG_W, 0.002f);
  *
  * @group CEI
  * @unit radians
- * @min 0.01
+ * @min 0.0001
  * @max 1.0
- * @decimal 3
+ * @decimal 4
  */
 PARAM_DEFINE_FLOAT(CEI_ACC_W, 0.005f);
 
