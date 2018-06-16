@@ -1,5 +1,5 @@
 #include "Cei.hpp"
-#include "att_lgpekf/casadi_att_lgpekf.h"
+#include "gen/att_lgpekf/casadi_att_lgpekf.h"
 #include <cstdlib>
 #include <drivers/drv_hrt.h>
 #include <string.h>
@@ -10,7 +10,13 @@ Cei::Cei() :
 	SuperBlock(nullptr, "CEI"),
 	ModuleParams(nullptr),
 	_perf_elapsed(),
+	_initialized(false),
 
+	// blocks
+	_mag_stats(this, ""),
+	_accel_stats(this, ""),
+
+	// casadi functions
 	_mrp_shadow(mrp_shadow_functions()),
 	_mrp_to_quat(mrp_to_quat_functions()),
 	_quat_to_euler(quat_to_euler_functions()),
@@ -19,7 +25,6 @@ Cei::Cei() :
 	_correct_accel(correct_accel_functions()),
 	_correct_mag(correct_mag_functions()),
 	_init(init_functions()),
-
 
 	// subscriptions
 	_sub_param_update(ORB_ID(parameter_update), 1000 / 2, 0, &getSubscriptions()),
@@ -46,17 +51,8 @@ Cei::Cei() :
 	_polls[POLL_SENSORS].fd = _sub_sensor.getHandle();
 	_polls[POLL_SENSORS].events = POLLIN;
 
-	std::memset(_x, 0, sizeof(_x));
-	std::memset(_W, 1, sizeof(_W));
-
-	for (int i = 0; i < 6; i++) {
-		_x[i] = 0;
-	}
-
-	for (int i = 0; i < 21; i++) {
-		_W[i] = 0.1;
-	}
-
+	_x.setZero();
+	_W.setAll(0.1);
 	status();
 }
 
@@ -79,122 +75,132 @@ void Cei::update()
 
 	uint64_t now = hrt_absolute_time();
 	float dt = (now - _timeStamp) / 1.0e6f;
+
+	// abort if not enough time elapsed
+	if (dt < 1e-3f) {
+		return;
+	}
+
 	_timeStamp =  now;
 
 	// check for sane update rate
-	if (dt > 0.1f || dt < 1e-3f) {
-		PX4_WARN("update rate out of range: %12.5f", double(dt));
+	if (dt > 0.1f) {
+		PX4_WARN("update rate slow: %12.5f", double(dt));
 		return;
 	}
 
 	// set dt for all child blocks
 	setDt(dt);
 
-	if (_sub_sensor.updated()) {
-		_sub_sensor.update();
-	}
+	// get updates
+	bool mag_updated = _sub_mag.updated();
+	bool accel_updated = _sub_sensor.updated();
 
-	if (_sub_param_update.updated()) {
-		_sub_param_update.update();
-	}
+	// update all subsription data
+	updateSubscriptions();
 
 	// parameters
-	const float *omega_b = _sub_sensor.get().gyro_rad;
 	const float w_att = 0.1;
 	const float decl = 0.1;
 	const float w_mag = 0.1;
 
 	// predict
-	if (true) {
+	if (!_initialized) {
 
-		if (true) {
+		_mag_stats.update(matrix::Vector3f(_sub_mag.get().magnetometer_ga));
+		_accel_stats.update(matrix::Vector3f(_sub_sensor.get().accelerometer_m_s2));
+
+		if (_mag_stats.getCount() > 10 and _accel_stats.getCount() > 10) {
+
+			/* init:(g_b[3],B_b[3],decl)->(init_valid,x0[6]) */
+			float valid = 0;
+			float x1[6] = {0};
+			matrix::Vector3f y_accel = _accel_stats.getMean();
+			matrix::Vector3f y_mag = _mag_stats.getMean();
+
+			_init.arg(0, y_accel.data());
+			_init.arg(1, y_mag.data());
+			_init.arg(2, &decl);
+			_init.res(0, &valid);
+			_init.res(1, x1);
+			_init.eval();
+
+			if (int(valid)) {
+				_initialized = true;
+				PX4_INFO("initialized");
+
+			} else {
+				PX4_INFO("initialization failed: %f", double(valid));
+				_accel_stats.getMean().print();
+				_mag_stats.getMean().print();
+				matrix::Vector<float, 6>(x1).print();
+			}
+		}
+
+	} else {
+
+		// prediction
+		{
+			const float *omega_b = _sub_sensor.get().gyro_rad;
 
 			/* x_predict:(x0[6],omega_b[3],dt)->(x1[6]) */
-			float x1[6] = {0};
-			_x_predict.arg(0, _x);
+			float x1[n_x] = {0};
+			_x_predict.arg(0, _x.data());
 			_x_predict.arg(1, omega_b);
 			_x_predict.arg(2, &dt);
 			_x_predict.res(0, x1);
 			_x_predict.eval();
 
-			if (array_finite(x1, 6)) {
-				memcpy(_x, x1, sizeof(_x));
-
-			} else {
-				PX4_WARN("non finite state prediction");
-			}
-		}
-
-		if (true) {
 			/* predict_W:(x_h[6],W0[6x6,21nz],w_att,omega_b[3],dt)->(W1[6x6,21nz]) */
-			float W1[21] = {0};
-			_predict_W.arg(0, _x);
-			_predict_W.arg(1, _W);
+			float W1[n_W] = {0};
+			_predict_W.arg(0, _x.data());
+			_predict_W.arg(1, _W.data());
 			_predict_W.arg(2, &w_att);
 			_predict_W.arg(3, omega_b);
 			_predict_W.arg(4, &dt);
 			_predict_W.res(0, W1);
 			_predict_W.eval();
 
-			if (array_finite(W1, 21)) {
-				memcpy(_W, W1, sizeof(_W));
-
-			} else {
-				PX4_WARN("non finite covariance prediction");
-				PX4_WARN("x: %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f", double(_x[0]), double(_x[1]), double(_x[2]), double(_x[3]),
-					 double(_x[4]), double(_x[5]));
-
-				for (int i = 0; i < 21; i++) {
-					PX4_WARN("W[%ld] = %10.4f", i, double(_W[i]));
-				}
-
-				for (int i = 0; i < 21; i++) {
-					PX4_WARN("W1[%ld] = %10.4f", i, double(W1[i]));
-				}
-			}
-		}
-	}
-
-	// correct mag
-	if (true && _sub_mag.updated()) {
-		/* correct_mag:(x_h[6],W[6x6,21nz],y_b[3],decl,w_mag)->(x_mag[6],W_mag[6x6,21nz]) */
-		const float *y_b = _sub_mag.get().magnetometer_ga;
-
-		float x1[6] = {0};
-		float W1[21] = {0};
-		_correct_mag.arg(0, _x);
-		_correct_mag.arg(1, _W);
-		_correct_mag.arg(2, y_b);
-		_correct_mag.arg(3, &decl);
-		_correct_mag.arg(4, &w_mag);
-		_correct_mag.res(0, x1);
-		_correct_mag.res(1, W1);
-		_correct_mag.eval();
-		bool correct = true;
-
-		if (!array_finite(W1, 21)) {
-			PX4_WARN("non finite correction covariance");
-			correct = false;
+			correct_if_finite(x1, W1, "predict");
 		}
 
-		if (!array_finite(x1, 6)) {
-			PX4_WARN("non finite correction state");
-			correct = false;
+		// correct mag
+		if (mag_updated) {
+			/* correct_mag:(x_h[6],W[6x6,21nz],y_b[3],decl,w_mag)->(x_mag[6],W_mag[6x6,21nz]) */
+			const float *y_b = _sub_mag.get().magnetometer_ga;
+			float x1[n_x] = {0};
+			float W1[n_W] = {0};
+			_correct_mag.arg(0, _x.data());
+			_correct_mag.arg(1, _W.data());
+			_correct_mag.arg(2, y_b);
+			_correct_mag.arg(3, &decl);
+			_correct_mag.arg(4, &w_mag);
+			_correct_mag.res(0, x1);
+			_correct_mag.res(1, W1);
+			_correct_mag.eval();
+			correct_if_finite(x1, W1, "mag");
 		}
 
-		if (correct) {
-			memcpy(_W, W1, sizeof _W);
-			memcpy(_x, x1, sizeof _x);
-
-		} else {
-			PX4_WARN("non finite correction");
+		// correct accel
+		if (accel_updated) {
+			/* correct_mag:(x_h[6],W[6x6,21nz],y_b[3],decl,w_mag)->(x_mag[6],W_mag[6x6,21nz]) */
+			const float *y_b = _sub_sensor.get().accelerometer_m_s2;
+			float x1[n_x] = {0};
+			float W1[n_W] = {0};
+			_correct_accel.arg(0, _x.data());
+			_correct_accel.arg(1, _W.data());
+			_correct_accel.arg(2, y_b);
+			_correct_accel.arg(3, &decl);
+			_correct_accel.arg(4, &w_mag);
+			_correct_accel.res(0, x1);
+			_correct_accel.res(1, W1);
+			_correct_accel.eval();
+			correct_if_finite(x1, W1, "accel");
 		}
-
-		//PX4_INFO("correct mag");
 	}
 
 	// publish local position
-	if (_sub_mag.updated()) {
+	if (true) {
 		vehicle_local_position_s &lpos = _pub_lpos.get();
 		lpos.ax = 0.1;
 		lpos.ay = 0.1;
@@ -218,21 +224,21 @@ void Cei::update()
 		lpos.ref_lon = 0.1;
 		lpos.ref_timestamp = now;
 		lpos.timestamp = now;
-		lpos.vx = _x[X_vx];
+		lpos.vx = 0.01; //_x[X_vx];
 		lpos.vxy_max = 0.1;
 		lpos.vxy_reset_counter = 0;
-		lpos.vy = _x[X_vy];
-		lpos.vz = _x[X_vz];
+		lpos.vy = 0; //_x[X_vy];
+		lpos.vz = 0; //_x[X_vz];
 		lpos.vz_reset_counter = 0;
 		lpos.v_xy_valid = true;
 		lpos.v_z_valid = true;
-		lpos.x = _x[X_x];
+		lpos.x = 0; //_x[X_x];
 		lpos.xy_global = true;
 		lpos.xy_reset_counter = 0;
 		lpos.xy_valid = true;
-		lpos.y = _x[X_y];
+		lpos.y = 0; //_x[X_y];
 		lpos.yaw = 0.1;
-		lpos.z = _x[X_z];
+		lpos.z = 0; //_x[X_z];
 		lpos.z_deriv = 0.1;
 		lpos.z_global = true;
 		lpos.z_reset_counter = 0;
@@ -241,7 +247,7 @@ void Cei::update()
 	}
 
 	// publish vehicle_attitude
-	if (_sub_mag.updated()) {
+	if (true) {
 		vehicle_attitude_s &att = _pub_att.get();
 		att.delta_q_reset[0] = 0;
 		att.delta_q_reset[1] = 0;
@@ -260,7 +266,7 @@ void Cei::update()
 	}
 
 	// publish estimator status
-	if (_sub_mag.updated()) {
+	if (true) {
 		estimator_status_s &est = _pub_est.get();
 		est.beta_test_ratio = 0;
 		est.control_mode_flags = 0;
@@ -302,7 +308,7 @@ void Cei::update()
 	}
 
 	// innovations
-	if (_sub_mag.updated()) {
+	if (true) {
 		ekf2_innovations_s &innov = _pub_innov.get();
 		innov.airspeed_innov = 0;
 		innov.airspeed_innov_var = 1;
@@ -345,19 +351,19 @@ void Cei::update()
 		_pub_innov.update();
 	}
 
-	_sub_mag.update();
 	perf_end(_perf_elapsed);
 }
 
 void Cei::status()
 {
-	PX4_INFO("p   : %10.4f, %10.4f, %10.4f", x_d(X_x), x_d(X_y), x_d(X_z));
-	PX4_INFO("p_v : %10.4f, %10.4f, %10.4f", var_d(X_x), var_d(X_y), var_d(X_z));
-	PX4_INFO("v   : %10.4f, %10.4f, %10.4f", x_d(X_vx), x_d(X_vy), x_d(X_vz));
-	PX4_INFO("v_v : %10.4f, %10.4f, %10.4f", var_d(X_vx), var_d(X_vy), var_d(X_vz)); \
+	PX4_INFO("initialized: %d", _initialized);
+
+	for (int i = 0; i < 6; i++) {
+		PX4_INFO("x[%5d] = %10.4f", i, double(_x(i)));
+	}
 
 	for (int i = 0; i < 21; i++) {
-		PX4_INFO("W[%5d] = %10.4f", i, double(_W[i]));
+		PX4_INFO("W[%5d] = %10.4f", i, double(_W(i)));
 	}
 
 	perf_print_counter(_perf_elapsed);

@@ -18,6 +18,9 @@
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/ekf2_innovations.h>
 
+// controllib blocks
+#include <controllib/BlockStats.hpp>
+
 #include "casadi/mem.h"
 
 
@@ -61,7 +64,7 @@ class Cei : public control::SuperBlock, public ModuleParams
 public:
 	// constants
 	enum {POLL_SENSORS, POLL_PARAM, n_poll};
-	enum {X_x, X_y, X_z, X_vx, X_vy, X_vz, n_x};
+	enum {X_rx, X_ry, X_rz, X_bgx, X_bgy, X_bgz, n_x};
 
 	// methods
 	Cei();
@@ -70,33 +73,14 @@ public:
 	void update();
 	void status();
 
-	const float &x(int i)
-	{
-		return _x[i];
-	}
-
-	// get variance from upper triangular P
-	const float &var(int16_t i)
-	{
-		return _W[_lu_index(i)];
-	}
-
-	// get variance from upper triangular P
-	double var_d(int16_t i)
-	{
-		return double(var(i));
-	}
-
-	// get variance from upper triangular P
-	double x_d(int16_t i)
-	{
-		return double(x(i));
-	}
-
-
 private:
 
 	perf_counter_t _perf_elapsed;
+	bool _initialized;
+
+	// blocks
+	control::BlockStats<float, 3> _mag_stats;
+	control::BlockStats<float, 3> _accel_stats;
 
 	// casadi function interfaces
 	CasadiFunc _mrp_shadow;
@@ -126,17 +110,14 @@ private:
 	uint64_t _timeStamp;
 
 	// private
-	float _W[21];
-	float _x[6];
+	const static int n_W = 21;
+	matrix::Vector<float, n_W> _W;
+	matrix::Vector<float, n_x>_x;
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SYS_AUTOSTART>) _sys_autostart   // example parameter
+		(ParamInt<px4::params::SYS_AUTOSTART>) _sys_autostart,   // example parameter
+		(ParamFloat<px4::params::CEI_MAG_W>) _w_mag   // mag noise std.
 	)
-
-	int _lu_index(int i)
-	{
-		return (i + 1) * (i + 2) / 2 - 1;
-	}
 
 	bool array_finite(float *a, int n)
 	{
@@ -147,5 +128,25 @@ private:
 		}
 
 		return true;
+	}
+
+	void correct_if_finite(float *x, float *W, const char *msg)
+	{
+		bool correct = true;
+
+		if (!array_finite(W, 21)) {
+			PX4_WARN("%s, non finite covariance", msg);
+			correct = false;
+		}
+
+		if (!array_finite(x, 6)) {
+			PX4_WARN("%s, non finite correction state", msg);
+			correct = false;
+		}
+
+		if (correct) {
+			memcpy(_W.data(), W, sizeof(float)*n_W);
+			memcpy(_x.data(), x, sizeof(float)*n_x);
+		}
 	}
 };

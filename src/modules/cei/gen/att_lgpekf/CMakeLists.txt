@@ -31,31 +31,24 @@
 #
 ############################################################################
 
-# add each estimator in a separate directory
-# include the subdirectory that you want to build
 
-# set the estimator you are using here
-set(CEI_EST att_lgpekf)
-
-add_subdirectory(gen/${CEI_EST})
-
-px4_add_module(
-	MODULE modules__cei
-	MAIN cei
-	COMPILE_FLAGS
-	STACK_MAIN 5700
-	STACK_MAX 13000
-	INCLUDES
-		${CMAKE_CURRENT_SOURCE_DIR}
-	SRCS
-		cei_main.cpp
-		Cei.cpp
-		casadi/mem.h
-	DEPENDS
-		cei_${CEI_EST}
-		controllib
-		git_ecl
-		ecl_geo
+px4_add_library(cei_att_lgpekf
+	casadi_att_lgpekf.c
+	casadi_att_lgpekf.h
 	)
 
-# vim: set noet fenc=utf-8 ff=unix sts=0 sw=4 ts=4 :
+target_include_directories(cei_att_lgpekf PRIVATE
+	${PX4_SOURCE_DIR}/src/modules/cei
+	)
+
+target_compile_options(cei_att_lgpekf PRIVATE
+	-Wno-missing-prototypes
+	-Wno-missing-declarations
+	-Wno-float-equal
+	-Wno-shadow
+	-Wno-unused-result
+	-Wno-maybe-uninitialized
+	)
+
+target_compile_definitions(cei_att_lgpekf
+	PUBLIC -Dcasadi_int=int -Dcasadi_real=float)
