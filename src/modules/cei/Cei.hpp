@@ -118,9 +118,13 @@ private:
 	matrix::Vector<float, n_W> _W;
 	matrix::Vector<float, n_x>_x;
 
+	// parameters, see params.c/parameters.xml for description
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SYS_AUTOSTART>) _sys_autostart,   // example parameter
-		(ParamFloat<px4::params::CEI_MAG_W>) _w_mag   // mag noise std.
+		(ParamInt<px4::params::SYS_AUTOSTART>) _sys_autostart,
+		(ParamFloat<px4::params::CEI_MAG_W>) _w_mag,
+		(ParamFloat<px4::params::CEI_MAG_DECL>) _decl,
+		(ParamFloat<px4::params::CEI_ATT_W>) _w_att,
+		(ParamFloat<px4::params::CEI_ACC_W>) _w_accel
 	)
 
 	bool array_finite(float *a, int n);

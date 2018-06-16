@@ -97,13 +97,17 @@ void Cei::update()
 	bool mag_updated = _sub_mag.updated();
 	bool accel_updated = _sub_sensor.updated();
 
+	// update params
+	if (_sub_param_update.updated()) {
+		ModuleParams::updateParams();
+		SuperBlock::updateParams();
+	}
+
 	// update all subsription data
 	updateSubscriptions();
 
-	// parameters
-	const float w_att = 0.1;
-	const float decl = 0.1;
-	const float w_mag = 0.1;
+	// gyro reading
+	Vector3f omega_b(_sub_sensor.get().gyro_rad);
 
 	// predict
 	if (!_initialized) {
@@ -116,6 +120,7 @@ void Cei::update()
 			/* init:(g_b[3],B_b[3],decl)->(init_valid,x0[6]) */
 			float valid = 0;
 			float x1[6] = {0};
+			float decl = _decl.get();
 			Vector3f y_accel = _accel_stats.getMean();
 			Vector3f y_mag = _mag_stats.getMean();
 
@@ -142,22 +147,23 @@ void Cei::update()
 
 		// prediction
 		{
-			const float *omega_b = _sub_sensor.get().gyro_rad;
 
+			// TODO should combine these two functions in Casadi
 			/* x_predict:(x0[6],omega_b[3],dt)->(x1[6]) */
 			float x1[n_x] = {0};
 			_x_predict.arg(0, _x.data());
-			_x_predict.arg(1, omega_b);
+			_x_predict.arg(1, omega_b.data());
 			_x_predict.arg(2, &dt);
 			_x_predict.res(0, x1);
 			_x_predict.eval();
 
 			/* predict_W:(x_h[6],W0[6x6,21nz],w_att,omega_b[3],dt)->(W1[6x6,21nz]) */
 			float W1[n_W] = {0};
+			float w_att = _w_att.get();
 			_predict_W.arg(0, _x.data());
 			_predict_W.arg(1, _W.data());
 			_predict_W.arg(2, &w_att);
-			_predict_W.arg(3, omega_b);
+			_predict_W.arg(3, omega_b.data());
 			_predict_W.arg(4, &dt);
 			_predict_W.res(0, W1);
 			_predict_W.eval();
@@ -170,6 +176,8 @@ void Cei::update()
 			const float *y_b = _sub_mag.get().magnetometer_ga;
 			float x1[n_x] = {0};
 			float W1[n_W] = {0};
+			float decl = _decl.get();
+			float w_mag = _w_mag.get();
 			_correct_mag.arg(0, _x.data());
 			_correct_mag.arg(1, _W.data());
 			_correct_mag.arg(2, y_b);
@@ -183,15 +191,15 @@ void Cei::update()
 
 		// correct accel
 		if (accel_updated) {
-			/* correct_mag:(x_h[6],W[6x6,21nz],y_b[3],decl,w_mag)->(x_mag[6],W_mag[6x6,21nz]) */
+			/* correct_accel:(x_h[6],W[6x6,21nz],y_b[3],w_accel)->(x_accel[6],W_accel[6x6,21nz]) */
 			const float *y_b = _sub_sensor.get().accelerometer_m_s2;
 			float x1[n_x] = {0};
 			float W1[n_W] = {0};
+			float w_accel = _w_accel.get();
 			_correct_accel.arg(0, _x.data());
 			_correct_accel.arg(1, _W.data());
 			_correct_accel.arg(2, y_b);
-			_correct_accel.arg(3, &decl);
-			_correct_accel.arg(4, &w_mag);
+			_correct_accel.arg(3, &w_accel);
 			_correct_accel.res(0, x1);
 			_correct_accel.res(1, W1);
 			_correct_accel.eval();
@@ -258,9 +266,10 @@ void Cei::update()
 		}
 
 		att.quat_reset_counter = 0;
-		att.rollspeed = 0.1;
-		att.pitchspeed = 0.1;
-		att.yawspeed = 0.1;
+
+		att.rollspeed = omega_b(0) - _x(X_bgx);
+		att.pitchspeed = omega_b(1) - _x(X_bgy);
+		att.yawspeed = omega_b(2) - _x(X_bgz);
 		_pub_att.update();
 	}
 
@@ -428,7 +437,10 @@ void Cei::handle_shadow()
 		Vector3f r_s;
 		_mrp_shadow.arg(0, r.data());
 		_mrp_shadow.res(0, r_s.data());
-		_x.slice<3, 1>(0, 0) = r_s;
+		_mrp_shadow.eval();
+		_x(X_rx) = r_s(0);
+		_x(X_ry) = r_s(1);
+		_x(X_rz) = r_s(2);
 		_shadow = !_shadow;
 	}
 }

@@ -1,12 +1,45 @@
 #include <parameters/param.h>
 
 /**
- * Magnetometer Noise
+ * Attitude Process Noise Std. Dev.
  *
  * @group CEI
- * @unit m
- * @min 0.001
+ * @unit
+ * @min 0
  * @max 1.0
  * @decimal 3
  */
+PARAM_DEFINE_FLOAT(CEI_ATT_W, 0.0f);
+
+/**
+ * Magnetometer Noise Std. Dev.
+ *
+ * @group CEI
+ * @unit radians
+ * @min 0.01
+ * @max 1.0
+ * @decimal 2
+ */
 PARAM_DEFINE_FLOAT(CEI_MAG_W, 0.1f);
+
+/**
+ * Accel Noise Std. Dev.
+ *
+ * @group CEI
+ * @unit m/s^2
+ * @min 0.01
+ * @max 1.0
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(CEI_ACC_W, 0.1f);
+
+/**
+ * Magnetic Declination
+ *
+ * @group CEI
+ * @unit radians
+ * @min -3.14159
+ * @max 3.14159
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(CEI_MAG_DECL, 0.0f);
