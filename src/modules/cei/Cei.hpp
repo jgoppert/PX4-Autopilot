@@ -24,6 +24,9 @@
 #include "casadi/mem.h"
 
 
+using namespace matrix;
+
+
 class CasadiFunc
 {
 private:
@@ -77,6 +80,7 @@ private:
 
 	perf_counter_t _perf_elapsed;
 	bool _initialized;
+	bool _shadow;
 
 	// blocks
 	control::BlockStats<float, 3> _mag_stats;
@@ -119,34 +123,8 @@ private:
 		(ParamFloat<px4::params::CEI_MAG_W>) _w_mag   // mag noise std.
 	)
 
-	bool array_finite(float *a, int n)
-	{
-		for (int i = 0; i < n; i++) {
-			if (!PX4_ISFINITE(a[i])) {
-				return false;
-			}
-		}
-
-		return true;
-	}
-
-	void correct_if_finite(float *x, float *W, const char *msg)
-	{
-		bool correct = true;
-
-		if (!array_finite(W, 21)) {
-			PX4_WARN("%s, non finite covariance", msg);
-			correct = false;
-		}
-
-		if (!array_finite(x, 6)) {
-			PX4_WARN("%s, non finite correction state", msg);
-			correct = false;
-		}
-
-		if (correct) {
-			memcpy(_W.data(), W, sizeof(float)*n_W);
-			memcpy(_x.data(), x, sizeof(float)*n_x);
-		}
-	}
+	bool array_finite(float *a, int n);
+	void handle_correction(float *x, float *W, const char *msg);
+	Quatf compute_quaternion();
+	void handle_shadow();
 };

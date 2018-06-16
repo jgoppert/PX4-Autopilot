@@ -11,6 +11,7 @@ Cei::Cei() :
 	ModuleParams(nullptr),
 	_perf_elapsed(),
 	_initialized(false),
+	_shadow(false),
 
 	// blocks
 	_mag_stats(this, ""),
@@ -107,16 +108,16 @@ void Cei::update()
 	// predict
 	if (!_initialized) {
 
-		_mag_stats.update(matrix::Vector3f(_sub_mag.get().magnetometer_ga));
-		_accel_stats.update(matrix::Vector3f(_sub_sensor.get().accelerometer_m_s2));
+		_mag_stats.update(Vector3f(_sub_mag.get().magnetometer_ga));
+		_accel_stats.update(Vector3f(_sub_sensor.get().accelerometer_m_s2));
 
 		if (_mag_stats.getCount() > 10 and _accel_stats.getCount() > 10) {
 
 			/* init:(g_b[3],B_b[3],decl)->(init_valid,x0[6]) */
 			float valid = 0;
 			float x1[6] = {0};
-			matrix::Vector3f y_accel = _accel_stats.getMean();
-			matrix::Vector3f y_mag = _mag_stats.getMean();
+			Vector3f y_accel = _accel_stats.getMean();
+			Vector3f y_mag = _mag_stats.getMean();
 
 			_init.arg(0, y_accel.data());
 			_init.arg(1, y_mag.data());
@@ -133,7 +134,7 @@ void Cei::update()
 				PX4_INFO("initialization failed: %f", double(valid));
 				_accel_stats.getMean().print();
 				_mag_stats.getMean().print();
-				matrix::Vector<float, 6>(x1).print();
+				Vector<float, 6>(x1).print();
 			}
 		}
 
@@ -160,8 +161,7 @@ void Cei::update()
 			_predict_W.arg(4, &dt);
 			_predict_W.res(0, W1);
 			_predict_W.eval();
-
-			correct_if_finite(x1, W1, "predict");
+			handle_correction(x1, W1, "predict");
 		}
 
 		// correct mag
@@ -178,7 +178,7 @@ void Cei::update()
 			_correct_mag.res(0, x1);
 			_correct_mag.res(1, W1);
 			_correct_mag.eval();
-			correct_if_finite(x1, W1, "mag");
+			handle_correction(x1, W1, "mag");
 		}
 
 		// correct accel
@@ -195,7 +195,7 @@ void Cei::update()
 			_correct_accel.res(0, x1);
 			_correct_accel.res(1, W1);
 			_correct_accel.eval();
-			correct_if_finite(x1, W1, "accel");
+			handle_correction(x1, W1, "accel");
 		}
 	}
 
@@ -248,19 +248,18 @@ void Cei::update()
 
 	// publish vehicle_attitude
 	if (true) {
+		Quatf q = compute_quaternion();
 		vehicle_attitude_s &att = _pub_att.get();
-		att.delta_q_reset[0] = 0;
-		att.delta_q_reset[1] = 0;
-		att.delta_q_reset[2] = 0;
-		att.delta_q_reset[3] = 0;
-		att.pitchspeed = 0.1;
-		att.q[0] = 1;
-		att.q[1] = 0;
-		att.q[2] = 0;
-		att.q[3] = 0;
+		att.timestamp = now;
+
+		for (int i = 0; i < 4; i++) {
+			att.delta_q_reset[i] = 0;
+			att.q[i] = q(i);
+		}
+
 		att.quat_reset_counter = 0;
 		att.rollspeed = 0.1;
-		att.timestamp = now;
+		att.pitchspeed = 0.1;
 		att.yawspeed = 0.1;
 		_pub_att.update();
 	}
@@ -367,4 +366,69 @@ void Cei::status()
 	}
 
 	perf_print_counter(_perf_elapsed);
+}
+
+
+bool Cei::array_finite(float *a, int n)
+{
+	for (int i = 0; i < n; i++) {
+		if (!PX4_ISFINITE(a[i])) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+void Cei::handle_correction(float *x, float *W, const char *msg)
+{
+	bool correct = true;
+
+	if (!array_finite(W, 21)) {
+		PX4_WARN("%s, non finite covariance", msg);
+		correct = false;
+	}
+
+	if (!array_finite(x, 6)) {
+		PX4_WARN("%s, non finite correction state", msg);
+		correct = false;
+	}
+
+	if (correct) {
+		memcpy(_W.data(), W, sizeof(float)*n_W);
+		memcpy(_x.data(), x, sizeof(float)*n_x);
+		handle_shadow();
+	}
+}
+
+Quatf Cei::compute_quaternion()
+{
+	/* mrp_to_quat:(r[3])->(q[4]) */
+	Vector3f r(_x.slice<3, 1>(0, 0));
+	Quatf q;
+	_mrp_to_quat.arg(0, r.data());
+	_mrp_to_quat.res(0, q.data());
+	_mrp_to_quat.eval();
+
+	// handle mrp shadow for consistent quaternion
+	// output
+	if (_shadow) {
+		q = -q;
+	}
+
+	return q;
+}
+
+void Cei::handle_shadow()
+{
+	/* mrp_shadow:(r[3])->(r_s[3]) */
+	Vector3f r(_x.slice<3, 1>(0, 0));
+
+	if (r.norm() > 1) {
+		Vector3f r_s;
+		_mrp_shadow.arg(0, r.data());
+		_mrp_shadow.res(0, r_s.data());
+		_x.slice<3, 1>(0, 0) = r_s;
+		_shadow = !_shadow;
+	}
 }
