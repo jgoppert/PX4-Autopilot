@@ -148,6 +148,7 @@ void Cei::update()
 				handle_correction(x1, W1, "init");
 				_x.print();
 				_W.print();
+
 			} else {
 				PX4_INFO("initialization failed: %f", double(valid));
 				_accel_stats.getMean().print();
@@ -166,8 +167,8 @@ void Cei::update()
 		{
 			/* predict_x_W:(x0[6],W0[6x6,21nz],omega_b[3],std_gyro,sn_gyro_rw,dt)->(x1[6],W1[6x6,21nz]) */
 			perf_begin(_perf_predict);
-			float std_gyro = 1e-3f*_std_gyro.get();
-			float sn_gyro_rw = 1e-3f*_sn_gyro_rw.get();
+			float std_gyro = 1e-3f * _std_gyro.get();
+			float sn_gyro_rw = 1e-3f * _sn_gyro_rw.get();
 			_predict.arg(0, _x.data());
 			_predict.arg(1, _W.data());
 			_predict.arg(2, omega_b.data());
@@ -187,7 +188,7 @@ void Cei::update()
 			perf_begin(_perf_mag);
 			const float *y_b = _sub_mag.get().magnetometer_ga;
 			float decl = _decl.get();
-			float std_mag = 1e-3f*_std_mag.get();
+			float std_mag = 1e-3f * _std_mag.get();
 			_correct_mag.arg(0, _x.data());
 			_correct_mag.arg(1, _W.data());
 			_correct_mag.arg(2, y_b);
@@ -205,7 +206,7 @@ void Cei::update()
 			/* correct_accel:(x_h[6],W[6x6,21nz],y_b[3],std_accel)->(x_accel[6],W_accel[6x6,21nz]) */
 			perf_begin(_perf_accel);
 			const float *y_b = _sub_sensor.get().accelerometer_m_s2;
-			float std_acc = 1e-3f*_std_acc.get();
+			float std_acc = 1e-3f * _std_acc.get();
 			_correct_accel.arg(0, _x.data());
 			_correct_accel.arg(1, _W.data());
 			_correct_accel.arg(2, y_b);
@@ -293,6 +294,7 @@ void Cei::update()
 		for (int i = 0; i < 24; i++) {
 			if (i < n_W) {
 				est.covariances[i] = _W(i);
+
 			} else {
 				est.covariances[i] = 0;
 			}
@@ -316,6 +318,7 @@ void Cei::update()
 		for (int i = 0; i < 24; i++) {
 			if (i < n_x) {
 				est.states[i] = _x(i);
+
 			} else {
 				est.states[i] = 0;
 			}
