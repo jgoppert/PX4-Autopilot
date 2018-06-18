@@ -5,7 +5,7 @@
  *
  * @group CEI
  * @unit mrad
- * @min 0.01
+ * @min 0
  * @max 100.0
  * @decimal 2
  */
@@ -16,7 +16,7 @@ PARAM_DEFINE_FLOAT(CEI_STD_GYRO, 0.0f);
  *
  * @group CEI
  * @unit (mrad/s) * sqrt(s)
- * @min 0.01
+ * @min 0
  * @max 100.0
  * @decimal 2
  */
