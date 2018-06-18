@@ -7,13 +7,10 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_magnetometer.h>
 
 
 // uORB publications
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/ekf2_innovations.h>
@@ -104,11 +101,8 @@ private:
 	uORB::Subscription<parameter_update_s> _sub_param_update;
 	uORB::Subscription<sensor_combined_s> _sub_sensor;
 	uORB::Subscription<vehicle_magnetometer_s> _sub_mag;
-	uORB::Subscription<vehicle_gps_position_s> _sub_gps;
 
 	// publications
-	uORB::Publication<vehicle_local_position_s> _pub_lpos;
-	uORB::Publication<vehicle_global_position_s> _pub_gpos;
 	uORB::Publication<vehicle_attitude_s> _pub_att;
 	uORB::Publication<estimator_status_s> _pub_est;
 	uORB::Publication<ekf2_innovations_s> _pub_innov;

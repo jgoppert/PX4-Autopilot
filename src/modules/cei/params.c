@@ -32,7 +32,7 @@ PARAM_DEFINE_FLOAT(CEI_SN_GYRO_RW, 0.01f);
  * @max 100.0
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(CEI_STD_MAG, 2.5f);
+PARAM_DEFINE_FLOAT(CEI_STD_MAG, 25.0f);
 
 /**
  * Mag Beta Scaling
