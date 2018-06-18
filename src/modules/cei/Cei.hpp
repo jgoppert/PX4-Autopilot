@@ -24,6 +24,12 @@
 using namespace matrix;
 
 
+enum outlier_action_t {
+	OUTLIER_FUSE,
+	OUTLIER_REJECT,
+};
+
+
 class CasadiFunc
 {
 private:
@@ -129,7 +135,8 @@ private:
 	)
 
 	bool array_finite(float *a, int n);
-	void handle_correction(float *x, float *W, float ret, const float beta, const char *msg);
+	void handle_correction(float *x, float *W, float ret,
+			float beta, outlier_action_t action, const char *msg);
 	Quatf compute_quaternion();
 	void handle_shadow();
 };

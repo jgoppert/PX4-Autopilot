@@ -153,7 +153,7 @@ void Cei::update()
 			if (init_flag == 0) {
 				_initialized = true;
 				PX4_INFO("initialized");
-				handle_correction(x1, W1, init_ret, 2, "init");
+				handle_correction(x1, W1, init_ret, 2, OUTLIER_FUSE, "init");
 			} else {
 				PX4_INFO("initialization failed: %d", init_flag);
 				_accel_stats.getMean().print();
@@ -183,7 +183,7 @@ void Cei::update()
 			_predict.res(0, x1);
 			_predict.res(1, W1);
 			_predict.eval();
-			handle_correction(x1, W1, 0, 2, "predict");
+			handle_correction(x1, W1, 0, 2, OUTLIER_FUSE, "predict");
 			perf_end(_perf_predict);
 		}
 
@@ -213,7 +213,7 @@ void Cei::update()
 			_correct_mag.res(4, &r_std_mag);
 			_correct_mag.res(5, &mag_ret);
 			_correct_mag.eval();
-			handle_correction(x1, W1, mag_ret, beta_mag, "mag");
+			handle_correction(x1, W1, mag_ret, beta_mag, OUTLIER_FUSE, "mag");
 			_pub_est.get().mag_test_ratio = beta_mag;
 			_pub_innov.get().mag_innov[0] = r_mag;
 			_pub_innov.get().mag_innov_var[0] = r_std_mag*r_std_mag;
@@ -247,7 +247,7 @@ void Cei::update()
 			_correct_accel.res(4, r_std_acc);
 			_correct_accel.res(5, &accel_ret);
 			_correct_accel.eval();
-			handle_correction(x1, W1, accel_ret, beta_acc, "accel");
+			handle_correction(x1, W1, accel_ret, beta_acc, OUTLIER_FUSE, "accel");
 			perf_end(_perf_accel);
 		}
 	}
@@ -333,16 +333,17 @@ bool Cei::array_finite(float *a, int n)
 	return true;
 }
 
-void Cei::handle_correction(float *x, float *W, float ret, float beta, const char *msg)
+void Cei::handle_correction(float *x, float *W, float ret,
+		float beta, outlier_action_t action, const char *msg)
 {
 	int error_code = int(ret);
-	if (error_code == -1) {
-		PX4_WARN("%s fault, beta: %10.5f", msg, double(beta));
+	if (error_code != 0) {
+		return;
 	} else if (!array_finite(W, n_W)) {
 		PX4_WARN("%s, non finite covariance", msg);
 	} else if (!array_finite(x, n_x)) {
 		PX4_WARN("%s, non finite correction state", msg);
-	} else if (error_code == 0) {
+	} else if (error_code == 0 && (beta<1 || action == OUTLIER_FUSE)) {
 		memcpy(_W.data(), W, sizeof(float)*n_W);
 		memcpy(_x.data(), x, sizeof(float)*n_x);
 		handle_shadow();
