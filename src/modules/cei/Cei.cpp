@@ -203,14 +203,17 @@ void Cei::update()
 
 		// correct accel
 		if (accel_updated) {
-			/* correct_accel:(x_h[6],W[6x6,21nz],y_b[3],std_accel)->(x_accel[6],W_accel[6x6,21nz]) */
+			/* correct_accel:(x_h[6],W[6x6,21nz],y_b[3],omega_b[3],std_accel,std_accel_omega)->(x_accel[6],W_accel[6x6,21nz]) */
 			perf_begin(_perf_accel);
 			const float *y_b = _sub_sensor.get().accelerometer_m_s2;
 			float std_acc = 1e-3f * _std_acc.get();
+			float std_acc_w = 1e-3f * _std_acc_w.get();
 			_correct_accel.arg(0, _x.data());
 			_correct_accel.arg(1, _W.data());
 			_correct_accel.arg(2, y_b);
-			_correct_accel.arg(3, &std_acc);
+			_correct_accel.arg(3, omega_b.data());
+			_correct_accel.arg(4, &std_acc);
+			_correct_accel.arg(5, &std_acc_w);
 			_correct_accel.res(0, x1);
 			_correct_accel.res(1, W1);
 			_correct_accel.eval();

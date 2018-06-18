@@ -126,6 +126,7 @@ private:
 		(ParamFloat<px4::params::CEI_STD_GYRO>) _std_gyro,
 		(ParamFloat<px4::params::CEI_SN_GYRO_RW>) _sn_gyro_rw,
 		(ParamFloat<px4::params::CEI_STD_ACC>) _std_acc,
+		(ParamFloat<px4::params::CEI_STD_ACC_W>) _std_acc_w,
 		(ParamFloat<px4::params::CEI_MAG_DECL>) _decl
 	)
 

@@ -46,6 +46,20 @@ PARAM_DEFINE_FLOAT(CEI_STD_MAG, 2.5f);
 PARAM_DEFINE_FLOAT(CEI_STD_ACC, 35.0f);
 
 /**
+ * Accel Angular Velocity Noise Std. Dev.
+ *
+ * Accounts for degradation of orientation measurement due to centrip. accel.
+ *
+ * @group CEI
+ * @unit rad/ (rad/s)^2
+ * @min 0.00
+ * @max 1000.0
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(CEI_STD_ACC_W, 100.0f);
+
+
+/**
  * Magnetic Declination
  *
  * @group CEI
