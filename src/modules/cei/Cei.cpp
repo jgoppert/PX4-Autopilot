@@ -157,9 +157,6 @@ void Cei::update()
 				_initialized = true;
 				PX4_INFO("initialized");
 				handle_correction(x1, W1, "init");
-				_x.print();
-				_W.print();
-
 			} else {
 				PX4_INFO("initialization failed: %f", double(valid));
 				_accel_stats.getMean().print();
