@@ -78,10 +78,12 @@ public:
 
 private:
 
-	perf_counter_t _perf_elapsed;
+	perf_counter_t _perf_update;
 	perf_counter_t _perf_predict;
 	perf_counter_t _perf_mag;
 	perf_counter_t _perf_accel;
+	perf_counter_t _perf_publish;
+	perf_counter_t _perf_subscribe;
 	bool _initialized;
 	bool _shadow;
 

@@ -9,10 +9,12 @@
 Cei::Cei() :
 	SuperBlock(nullptr, "CEI"),
 	ModuleParams(nullptr),
-	_perf_elapsed(),
+	_perf_update(),
 	_perf_predict(),
 	_perf_mag(),
 	_perf_accel(),
+	_perf_publish(),
+	_perf_subscribe(),
 	_initialized(false),
 	_shadow(false),
 
@@ -46,10 +48,12 @@ Cei::Cei() :
 	_polls()
 {
 	// counters
-	_perf_elapsed = perf_alloc(PC_ELAPSED, "cei_elapsed");
+	_perf_update = perf_alloc(PC_ELAPSED, "cei_update");
 	_perf_predict = perf_alloc(PC_ELAPSED, "cei_predict");
 	_perf_mag = perf_alloc(PC_ELAPSED, "cei_mag");
 	_perf_accel = perf_alloc(PC_ELAPSED, "cei_accel");
+	_perf_publish = perf_alloc(PC_ELAPSED, "cei_publish");
+	_perf_subscribe = perf_alloc(PC_ELAPSED, "cei_subscribe");
 
 	_polls[POLL_PARAM].fd = _sub_param_update.getHandle();
 	_polls[POLL_PARAM].events = POLLIN;
@@ -64,14 +68,16 @@ Cei::Cei() :
 
 Cei::~Cei()
 {
-	perf_free(_perf_elapsed);
+	perf_free(_perf_update);
+	perf_free(_perf_predict);
 	perf_free(_perf_mag);
 	perf_free(_perf_accel);
+	perf_free(_perf_publish);
+	perf_free(_perf_subscribe);
 }
 
 void Cei::update()
 {
-	perf_begin(_perf_elapsed);
 
 	// wait for a sensor update, check for exit condition every 100 ms
 	int ret = px4_poll(_polls, n_poll, 100);
@@ -88,7 +94,6 @@ void Cei::update()
 	if (dt < 1e-3f) {
 		return;
 	}
-
 	_timeStamp =  now;
 
 	// check for sane update rate
@@ -97,8 +102,12 @@ void Cei::update()
 		return;
 	}
 
+	perf_begin(_perf_update);
+
 	// set dt for all child blocks
 	setDt(dt);
+
+	perf_begin(_perf_subscribe);
 
 	// get updates
 	bool mag_updated = _sub_mag.updated();
@@ -115,6 +124,8 @@ void Cei::update()
 
 	// gyro reading
 	Vector3f omega_b(_sub_sensor.get().gyro_rad);
+
+	perf_end(_perf_subscribe);
 
 	// predict
 	if (!_initialized) {
@@ -223,6 +234,7 @@ void Cei::update()
 	}
 
 	// publish local position
+	perf_begin(_perf_publish);
 	if (false) {
 		vehicle_local_position_s &lpos = _pub_lpos.get();
 		lpos.ax = 0.1;
@@ -383,29 +395,26 @@ void Cei::update()
 
 		_pub_innov.update();
 	}
+	perf_end(_perf_publish);
 
-	perf_end(_perf_elapsed);
+	perf_end(_perf_update);
 }
 
 void Cei::status()
 {
 	PX4_INFO("initialized: %d", _initialized);
-
-	_x.print();
-	_W.print();
-
 	for (int i = 0; i < 6; i++) {
 		PX4_INFO("x(%2d) = %20.10f", i, double(_x(i)));
 	}
-
 	for (int i = 0; i < 21; i++) {
 		PX4_INFO("W(%2d) = %20.10f", i, double(_W(i)));
 	}
-
-	perf_print_counter(_perf_elapsed);
+	perf_print_counter(_perf_update);
 	perf_print_counter(_perf_predict);
 	perf_print_counter(_perf_mag);
 	perf_print_counter(_perf_accel);
+	perf_print_counter(_perf_publish);
+	perf_print_counter(_perf_subscribe);
 }
 
 
