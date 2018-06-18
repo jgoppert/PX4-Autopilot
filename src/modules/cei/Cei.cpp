@@ -135,8 +135,8 @@ void Cei::update()
 
 		if (_mag_stats.getCount() > 10 and _accel_stats.getCount() > 10) {
 
-			/* init:(g_b[3],B_b[3],decl)->(init_valid,x0[6]) */
-			float valid = 0;
+			// init:(g_b[3],B_b[3],decl,std_x0[6])->(x0[6],W0[6x6,21nz],error_code)
+			float init_ret = 0;
 			float x1[6] = {0};
 			float W1[n_W] = {0};
 			float std0[6] = {1, 1, 1, 0.1, 0.1, 0.1};
@@ -148,17 +148,17 @@ void Cei::update()
 			_init.arg(1, y_mag.data());
 			_init.arg(2, &decl);
 			_init.arg(3, std0);
-			_init.res(0, &valid);
-			_init.res(1, x1);
-			_init.res(2, W1);
+			_init.res(0, x1);
+			_init.res(1, W1);
+			_init.res(2, &init_ret);
 			_init.eval();
-
-			if (int(valid)) {
+			int init_flag = int(init_ret);
+			if (init_flag == 0) {
 				_initialized = true;
 				PX4_INFO("initialized");
-				handle_correction(x1, W1, "init");
+				handle_correction(x1, W1, init_ret, 2, "init");
 			} else {
-				PX4_INFO("initialization failed: %f", double(valid));
+				PX4_INFO("initialization failed: %d", init_flag);
 				_accel_stats.getMean().print();
 				_mag_stats.getMean().print();
 				Vector<float, 6>(x1).print();
@@ -186,46 +186,64 @@ void Cei::update()
 			_predict.res(0, x1);
 			_predict.res(1, W1);
 			_predict.eval();
-			handle_correction(x1, W1, "predict");
+			handle_correction(x1, W1, 0, 2, "predict");
 			perf_end(_perf_predict);
 		}
 
 		// correct mag
 		if (mag_updated) {
-			/* correct_mag:(x_h[6],W[6x6,21nz],y_b[3],decl,std_mag)->(x_mag[6],W_mag[6x6,21nz]) */
+			// correct_mag:(x_h[6],W[6x6,21nz],y_b[3],decl,std_mag,beta_mag_c)->
+			// 	(x_mag[6],W_mag[6x6,21nz],beta_mag,r_std_mag,error_code)
 			perf_begin(_perf_mag);
 			const float *y_b = _sub_mag.get().magnetometer_ga;
 			float decl = _decl.get();
 			float std_mag = 1e-3f * _std_mag.get();
+			float beta_mag_c = _beta_mag_c.get();
+			float beta_mag = 0;
+			float r_std_mag = 0;
+			float mag_ret = 0;
 			_correct_mag.arg(0, _x.data());
 			_correct_mag.arg(1, _W.data());
 			_correct_mag.arg(2, y_b);
 			_correct_mag.arg(3, &decl);
 			_correct_mag.arg(4, &std_mag);
+			_correct_mag.arg(5, &beta_mag_c);
 			_correct_mag.res(0, x1);
 			_correct_mag.res(1, W1);
+			_correct_mag.res(2, &beta_mag);
+			_correct_mag.res(3, &r_std_mag);
+			_correct_mag.res(4, &mag_ret);
 			_correct_mag.eval();
-			handle_correction(x1, W1, "mag");
+			handle_correction(x1, W1, mag_ret, beta_mag, "mag");
 			perf_end(_perf_mag);
 		}
 
 		// correct accel
 		if (accel_updated) {
-			/* correct_accel:(x_h[6],W[6x6,21nz],y_b[3],omega_b[3],std_accel,std_accel_omega)->(x_accel[6],W_accel[6x6,21nz]) */
+			// correct_accel:(x_h[6],W[6x6,21nz],y_b[3],omega_b[3],std_accel,std_accel_omega,beta_accel_c)->
+			// (x_accel[6],W_accel[6x6,21nz],beta_accel,r_std_accel[2],error_code)
 			perf_begin(_perf_accel);
 			const float *y_b = _sub_sensor.get().accelerometer_m_s2;
 			float std_acc = 1e-3f * _std_acc.get();
 			float std_acc_w = 1e-3f * _std_acc_w.get();
+			float beta_acc_c = _beta_acc_c.get();
+			float beta_acc = 0;
+			float r_std_acc[2] = {0};
+			float accel_ret = 0;
 			_correct_accel.arg(0, _x.data());
 			_correct_accel.arg(1, _W.data());
 			_correct_accel.arg(2, y_b);
 			_correct_accel.arg(3, omega_b.data());
 			_correct_accel.arg(4, &std_acc);
 			_correct_accel.arg(5, &std_acc_w);
+			_correct_accel.arg(6, &beta_acc_c);
 			_correct_accel.res(0, x1);
 			_correct_accel.res(1, W1);
+			_correct_accel.res(2, &beta_acc);
+			_correct_accel.res(3, r_std_acc);
+			_correct_accel.res(4, &accel_ret);
 			_correct_accel.eval();
-			handle_correction(x1, W1, "accel");
+			handle_correction(x1, W1, accel_ret, beta_acc, "accel");
 			perf_end(_perf_accel);
 		}
 	}
@@ -426,21 +444,16 @@ bool Cei::array_finite(float *a, int n)
 	return true;
 }
 
-void Cei::handle_correction(float *x, float *W, const char *msg)
+void Cei::handle_correction(float *x, float *W, float ret, float beta, const char *msg)
 {
-	bool correct = true;
-
-	if (!array_finite(W, n_W)) {
+	int error_code = int(ret);
+	if (error_code == -1) {
+		PX4_WARN("%s fault, beta: %10.5f", msg, double(beta));
+	} else if (!array_finite(W, n_W)) {
 		PX4_WARN("%s, non finite covariance", msg);
-		correct = false;
-	}
-
-	if (!array_finite(x, n_x)) {
+	} else if (!array_finite(x, n_x)) {
 		PX4_WARN("%s, non finite correction state", msg);
-		correct = false;
-	}
-
-	if (correct) {
+	} else if (error_code == 0) {
 		memcpy(_W.data(), W, sizeof(float)*n_W);
 		memcpy(_x.data(), x, sizeof(float)*n_x);
 		handle_shadow();

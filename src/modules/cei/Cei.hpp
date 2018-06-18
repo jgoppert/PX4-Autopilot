@@ -127,13 +127,15 @@ private:
 		(ParamFloat<px4::params::CEI_STD_MAG>) _std_mag,
 		(ParamFloat<px4::params::CEI_STD_GYRO>) _std_gyro,
 		(ParamFloat<px4::params::CEI_SN_GYRO_RW>) _sn_gyro_rw,
+		(ParamFloat<px4::params::CEI_BETA_ACC_C>) _beta_acc_c,
+		(ParamFloat<px4::params::CEI_BETA_MAG_C>) _beta_mag_c,
 		(ParamFloat<px4::params::CEI_STD_ACC>) _std_acc,
 		(ParamFloat<px4::params::CEI_STD_ACC_W>) _std_acc_w,
 		(ParamFloat<px4::params::CEI_MAG_DECL>) _decl
 	)
 
 	bool array_finite(float *a, int n);
-	void handle_correction(float *x, float *W, const char *msg);
+	void handle_correction(float *x, float *W, float ret, const float beta, const char *msg);
 	Quatf compute_quaternion();
 	void handle_shadow();
 };
