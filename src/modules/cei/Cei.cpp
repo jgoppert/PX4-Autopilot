@@ -10,6 +10,9 @@ Cei::Cei() :
 	SuperBlock(nullptr, "CEI"),
 	ModuleParams(nullptr),
 	_perf_elapsed(),
+	_perf_predict(),
+	_perf_mag(),
+	_perf_accel(),
 	_initialized(false),
 	_shadow(false),
 
@@ -21,8 +24,7 @@ Cei::Cei() :
 	_mrp_shadow(mrp_shadow_functions()),
 	_mrp_to_quat(mrp_to_quat_functions()),
 	_quat_to_euler(quat_to_euler_functions()),
-	_predict_W(predict_W_functions()),
-	_x_predict(x_predict_functions()),
+	_predict(predict_x_W_functions()),
 	_correct_accel(correct_accel_functions()),
 	_correct_mag(correct_mag_functions()),
 	_init(init_functions()),
@@ -45,6 +47,9 @@ Cei::Cei() :
 {
 	// counters
 	_perf_elapsed = perf_alloc(PC_ELAPSED, "cei_elapsed");
+	_perf_predict = perf_alloc(PC_ELAPSED, "cei_predict");
+	_perf_mag = perf_alloc(PC_ELAPSED, "cei_mag");
+	_perf_accel = perf_alloc(PC_ELAPSED, "cei_accel");
 
 	_polls[POLL_PARAM].fd = _sub_param_update.getHandle();
 	_polls[POLL_PARAM].events = POLLIN;
@@ -53,13 +58,15 @@ Cei::Cei() :
 	_polls[POLL_SENSORS].events = POLLIN;
 
 	_x.setZero();
-	_W.setAll(0.1);
+	_W.setZero();
 	status();
 }
 
 Cei::~Cei()
 {
 	perf_free(_perf_elapsed);
+	perf_free(_perf_mag);
+	perf_free(_perf_accel);
 }
 
 void Cei::update()
@@ -120,6 +127,8 @@ void Cei::update()
 			/* init:(g_b[3],B_b[3],decl)->(init_valid,x0[6]) */
 			float valid = 0;
 			float x1[6] = {0};
+			float W1[n_W] = {0};
+			float std0[6] = {1, 1, 1, 0.1, 0.1, 0.1};
 			float decl = _decl.get();
 			Vector3f y_accel = _accel_stats.getMean();
 			Vector3f y_mag = _mag_stats.getMean();
@@ -127,14 +136,18 @@ void Cei::update()
 			_init.arg(0, y_accel.data());
 			_init.arg(1, y_mag.data());
 			_init.arg(2, &decl);
+			_init.arg(3, std0);
 			_init.res(0, &valid);
 			_init.res(1, x1);
+			_init.res(2, W1);
 			_init.eval();
 
 			if (int(valid)) {
 				_initialized = true;
 				PX4_INFO("initialized");
-
+				handle_correction(x1, W1, "init");
+				_x.print();
+				_W.print();
 			} else {
 				PX4_INFO("initialization failed: %f", double(valid));
 				_accel_stats.getMean().print();
@@ -145,65 +158,63 @@ void Cei::update()
 
 	} else {
 
+		// temporary variables for correction/prediction return
+		float x1[n_x] = {0};
+		float W1[n_W] = {0};
+
 		// prediction
 		{
-
-			// TODO should combine these two functions in Casadi
-			/* x_predict:(x0[6],omega_b[3],dt)->(x1[6]) */
-			float x1[n_x] = {0};
-			_x_predict.arg(0, _x.data());
-			_x_predict.arg(1, omega_b.data());
-			_x_predict.arg(2, &dt);
-			_x_predict.res(0, x1);
-			_x_predict.eval();
-
-			/* predict_W:(x_h[6],W0[6x6,21nz],w_att,omega_b[3],dt)->(W1[6x6,21nz]) */
-			float W1[n_W] = {0};
-			float w_att = _w_att.get();
-			_predict_W.arg(0, _x.data());
-			_predict_W.arg(1, _W.data());
-			_predict_W.arg(2, &w_att);
-			_predict_W.arg(3, omega_b.data());
-			_predict_W.arg(4, &dt);
-			_predict_W.res(0, W1);
-			_predict_W.eval();
+			/* predict_x_W:(x0[6],W0[6x6,21nz],omega_b[3],std_gyro,sn_gyro_rw,dt)->(x1[6],W1[6x6,21nz]) */
+			perf_begin(_perf_predict);
+			float std_gyro = 1e-3f*_std_gyro.get();
+			float sn_gyro_rw = 1e-3f*_sn_gyro_rw.get();
+			_predict.arg(0, _x.data());
+			_predict.arg(1, _W.data());
+			_predict.arg(2, omega_b.data());
+			_predict.arg(3, &std_gyro);
+			_predict.arg(4, &sn_gyro_rw);
+			_predict.arg(5, &dt);
+			_predict.res(0, x1);
+			_predict.res(1, W1);
+			_predict.eval();
 			handle_correction(x1, W1, "predict");
+			perf_end(_perf_predict);
 		}
 
 		// correct mag
 		if (mag_updated) {
-			/* correct_mag:(x_h[6],W[6x6,21nz],y_b[3],decl,w_mag)->(x_mag[6],W_mag[6x6,21nz]) */
+			/* correct_mag:(x_h[6],W[6x6,21nz],y_b[3],decl,std_mag)->(x_mag[6],W_mag[6x6,21nz]) */
+			perf_begin(_perf_mag);
 			const float *y_b = _sub_mag.get().magnetometer_ga;
-			float x1[n_x] = {0};
-			float W1[n_W] = {0};
 			float decl = _decl.get();
-			float w_mag = _w_mag.get();
+			float std_mag = 1e-3f*_std_mag.get();
 			_correct_mag.arg(0, _x.data());
 			_correct_mag.arg(1, _W.data());
 			_correct_mag.arg(2, y_b);
 			_correct_mag.arg(3, &decl);
-			_correct_mag.arg(4, &w_mag);
+			_correct_mag.arg(4, &std_mag);
 			_correct_mag.res(0, x1);
 			_correct_mag.res(1, W1);
 			_correct_mag.eval();
 			handle_correction(x1, W1, "mag");
+			perf_end(_perf_mag);
 		}
 
 		// correct accel
 		if (accel_updated) {
-			/* correct_accel:(x_h[6],W[6x6,21nz],y_b[3],w_accel)->(x_accel[6],W_accel[6x6,21nz]) */
+			/* correct_accel:(x_h[6],W[6x6,21nz],y_b[3],std_accel)->(x_accel[6],W_accel[6x6,21nz]) */
+			perf_begin(_perf_accel);
 			const float *y_b = _sub_sensor.get().accelerometer_m_s2;
-			float x1[n_x] = {0};
-			float W1[n_W] = {0};
-			float w_accel = _w_accel.get();
+			float std_acc = 1e-3f*_std_acc.get();
 			_correct_accel.arg(0, _x.data());
 			_correct_accel.arg(1, _W.data());
 			_correct_accel.arg(2, y_b);
-			_correct_accel.arg(3, &w_accel);
+			_correct_accel.arg(3, &std_acc);
 			_correct_accel.res(0, x1);
 			_correct_accel.res(1, W1);
 			_correct_accel.eval();
 			handle_correction(x1, W1, "accel");
+			perf_end(_perf_accel);
 		}
 	}
 
@@ -383,6 +394,9 @@ void Cei::status()
 	}
 
 	perf_print_counter(_perf_elapsed);
+	perf_print_counter(_perf_predict);
+	perf_print_counter(_perf_mag);
+	perf_print_counter(_perf_accel);
 }
 
 

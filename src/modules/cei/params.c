@@ -1,43 +1,55 @@
 #include <parameters/param.h>
 
 /**
- * Attitude Process Noise Std. Dev.
+ * Gyro Noise Std. Dev.
  *
  * @group CEI
- * @unit
- * @min 0
- * @max 1.0
- * @decimal 4
+ * @unit mrad
+ * @min 0.01
+ * @max 100.0
+ * @decimal 2
  */
-PARAM_DEFINE_FLOAT(CEI_ATT_W, 0.0f);
+PARAM_DEFINE_FLOAT(CEI_STD_GYRO, 1.0f);
 
 /**
- * Magnetometer Noise Std. Dev.
+ * Gyro Random Walk Sqrt Noise Power
  *
  * @group CEI
- * @unit radians
- * @min 0.0001
- * @max 1.0
- * @decimal 4
+ * @unit (mrad/s) * sqrt(s)
+ * @min 0.01
+ * @max 100.0
+ * @decimal 2
  */
-PARAM_DEFINE_FLOAT(CEI_MAG_W, 0.002f);
+PARAM_DEFINE_FLOAT(CEI_SN_GYRO_RW, 0.1f);
+
 
 /**
- * Accel Noise Std. Dev.
+ * Magnetometer Rotational Noise Std. Dev. (std. dev./ typical norm)
  *
  * @group CEI
- * @unit radians
- * @min 0.0001
- * @max 1.0
- * @decimal 4
+ * @unit rad
+ * @min 0.01
+ * @max 100.0
+ * @decimal 2
  */
-PARAM_DEFINE_FLOAT(CEI_ACC_W, 0.005f);
+PARAM_DEFINE_FLOAT(CEI_STD_MAG, 2.5f);
+
+/**
+ * Accel Rotational Noise Std. Dev. (std. dev./ typical norm)
+ *
+ * @group CEI
+ * @unit rad
+ * @min 0.01
+ * @max 100.0
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(CEI_STD_ACC, 3.5.0f);
 
 /**
  * Magnetic Declination
  *
  * @group CEI
- * @unit radians
+ * @unit rad
  * @min -3.14159
  * @max 3.14159
  * @decimal 3

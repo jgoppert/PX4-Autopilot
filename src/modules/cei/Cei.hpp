@@ -79,6 +79,9 @@ public:
 private:
 
 	perf_counter_t _perf_elapsed;
+	perf_counter_t _perf_predict;
+	perf_counter_t _perf_mag;
+	perf_counter_t _perf_accel;
 	bool _initialized;
 	bool _shadow;
 
@@ -90,8 +93,7 @@ private:
 	CasadiFunc _mrp_shadow;
 	CasadiFunc _mrp_to_quat;
 	CasadiFunc _quat_to_euler;
-	CasadiFunc _predict_W;
-	CasadiFunc _x_predict;
+	CasadiFunc _predict;
 	CasadiFunc _correct_accel;
 	CasadiFunc _correct_mag;
 	CasadiFunc _init;
@@ -120,11 +122,11 @@ private:
 
 	// parameters, see params.c/parameters.xml for description
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SYS_AUTOSTART>) _sys_autostart,
-		(ParamFloat<px4::params::CEI_MAG_W>) _w_mag,
-		(ParamFloat<px4::params::CEI_MAG_DECL>) _decl,
-		(ParamFloat<px4::params::CEI_ATT_W>) _w_att,
-		(ParamFloat<px4::params::CEI_ACC_W>) _w_accel
+		(ParamFloat<px4::params::CEI_STD_MAG>) _std_mag,
+		(ParamFloat<px4::params::CEI_STD_GYRO>) _std_gyro,
+		(ParamFloat<px4::params::CEI_SN_GYRO_RW>) _sn_gyro_rw,
+		(ParamFloat<px4::params::CEI_STD_ACC>) _std_acc,
+		(ParamFloat<px4::params::CEI_MAG_DECL>) _decl
 	)
 
 	bool array_finite(float *a, int n);
