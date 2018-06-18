@@ -5,11 +5,11 @@
  *
  * @group CEI
  * @unit mrad
- * @min 0
+ * @min 0.01
  * @max 100.0
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(CEI_STD_GYRO, 0.0f);
+PARAM_DEFINE_FLOAT(CEI_STD_GYRO, 1.0f);
 
 /**
  * Gyro Random Walk Sqrt Noise Power
@@ -20,7 +20,7 @@ PARAM_DEFINE_FLOAT(CEI_STD_GYRO, 0.0f);
  * @max 100.0
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(CEI_SN_GYRO_RW, 0.0f);
+PARAM_DEFINE_FLOAT(CEI_SN_GYRO_RW, 0.01f);
 
 
 /**
@@ -43,7 +43,7 @@ PARAM_DEFINE_FLOAT(CEI_STD_MAG, 2.5f);
  * @max 100.0
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(CEI_STD_ACC, 3.5f);
+PARAM_DEFINE_FLOAT(CEI_STD_ACC, 35.0f);
 
 /**
  * Magnetic Declination

@@ -388,12 +388,15 @@ void Cei::status()
 {
 	PX4_INFO("initialized: %d", _initialized);
 
+	_x.print();
+	_W.print();
+
 	for (int i = 0; i < 6; i++) {
-		PX4_INFO("x[%5d] = %10.4f", i, double(_x(i)));
+		PX4_INFO("x(%2d) = %20.10f", i, double(_x(i)));
 	}
 
 	for (int i = 0; i < 21; i++) {
-		PX4_INFO("W[%5d] = %10.4f", i, double(_W(i)));
+		PX4_INFO("W(%2d) = %20.10f", i, double(_W(i)));
 	}
 
 	perf_print_counter(_perf_elapsed);
