@@ -43,7 +43,7 @@ PARAM_DEFINE_FLOAT(CEI_STD_MAG, 2.5f);
  * @max 100.0
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(CEI_STD_ACC, 35.0f);
+PARAM_DEFINE_FLOAT(CEI_STD_ACC, 3.5f);
 
 /**
  * Accel Angular Velocity Noise Std. Dev.
