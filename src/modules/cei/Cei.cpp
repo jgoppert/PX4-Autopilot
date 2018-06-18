@@ -430,12 +430,12 @@ void Cei::handle_correction(float *x, float *W, const char *msg)
 {
 	bool correct = true;
 
-	if (!array_finite(W, 21)) {
+	if (!array_finite(W, n_W)) {
 		PX4_WARN("%s, non finite covariance", msg);
 		correct = false;
 	}
 
-	if (!array_finite(x, 6)) {
+	if (!array_finite(x, n_x)) {
 		PX4_WARN("%s, non finite correction state", msg);
 		correct = false;
 	}
