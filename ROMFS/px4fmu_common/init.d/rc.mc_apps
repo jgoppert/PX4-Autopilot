@@ -44,6 +44,14 @@ else
 	fi
 fi
 
+# CEI
+if param compare SYS_MC_EST_GROUP 3
+then
+	usleep 100000
+	cei start
+fi
+
+
 ###############################################################################
 #                        End Estimator Group Selection                        #
 ###############################################################################

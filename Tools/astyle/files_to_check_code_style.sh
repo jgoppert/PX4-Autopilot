@@ -18,4 +18,5 @@ exec find boards msg src platforms \
     -path src/lib/systemlib/uthash -prune -o \
     -path src/modules/micrortps_bridge/micro-CDR -prune -o \
     -path src/modules/micrortps_bridge/microRTPS_client -prune -o \
+    -path src/modules/cei/gen -prune -o \
     -type f \( -name "*.c" -o -name "*.h" -o -name "*.cpp" -o -name "*.hpp" \) | grep $PATTERN

@@ -73,6 +73,8 @@ elif [ "$PX4_ESTIMATOR" = "lpe" ]; then
 	param set SYS_MC_EST_GROUP 1
 elif [ "$PX4_ESTIMATOR" = "inav" ]; then
 	param set SYS_MC_EST_GROUP 0
+elif [ "$PX4_ESTIMATOR" = "cei" ]; then
+	param set SYS_MC_EST_GROUP 3
 fi
 
 if param compare SYS_AUTOSTART $REQUESTED_AUTOSTART
