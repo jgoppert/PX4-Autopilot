@@ -32,14 +32,14 @@ Cei::Cei() :
 	_init(init_functions()),
 
 	// subscriptions
-	_sub_param_update(ORB_ID(parameter_update), 1000 / 2, 0, &getSubscriptions()),
-	_sub_sensor(ORB_ID(sensor_combined), 1000 / 200, 0, &getSubscriptions()),
-	_sub_mag(ORB_ID(vehicle_magnetometer), 1000 / 50, 0, &getSubscriptions()),
+	_sub_param_update(ORB_ID(parameter_update), 1000 / 2, 0),
+	_sub_sensor(ORB_ID(sensor_combined), 1000 / 200, 0),
+	_sub_mag(ORB_ID(vehicle_magnetometer), 1000 / 50, 0),
 
 	// publications
-	_pub_att(ORB_ID(vehicle_attitude), -1, &getPublications()),
-	_pub_est(ORB_ID(estimator_status), -1, &getPublications()),
-	_pub_innov(ORB_ID(ekf2_innovations), -1, &getPublications()),
+	_pub_att(ORB_ID(vehicle_attitude)),
+	_pub_est(ORB_ID(estimator_status)),
+	_pub_innov(ORB_ID(ekf2_innovations)),
 
 	// misc
 	_polls()
@@ -270,9 +270,10 @@ void Cei::update()
 
 		att.quat_reset_counter = 0;
 
-		att.rollspeed = omega_b(0) - _x(X_bgx);
-		att.pitchspeed = omega_b(1) - _x(X_bgy);
-		att.yawspeed = omega_b(2) - _x(X_bgz);
+		//att.rollspeed = omega_b(0) - _x(X_bgx);
+		//att.pitchspeed = omega_b(1) - _x(X_bgy);
+		//att.yawspeed = omega_b(2) - _x(X_bgz);
+		// TODO publish sensor bias
 		_pub_att.update();
 	}
 

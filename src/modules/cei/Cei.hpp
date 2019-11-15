@@ -1,16 +1,17 @@
-#include <px4_module_params.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/module_params.h>
 #include <controllib/blocks.hpp>
-#include <px4_posix.h>
 #include <perf/perf_counter.h>
 
 // uORB subscriptions
-#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionPollable.hpp>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_magnetometer.h>
 
 
 // uORB publications
+#include <uORB/Publication.hpp>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/ekf2_innovations.h>
@@ -104,14 +105,14 @@ private:
 	CasadiFunc _init;
 
 	// subscriptions
-	uORB::Subscription<parameter_update_s> _sub_param_update;
-	uORB::Subscription<sensor_combined_s> _sub_sensor;
-	uORB::Subscription<vehicle_magnetometer_s> _sub_mag;
+	uORB::SubscriptionPollable<parameter_update_s> _sub_param_update;
+	uORB::SubscriptionPollable<sensor_combined_s> _sub_sensor;
+	uORB::SubscriptionPollable<vehicle_magnetometer_s> _sub_mag;
 
 	// publications
-	uORB::Publication<vehicle_attitude_s> _pub_att;
-	uORB::Publication<estimator_status_s> _pub_est;
-	uORB::Publication<ekf2_innovations_s> _pub_innov;
+	uORB::PublicationData<vehicle_attitude_s> _pub_att;
+	uORB::PublicationData<estimator_status_s> _pub_est;
+	uORB::PublicationData<ekf2_innovations_s> _pub_innov;
 
 	// misc
 	px4_pollfd_struct_t _polls[n_poll];

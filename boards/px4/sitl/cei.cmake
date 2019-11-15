@@ -26,6 +26,7 @@ px4_add_board(
 		camera_feedback
 		commander
 		dataman
+		cei
 		#ekf2
 		events
 		fw_att_control
